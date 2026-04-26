@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:wafi_ecommerce_app/core/storage/local_storage.dart';
 import 'package:wafi_ecommerce_app/core/storage/secure_storage.dart';
+import 'dart:io';
 
 import 'auth_model.dart';
 
@@ -13,17 +15,20 @@ class AuthService {
     GoogleSignIn? googleSignIn,
     SecureStorage? secureStorage,
     LocalStorage? localStorage,
+    FirebaseStorage? storage,
   })  : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
         _firestore = firestore ?? FirebaseFirestore.instance,
         _googleSignIn = googleSignIn ?? GoogleSignIn(),
         _secureStorage = secureStorage ?? SecureStorage(),
-        _localStorage = localStorage ?? LocalStorage();
+        _localStorage = localStorage ?? LocalStorage(),
+        _storage = storage ?? FirebaseStorage.instance;
 
   final FirebaseAuth _firebaseAuth;
   final FirebaseFirestore _firestore;
   final GoogleSignIn _googleSignIn;
   final SecureStorage _secureStorage;
   final LocalStorage _localStorage;
+  final FirebaseStorage _storage;
 
   Stream<User?> authStateChanges() => _firebaseAuth.authStateChanges();
 
@@ -119,6 +124,31 @@ class AuthService {
 
   Future<void> continueAsGuest() async {
     await _secureStorage.clearAll();
+  }
+
+  Future<AppUser> updateProfilePhoto(String userId, String imagePath) async {
+    final file = File(imagePath);
+    final ref = _storage
+        .ref()
+        .child('users')
+        .child(userId)
+        .child('profile_${DateTime.now().millisecondsSinceEpoch}.jpg');
+
+    await ref.putFile(file);
+    final downloadUrl = await ref.getDownloadURL();
+
+    await _firestore.collection('users').doc(userId).set({
+      'profilePicture': downloadUrl,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    final firebaseUser = _firebaseAuth.currentUser;
+    if (firebaseUser != null && firebaseUser.uid == userId) {
+      await firebaseUser.updatePhotoURL(downloadUrl);
+    }
+
+    final doc = await _firestore.collection('users').doc(userId).get();
+    return AppUser.fromMap(doc.id, doc.data() ?? <String, dynamic>{});
   }
 
   Future<AppUser> _fetchOrCreateUserProfile(User firebaseUser) async {

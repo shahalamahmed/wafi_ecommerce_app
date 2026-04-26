@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:wafi_ecommerce_app/core/constants/sizes.dart';
 import 'package:wafi_ecommerce_app/core/constants/strings.dart';
 import 'package:wafi_ecommerce_app/core/theme/theme_provider.dart';
@@ -27,6 +28,9 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     return [
       _ShellPage(
         title: user?.isOwner == true ? AppStrings.dashboard : 'Categories',
+        subtitle: user?.isOwner == true
+            ? 'Operations workspace'
+            : 'Grocery collections and daily essentials',
         icon: user?.isOwner == true ? Icons.dashboard_outlined : Icons.storefront_outlined,
         body: user?.isOwner == true
             ? _OverviewPage(user: user)
@@ -34,6 +38,9 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
       ),
       _ShellPage(
         title: user?.isOwner == true ? AppStrings.products : 'Overview',
+        subtitle: user?.isOwner == true
+            ? 'Product catalog controls'
+            : 'Session, theme, and account snapshot',
         icon: user?.isOwner == true ? Icons.inventory_2_outlined : Icons.home_outlined,
         body: user?.isOwner == true
             ? const ProductScreen()
@@ -41,6 +48,9 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
       ),
       _ShellPage(
         title: user?.isOwner == true ? AppStrings.orders : AppStrings.cart,
+        subtitle: user?.isOwner == true
+            ? 'Order processing workspace'
+            : 'Review selected products before checkout',
         icon: user?.isOwner == true ? Icons.receipt_long_outlined : Icons.shopping_bag_outlined,
         body: user?.isOwner == true
             ? const _PlaceholderPage(
@@ -51,6 +61,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
       ),
       _ShellPage(
         title: AppStrings.settings,
+        subtitle: 'Preferences and account controls',
         icon: Icons.settings_outlined,
         body: const _PlaceholderPage(
           title: 'Settings Workspace',
@@ -66,14 +77,36 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     final authNotifier = ref.read(authProvider.notifier);
     final themeState = ref.watch(themeProvider);
     final themeNotifier = ref.read(themeProvider.notifier);
-    final user = authState.user;
     final cartState = ref.watch(cartProvider);
+    final user = authState.user;
     final pages = _pagesFor(user);
     final activePage = pages[_currentIndex];
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(activePage.title),
+        toolbarHeight: 76,
+        titleSpacing: AppSizes.lg,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(activePage.title),
+            const SizedBox(height: 2),
+            Text(
+              activePage.subtitle,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: AppSizes.lg),
+            child: _ProfileAction(
+              user: user,
+              isGuest: authState.isAnonymous || !authState.isAuthenticated,
+            ),
+          ),
+        ],
       ),
       drawer: Drawer(
         child: SafeArea(
@@ -198,14 +231,281 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
   }
 }
 
+class _ProfileAction extends StatelessWidget {
+  const _ProfileAction({
+    required this.user,
+    required this.isGuest,
+  });
+
+  final AppUser? user;
+  final bool isGuest;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () {
+        showModalBottomSheet<void>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => const _ProfileSheet(),
+        );
+      },
+      borderRadius: BorderRadius.circular(AppSizes.radiusFull),
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.24),
+          ),
+        ),
+        child: _ProfileAvatar(
+          user: user,
+          isGuest: isGuest,
+          radius: 22,
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileSheet extends ConsumerStatefulWidget {
+  const _ProfileSheet();
+
+  @override
+  ConsumerState<_ProfileSheet> createState() => _ProfileSheetState();
+}
+
+class _ProfileSheetState extends ConsumerState<_ProfileSheet> {
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _pickAndUpload() async {
+    final authState = ref.read(authProvider);
+    if (!authState.isAuthenticated || authState.user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sign in first to update your profile picture.')),
+      );
+      return;
+    }
+
+    final file = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+      maxWidth: 1400,
+    );
+
+    if (file == null || !mounted) return;
+
+    await ref.read(authProvider.notifier).updateProfilePhoto(file.path);
+    if (!mounted) return;
+
+    final nextState = ref.read(authProvider);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          nextState.hasError
+              ? nextState.errorMessage ?? 'Profile update failed.'
+              : 'Profile picture updated successfully.',
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+    final user = authState.user;
+    final isGuest = authState.isAnonymous || !authState.isAuthenticated;
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSizes.lg,
+          AppSizes.lg,
+          AppSizes.lg,
+          AppSizes.xl2,
+        ),
+        child: GlassCard(
+          variant: GlassCardVariant.elevated,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    AppStrings.profile,
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSizes.md),
+              Center(
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    _ProfileAvatar(
+                      user: user,
+                      isGuest: isGuest,
+                      radius: 52,
+                    ),
+                    Positioned(
+                      right: -4,
+                      bottom: -4,
+                      child: InkWell(
+                        onTap: authState.isLoading ? null : _pickAndUpload,
+                        borderRadius: BorderRadius.circular(AppSizes.radiusFull),
+                        child: Container(
+                          width: 34,
+                          height: 34,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Theme.of(context).scaffoldBackgroundColor,
+                              width: 2,
+                            ),
+                          ),
+                          child: authState.isLoading
+                              ? const Padding(
+                                  padding: EdgeInsets.all(8),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.add_rounded,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSizes.xl),
+              _ProfileInfoRow(
+                label: 'Name',
+                value: user?.displayName.isNotEmpty == true ? user!.displayName : 'Guest User',
+              ),
+              _ProfileInfoRow(
+                label: 'Email',
+                value: user?.email.isNotEmpty == true ? user!.email : 'guest@local.session',
+              ),
+              _ProfileInfoRow(
+                label: 'Role',
+                value: user?.isOwner == true ? 'Shop Owner' : 'Customer',
+              ),
+              _ProfileInfoRow(
+                label: 'Phone',
+                value: user?.phone.isNotEmpty == true ? user!.phone : 'Not added yet',
+              ),
+              const SizedBox(height: AppSizes.lg),
+              Text(
+                isGuest
+                    ? 'Guest users can browse products and view the profile panel. Sign in to upload a real profile picture.'
+                    : 'Tap the plus icon on the avatar to choose a photo from the device and update your account picture.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileInfoRow extends StatelessWidget {
+  const _ProfileInfoRow({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSizes.md),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 72,
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+          ),
+          const SizedBox(width: AppSizes.md),
+          Expanded(
+            child: Text(
+              value,
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileAvatar extends StatelessWidget {
+  const _ProfileAvatar({
+    required this.user,
+    required this.isGuest,
+    required this.radius,
+  });
+
+  final AppUser? user;
+  final bool isGuest;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    final imageUrl = user?.profilePicture.trim() ?? '';
+    final initials = user?.displayName.trim().isNotEmpty == true
+        ? user!.displayName.trim().characters.first.toUpperCase()
+        : isGuest
+            ? 'G'
+            : 'U';
+
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+      backgroundImage: imageUrl.isNotEmpty ? NetworkImage(imageUrl) : null,
+      child: imageUrl.isNotEmpty
+          ? null
+          : Text(
+              initials,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+            ),
+    );
+  }
+}
+
 class _ShellPage {
   const _ShellPage({
     required this.title,
+    required this.subtitle,
     required this.icon,
     required this.body,
   });
 
   final String title;
+  final String subtitle;
   final IconData icon;
   final Widget body;
 }

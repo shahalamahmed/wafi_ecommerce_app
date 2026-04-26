@@ -170,6 +170,39 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  Future<void> refreshProfile() async {
+    try {
+      final user = await _service.getCurrentUserProfile();
+      if (!mounted || user == null) return;
+      state = state.copyWith(
+        status: AuthStatus.authenticated,
+        user: user,
+        clearError: true,
+      );
+    } catch (_) {
+      // Silent refresh for shell profile UI.
+    }
+  }
+
+  Future<void> updateProfilePhoto(String imagePath) async {
+    final currentUser = state.user;
+    if (currentUser == null) return;
+
+    state = state.copyWith(status: AuthStatus.loading, clearError: true);
+
+    try {
+      final user = await _service.updateProfilePhoto(currentUser.uid, imagePath);
+      if (!mounted) return;
+      state = state.copyWith(
+        status: AuthStatus.authenticated,
+        user: user,
+        clearError: true,
+      );
+    } catch (error) {
+      _setFailure(error.toString());
+    }
+  }
+
   void clearError() {
     state = state.copyWith(clearError: true);
   }
