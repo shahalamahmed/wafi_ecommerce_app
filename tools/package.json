@@ -1,0 +1,12 @@
+{
+  "name": "wafi-seeder",
+  "version": "1.0.0",
+  "description": "Firestore seeder for Wafi Ecommerce",
+  "main": "wafi-seed.js",
+  "scripts": {
+    "seed": "node wafi-seed.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^11.11.0"
+  }
+}

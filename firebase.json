@@ -1,0 +1,1 @@
+{"flutter":{"platforms":{"android":{"default":{"projectId":"wafi-ecommerce","appId":"1:175234345266:android:cec544130926f723508f2b","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"wafi-ecommerce","configurations":{"android":"1:175234345266:android:cec544130926f723508f2b","ios":"1:175234345266:ios:16f0f128e2ae48a2508f2b"}}}}}}

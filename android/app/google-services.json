@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "175234345266",
+    "project_id": "wafi-ecommerce",
+    "storage_bucket": "wafi-ecommerce.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:175234345266:android:cec544130926f723508f2b",
+        "android_client_info": {
+          "package_name": "com.example.wafi_ecommerce_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "175234345266-t59kfbmanrtnsr5qo9fb1mbo9u17s336.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBF6KV5CWE3m2kOA-sfEOUEAmhHSa_PMvE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "175234345266-t59kfbmanrtnsr5qo9fb1mbo9u17s336.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:175234345266:android:5d4927afba74fdca508f2b",
+        "android_client_info": {
+          "package_name": "wafi.solution.com"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "175234345266-t59kfbmanrtnsr5qo9fb1mbo9u17s336.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBF6KV5CWE3m2kOA-sfEOUEAmhHSa_PMvE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "175234345266-t59kfbmanrtnsr5qo9fb1mbo9u17s336.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
