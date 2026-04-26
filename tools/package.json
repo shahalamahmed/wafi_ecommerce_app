@@ -4,7 +4,8 @@
   "description": "Firestore seeder for Wafi Ecommerce",
   "main": "wafi-seed.js",
   "scripts": {
-    "seed": "node wafi-seed.js"
+    "seed": "node wafi-seed.js",
+    "seed:prod": "node wafi-seed.js --allow-production"
   },
   "dependencies": {
     "firebase-admin": "^11.11.0"

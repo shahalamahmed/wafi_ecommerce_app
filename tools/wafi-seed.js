@@ -1,23 +1,35 @@
 /**
- * Wafi Ecommerce - Firebase Firestore Seeder
- * ==========================================
+ * Wafi Ecommerce - Firebase Firestore/Auth Seeder
+ * ===============================================
  * Run: node wafi-seed.js
  *
  * Prerequisites:
  *   npm install
  *
  * Setup:
- *   Firebase Console → Project Settings → Service Accounts → Generate New Private Key
+ *   Firebase Console -> Project Settings -> Service Accounts -> Generate New Private Key
  *   Save the file as serviceAccountKey.json in the same directory (tools/)
+ *
+ * Safety:
+ *   This script is blocked in production by default.
+ *   Use --allow-production only when you intentionally want to seed production.
  */
 
-const admin = require("firebase-admin");
+const admin = require('firebase-admin');
 const fs = require('fs');
 const path = require('path');
 
+const args = new Set(process.argv.slice(2));
+const allowProduction = args.has('--allow-production');
+
+if (process.env.NODE_ENV === 'production' && !allowProduction) {
+  console.error('Refusing to run seeder with NODE_ENV=production. Pass --allow-production to override.');
+  process.exit(1);
+}
+
 const keyPath = path.join(__dirname, 'serviceAccountKey.json');
 if (!fs.existsSync(keyPath)) {
-  console.error('Missing serviceAccountKey.json in tools/. Follow the README instructions.');
+  console.error('Missing serviceAccountKey.json in tools/. Follow the setup instructions.');
   process.exit(1);
 }
 
@@ -29,7 +41,6 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
-// Helper: Firestore Timestamp from JS Date
 const ts = (date = new Date()) => admin.firestore.Timestamp.fromDate(date);
 const daysAgo = (n) => {
   const d = new Date();
@@ -37,11 +48,15 @@ const daysAgo = (n) => {
   return ts(d);
 };
 
-// Data definitions (users, addresses, categories, products, reviews, carts, orders)
-// --- USERS
 const users = [
   {
     id: 'owner_uid_001',
+    auth: {
+      email: 'owner@wafi.com',
+      password: 'Owner123!',
+      displayName: 'Rahim Uddin',
+      customClaims: { role: 'owner', isShopOwner: true },
+    },
     data: {
       firstName: 'Rahim',
       lastName: 'Uddin',
@@ -57,6 +72,12 @@ const users = [
   },
   {
     id: 'customer_uid_001',
+    auth: {
+      email: 'nadia@example.com',
+      password: 'Customer123!',
+      displayName: 'Nadia Hossain',
+      customClaims: { role: 'customer', isShopOwner: false },
+    },
     data: {
       firstName: 'Nadia',
       lastName: 'Hossain',
@@ -72,6 +93,12 @@ const users = [
   },
   {
     id: 'customer_uid_002',
+    auth: {
+      email: 'karim@example.com',
+      password: 'Customer123!',
+      displayName: 'Karim Molla',
+      customClaims: { role: 'customer', isShopOwner: false },
+    },
     data: {
       firstName: 'Karim',
       lastName: 'Molla',
@@ -87,7 +114,6 @@ const users = [
   },
 ];
 
-// ADDRESSES
 const addresses = [
   {
     id: 'addr_001',
@@ -133,7 +159,6 @@ const addresses = [
   },
 ];
 
-// CATEGORIES
 const categories = [
   {
     id: 'cat_electronics',
@@ -163,7 +188,7 @@ const categories = [
     id: 'cat_home',
     data: {
       name: 'Home & Living',
-      description: 'Furniture, décor, and kitchen items',
+      description: 'Furniture, decor, and kitchen items',
       image: 'https://placehold.co/300x200?text=Home',
       parentId: null,
       displayOrder: 3,
@@ -221,7 +246,6 @@ const categories = [
   },
 ];
 
-// PRODUCTS
 const products = [
   {
     id: 'prod_001',
@@ -252,8 +276,7 @@ const products = [
     id: 'prod_002',
     data: {
       name: 'Xiaomi Redmi Note 13',
-      description:
-        'Redmi Note 13 with 108MP camera, 6.67-inch AMOLED, 5000mAh battery.',
+      description: 'Redmi Note 13 with 108MP camera, 6.67-inch AMOLED, 5000mAh battery.',
       shortDescription: 'High-res camera phone at great value',
       sku: 'XMI-RN13-BLU',
       price: 22000,
@@ -262,9 +285,7 @@ const products = [
       subCategory: 'cat_phones',
       stock: 40,
       lowStockThreshold: 8,
-      images: [
-        'https://placehold.co/600x600?text=Redmi+Note+13',
-      ],
+      images: ['https://placehold.co/600x600?text=Redmi+Note+13'],
       rating: 4.3,
       reviewCount: 8,
       isActive: true,
@@ -285,9 +306,7 @@ const products = [
       subCategory: 'cat_accessories',
       stock: 100,
       lowStockThreshold: 20,
-      images: [
-        'https://placehold.co/600x600?text=65W+Charger',
-      ],
+      images: ['https://placehold.co/600x600?text=65W+Charger'],
       rating: 4.7,
       reviewCount: 35,
       isActive: true,
@@ -308,9 +327,7 @@ const products = [
       subCategory: 'cat_menswear',
       stock: 60,
       lowStockThreshold: 10,
-      images: [
-        'https://placehold.co/600x600?text=White+Panjabi',
-      ],
+      images: ['https://placehold.co/600x600?text=White+Panjabi'],
       rating: 4.2,
       reviewCount: 20,
       isActive: true,
@@ -322,8 +339,7 @@ const products = [
     id: 'prod_005',
     data: {
       name: 'Jamdani Saree',
-      description:
-        'Authentic Bangladeshi Jamdani saree, hand-woven by artisans from Narayanganj.',
+      description: 'Authentic Bangladeshi Jamdani saree, hand-woven by artisans from Narayanganj.',
       shortDescription: 'Authentic hand-woven Jamdani',
       sku: 'SAR-JAM-RED',
       price: 5500,
@@ -332,9 +348,7 @@ const products = [
       subCategory: 'cat_womenswear',
       stock: 15,
       lowStockThreshold: 3,
-      images: [
-        'https://placehold.co/600x600?text=Jamdani+Saree',
-      ],
+      images: ['https://placehold.co/600x600?text=Jamdani+Saree'],
       rating: 4.8,
       reviewCount: 10,
       isActive: true,
@@ -355,9 +369,7 @@ const products = [
       subCategory: null,
       stock: 10,
       lowStockThreshold: 2,
-      images: [
-        'https://placehold.co/600x600?text=Bookshelf',
-      ],
+      images: ['https://placehold.co/600x600?text=Bookshelf'],
       rating: 4.1,
       reviewCount: 5,
       isActive: true,
@@ -367,7 +379,6 @@ const products = [
   },
 ];
 
-// REVIEWS
 const reviews = [
   {
     id: 'rev_001',
@@ -419,7 +430,6 @@ const reviews = [
   },
 ];
 
-// CARTS
 const carts = [
   {
     id: 'customer_uid_001',
@@ -437,7 +447,6 @@ const carts = [
   },
 ];
 
-// ORDERS
 const orders = [
   {
     id: 'order_001',
@@ -529,18 +538,121 @@ const orders = [
   },
 ];
 
-async function seedCollection(collectionName, docs) {
-  const col = db.collection(collectionName);
+function assertValid(condition, message) {
+  if (!condition) {
+    throw new Error(`Seed validation failed: ${message}`);
+  }
+}
+
+function validateMoneyTotals(label, items, subtotal, total, tax) {
+  const computedSubtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
+  assertValid(computedSubtotal === subtotal, `${label} subtotal mismatch`);
+  assertValid(subtotal + tax === total, `${label} total mismatch`);
+}
+
+function validateReferences() {
+  const userIds = new Set(users.map((entry) => entry.id));
+  const categoryIds = new Set(categories.map((entry) => entry.id));
+  const productIds = new Set(products.map((entry) => entry.id));
+
+  for (const { id, data } of addresses) {
+    assertValid(userIds.has(data.userId), `addresses/${id} -> missing user ${data.userId}`);
+  }
+
+  for (const { id, data } of categories) {
+    if (data.parentId != null) {
+      assertValid(categoryIds.has(data.parentId), `categories/${id} -> missing parent ${data.parentId}`);
+    }
+  }
+
+  for (const { id, data } of products) {
+    assertValid(categoryIds.has(data.category), `products/${id} -> missing category ${data.category}`);
+    if (data.subCategory != null) {
+      assertValid(categoryIds.has(data.subCategory), `products/${id} -> missing subCategory ${data.subCategory}`);
+    }
+  }
+
+  for (const { id, data } of reviews) {
+    assertValid(productIds.has(data.productId), `reviews/${id} -> missing product ${data.productId}`);
+    assertValid(userIds.has(data.userId), `reviews/${id} -> missing user ${data.userId}`);
+  }
+
+  for (const { id, data } of carts) {
+    assertValid(userIds.has(data.userId), `carts/${id} -> missing user ${data.userId}`);
+    validateMoneyTotals(`carts/${id}`, data.items, data.subtotal, data.total, data.tax);
+    for (const item of data.items) {
+      assertValid(productIds.has(item.productId), `carts/${id} -> missing product ${item.productId}`);
+    }
+  }
+
+  for (const { id, data } of orders) {
+    assertValid(userIds.has(data.userId), `orders/${id} -> missing user ${data.userId}`);
+    validateMoneyTotals(`orders/${id}`, data.items, data.subtotal, data.total, data.tax);
+    for (const item of data.items) {
+      assertValid(productIds.has(item.productId), `orders/${id} -> missing product ${item.productId}`);
+    }
+  }
+}
+
+function toE164(localPhone) {
+  const digits = String(localPhone).replace(/\D/g, '');
+  if (digits.startsWith('880')) return `+${digits}`;
+  if (digits.startsWith('0')) return `+88${digits}`;
+  return `+${digits}`;
+}
+
+async function seedAuthUsers() {
   let count = 0;
-  for (const { id, data } of docs) {
-    await col.doc(id).set(data);
+
+  for (const user of users) {
+    const { id, auth, data } = user;
+
+    try {
+      await admin.auth().getUser(id);
+      await admin.auth().updateUser(id, {
+        email: auth.email,
+        password: auth.password,
+        displayName: auth.displayName,
+        phoneNumber: toE164(data.phone),
+      });
+    } catch (error) {
+      if (error.code !== 'auth/user-not-found') {
+        throw error;
+      }
+
+      await admin.auth().createUser({
+        uid: id,
+        email: auth.email,
+        password: auth.password,
+        displayName: auth.displayName,
+        phoneNumber: toE164(data.phone),
+      });
+    }
+
+    await admin.auth().setCustomUserClaims(id, auth.customClaims);
     count++;
   }
-  console.log(`✅ ${collectionName}: ${count} documents seeded`);
+
+  console.log(`Seeded Firebase Auth users: ${count}`);
+}
+
+async function seedCollection(collectionName, docs) {
+  const col = db.collection(collectionName);
+  const batch = db.batch();
+
+  for (const { id, data } of docs) {
+    batch.set(col.doc(id), data, { merge: true });
+  }
+
+  await batch.commit();
+  console.log(`Seeded ${collectionName}: ${docs.length} documents`);
 }
 
 async function main() {
-  console.log('🌱 Wafi Ecommerce Seeder শুরু হচ্ছে...\n');
+  console.log('Starting Wafi seeder...\n');
+
+  validateReferences();
+  await seedAuthUsers();
 
   await seedCollection('users', users);
   await seedCollection('addresses', addresses);
@@ -550,11 +662,11 @@ async function main() {
   await seedCollection('carts', carts);
   await seedCollection('orders', orders);
 
-  console.log('\n🎉 সব ডেটা সফলভাবে Firebase-এ আপলোড হয়েছে!');
+  console.log('\nWafi seeding completed successfully.');
   process.exit(0);
 }
 
 main().catch((err) => {
-  console.error('❌ Seeding failed:', err);
+  console.error('Seeding failed:', err);
   process.exit(1);
 });
