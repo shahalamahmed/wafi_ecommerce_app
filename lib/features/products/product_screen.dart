@@ -319,7 +319,7 @@ class _ProductEmptyState extends StatelessWidget {
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium,
           ),
-        ),
+        ],
       ),
     );
   }
