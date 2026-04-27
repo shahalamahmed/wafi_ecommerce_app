@@ -97,91 +97,101 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
       for (final category in state.categories) category.id: category.name,
     };
 
-    return RefreshIndicator(
-      onRefresh: notifier.load,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isCompact = constraints.maxWidth < 720;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 720;
 
-          return ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            children: [
-              GlassInput(
-                hint: 'Search products',
-                prefixIcon: Icons.search_rounded,
-                onChanged: notifier.setSearchQuery,
-              ),
-              const SizedBox(height: AppSizes.xl2),
-              if (state.isLoading)
-                const _ProductLoadingState()
-              else if (state.hasError)
-                _ProductErrorState(
-                  message: state.errorMessage!,
-                  onRetry: notifier.load,
-                )
-              else if (state.visibleProducts.isEmpty)
-                const _ProductEmptyState()
-              else
-                SizedBox(
-                  height: isCompact ? 860 : 900,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        width: isCompact ? 116 : 148,
-                        child: _CategoryRail(
-                          categories: state.topLevelCategories,
-                          selectedCategoryId: state.selectedCategoryId,
-                          onSelect: notifier.selectCategory,
+        return Column(
+          children: [
+            GlassInput(
+              hint: 'Search products',
+              prefixIcon: Icons.search_rounded,
+              onChanged: notifier.setSearchQuery,
+            ),
+            const SizedBox(height: AppSizes.xl2),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: notifier.load,
+                child: Builder(
+                  builder: (context) {
+                    if (state.isLoading) {
+                      return const _ProductLoadingState();
+                    }
+                    if (state.hasError) {
+                      return _ProductErrorState(
+                        message: state.errorMessage!,
+                        onRetry: notifier.load,
+                      );
+                    }
+                    if (state.visibleProducts.isEmpty) {
+                      return ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: const [_ProductEmptyState()],
+                      );
+                    }
+
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: isCompact ? 86 : 110,
+                          child: _CategoryRail(
+                            categories: state.topLevelCategories,
+                            selectedCategoryId: state.selectedCategoryId,
+                            onSelect: notifier.selectCategory,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: AppSizes.md),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (state.subCategories.isNotEmpty)
-                              SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Row(
-                                  children: [
-                                    ...state.subCategories.expand(
-                                      (category) => [
-                                        GlassChip(
-                                          label: category.name.toUpperCase(),
-                                          variant: GlassChipVariant.primary,
-                                          isSelected:
-                                              state.selectedSubCategoryId == category.id,
-                                          onTap: () =>
-                                              notifier.selectSubCategory(category.id),
-                                        ),
-                                        const SizedBox(width: AppSizes.sm),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            if (state.subCategories.isNotEmpty)
-                              const SizedBox(height: AppSizes.lg),
-                            Row(
-                              children: [
-                                Text(
-                                  '${state.visibleProducts.length} items',
-                                  style: Theme.of(context).textTheme.titleMedium,
-                                ),
-                                const Spacer(),
-                                Text(
-                                  'Cart ${cartState.itemCount}',
-                                  style:
-                                      Theme.of(context).textTheme.titleMedium?.copyWith(
-                                            color: Theme.of(context).colorScheme.primary,
+                        const SizedBox(width: AppSizes.md),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (state.subCategories.isNotEmpty)
+                                SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: Row(
+                                    children: [
+                                      ...state.subCategories.expand(
+                                        (category) => [
+                                          GlassChip(
+                                            label: category.name.toUpperCase(),
+                                            variant: GlassChipVariant.primary,
+                                            isSelected: state.selectedSubCategoryId ==
+                                                category.id,
+                                            onTap: () => notifier
+                                                .selectSubCategory(category.id),
                                           ),
+                                          const SizedBox(width: AppSizes.sm),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: AppSizes.lg),
-                            Expanded(
-                              child: SingleChildScrollView(
+                              if (state.subCategories.isNotEmpty)
+                                const SizedBox(height: AppSizes.lg),
+                              Row(
+                                children: [
+                                  Text(
+                                    '${state.visibleProducts.length} items',
+                                    style:
+                                        Theme.of(context).textTheme.titleMedium,
+                                  ),
+                                  const Spacer(),
+                                  Text(
+                                    'Cart ${cartState.itemCount}',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primary,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: AppSizes.lg),
+                              Expanded(
                                 child: ProductList(
                                   products: state.visibleProducts,
                                   viewMode: state.viewMode,
@@ -206,17 +216,18 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                                   },
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    );
+                  },
                 ),
-            ],
-          );
-        },
-      ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -226,11 +237,14 @@ class _ProductLoadingState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Padding(
-        padding: EdgeInsets.all(AppSizes.xl3),
-        child: CircularProgressIndicator(),
-      ),
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: const [
+        Padding(
+          padding: EdgeInsets.all(AppSizes.xl3),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      ],
     );
   }
 }
@@ -246,35 +260,40 @@ class _ProductErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GlassCard(
-      variant: GlassCardVariant.elevated,
-      child: Column(
-        children: [
-          Icon(
-            Icons.error_outline_rounded,
-            size: AppSizes.iconXl,
-            color: Theme.of(context).colorScheme.error,
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        GlassCard(
+          variant: GlassCardVariant.elevated,
+          child: Column(
+            children: [
+              Icon(
+                Icons.error_outline_rounded,
+                size: AppSizes.iconXl,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              const SizedBox(height: AppSizes.md),
+              Text(
+                'Failed to load products',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: AppSizes.xs),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: AppSizes.lg),
+              GlassButton(
+                label: AppStrings.retry,
+                prefixIcon: Icons.refresh_rounded,
+                isFullWidth: false,
+                onPressed: onRetry,
+              ),
+            ],
           ),
-          const SizedBox(height: AppSizes.md),
-          Text(
-            'Failed to load products',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: AppSizes.xs),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: AppSizes.lg),
-          GlassButton(
-            label: AppStrings.retry,
-            prefixIcon: Icons.refresh_rounded,
-            isFullWidth: false,
-            onPressed: onRetry,
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -300,7 +319,7 @@ class _ProductEmptyState extends StatelessWidget {
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium,
           ),
-        ],
+        ),
       ),
     );
   }
@@ -334,7 +353,11 @@ class _CategoryRail extends StatelessWidget {
           onTap: () => onSelect(category?.id),
           borderRadius: BorderRadius.circular(AppSizes.radiusMd),
           child: Container(
-            padding: const EdgeInsets.all(AppSizes.md),
+            height: 120,
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSizes.xs,
+              vertical: AppSizes.sm,
+            ),
             decoration: BoxDecoration(
               color: isSelected
                   ? Theme.of(context).colorScheme.primary.withOpacity(0.12)
@@ -349,7 +372,7 @@ class _CategoryRail extends StatelessWidget {
             child: Column(
               children: [
                 CircleAvatar(
-                  radius: 28,
+                  radius: 20,
                   backgroundColor:
                       Theme.of(context).colorScheme.primary.withOpacity(0.08),
                   child: Icon(
@@ -360,8 +383,10 @@ class _CategoryRail extends StatelessWidget {
                 const SizedBox(height: AppSizes.sm),
                 Text(
                   category?.name ?? 'All Products',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleSmall,
+                  style: Theme.of(context).textTheme.labelSmall,
                 ),
               ],
             ),

@@ -45,17 +45,28 @@ class GlassBottomNav extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppSizes.bottomNavRadius),
         child: BackdropFilter(
           filter: ImageFilter.blur(
-            sigmaX: AppSizes.blurMd,
-            sigmaY: AppSizes.blurMd,
+            sigmaX: AppSizes.blurLg,
+            sigmaY: AppSizes.blurLg,
           ),
           child: Container(
             height: AppSizes.bottomNavHeight,
             decoration: BoxDecoration(
-              color: glass.elevatedColor,
               borderRadius: BorderRadius.circular(AppSizes.bottomNavRadius),
-              border: Border.all(
-                color: glass.borderColor,
-                width: AppSizes.cardBorderWidth,
+              border: Border.all(color: glass.borderColor, width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: glass.shadowColor,
+                  blurRadius: 28,
+                  offset: const Offset(0, 16),
+                ),
+              ],
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  glass.highlightColor,
+                  glass.elevatedColor,
+                ],
               ),
             ),
             child: Row(
@@ -90,20 +101,29 @@ class _GlassBottomNavTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final fg = isSelected ? colorScheme.primary : Theme.of(context).hintColor;
+    final theme = Theme.of(context);
+    final fg =
+        isSelected ? theme.colorScheme.primary : theme.textTheme.labelMedium?.color;
 
     return InkWell(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: AppSizes.animNormal),
+        curve: Curves.easeOutCubic,
         margin: const EdgeInsets.symmetric(
           horizontal: AppSizes.xs,
           vertical: AppSizes.sm,
         ),
         decoration: BoxDecoration(
-          color: isSelected ? colorScheme.primary.withOpacity(0.12) : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+          borderRadius: BorderRadius.circular(AppSizes.radiusXl),
+          color: isSelected
+              ? theme.colorScheme.primary.withOpacity(0.10)
+              : Colors.transparent,
+          border: isSelected
+              ? Border.all(
+                  color: theme.colorScheme.primary.withOpacity(0.16),
+                )
+              : null,
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -121,17 +141,21 @@ class _GlassBottomNavTile extends StatelessWidget {
                     right: -8,
                     top: -6,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
-                        color: colorScheme.primary,
-                        borderRadius: BorderRadius.circular(AppSizes.radiusFull),
+                        color: theme.colorScheme.primary,
+                        borderRadius:
+                            BorderRadius.circular(AppSizes.radiusFull),
                       ),
                       child: Text(
                         '${item.badgeCount}',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                            ),
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ),
@@ -140,10 +164,10 @@ class _GlassBottomNavTile extends StatelessWidget {
             const SizedBox(height: AppSizes.xs),
             Text(
               item.label,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: fg,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  ),
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: fg,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+              ),
             ),
           ],
         ),
