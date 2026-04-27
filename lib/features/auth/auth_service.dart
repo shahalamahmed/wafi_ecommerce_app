@@ -5,6 +5,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:wafi_ecommerce_app/core/storage/local_storage.dart';
 import 'package:wafi_ecommerce_app/core/storage/secure_storage.dart';
 import 'dart:io';
+import 'package:wafi_ecommerce_app/firebase_options.dart';
 
 import 'auth_model.dart';
 
@@ -21,7 +22,7 @@ class AuthService {
         _googleSignIn = googleSignIn ?? GoogleSignIn(),
         _secureStorage = secureStorage ?? SecureStorage(),
         _localStorage = localStorage ?? LocalStorage(),
-        _storage = storage ?? FirebaseStorage.instance;
+        _storage = storage ?? _buildStorage();
 
   final FirebaseAuth _firebaseAuth;
   final FirebaseFirestore _firestore;
@@ -29,6 +30,13 @@ class AuthService {
   final SecureStorage _secureStorage;
   final LocalStorage _localStorage;
   final FirebaseStorage _storage;
+
+  static FirebaseStorage _buildStorage() {
+    final bucket = DefaultFirebaseOptions.currentPlatform.storageBucket;
+    if (bucket == null || bucket.isEmpty) return FirebaseStorage.instance;
+    final normalizedBucket = bucket.startsWith('gs://') ? bucket : 'gs://$bucket';
+    return FirebaseStorage.instanceFor(bucket: normalizedBucket);
+  }
 
   Stream<User?> authStateChanges() => _firebaseAuth.authStateChanges();
 
@@ -128,14 +136,29 @@ class AuthService {
 
   Future<AppUser> updateProfilePhoto(String userId, String imagePath) async {
     final file = File(imagePath);
+    if (!file.existsSync()) {
+      throw Exception('Selected image file was not found on device.');
+    }
+
     final ref = _storage
         .ref()
         .child('users')
         .child(userId)
-        .child('profile_${DateTime.now().millisecondsSinceEpoch}.jpg');
+        .child('profile.jpg');
 
-    await ref.putFile(file);
-    final downloadUrl = await ref.getDownloadURL();
+    final uploadTask = await ref.putFile(
+      file,
+      SettableMetadata(
+        contentType: 'image/jpeg',
+        cacheControl: 'public,max-age=3600',
+      ),
+    );
+
+    if (uploadTask.state != TaskState.success) {
+      throw Exception('Profile picture upload did not complete successfully.');
+    }
+
+    final downloadUrl = await uploadTask.ref.getDownloadURL();
 
     await _firestore.collection('users').doc(userId).set({
       'profilePicture': downloadUrl,

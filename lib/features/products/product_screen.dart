@@ -11,12 +11,83 @@ import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_chip.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_input.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
 
-class ProductScreen extends ConsumerWidget {
-  const ProductScreen({super.key});
+class ProductCatalogPage extends StatelessWidget {
+  const ProductCatalogPage({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    this.initialCategoryId,
+  });
+
+  final String title;
+  final String subtitle;
+  final String? initialCategoryId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: WafiAppBar(
+        title: title,
+        subtitle: subtitle,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(AppSizes.screenPaddingH),
+        child: ProductScreen(
+          initialCategoryId: initialCategoryId,
+          resetFiltersOnOpen: true,
+          resetFiltersOnDispose: true,
+        ),
+      ),
+    );
+  }
+}
+
+class ProductScreen extends ConsumerStatefulWidget {
+  const ProductScreen({
+    super.key,
+    this.initialCategoryId,
+    this.resetFiltersOnOpen = false,
+    this.resetFiltersOnDispose = false,
+  });
+
+  final String? initialCategoryId;
+  final bool resetFiltersOnOpen;
+  final bool resetFiltersOnDispose;
+
+  @override
+  ConsumerState<ProductScreen> createState() => _ProductScreenState();
+}
+
+class _ProductScreenState extends ConsumerState<ProductScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final notifier = ref.read(productProvider.notifier);
+
+      if (widget.resetFiltersOnOpen) {
+        notifier.resetFilters();
+      }
+
+      if ((widget.initialCategoryId ?? '').isNotEmpty) {
+        notifier.selectCategory(widget.initialCategoryId);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    if (widget.resetFiltersOnDispose) {
+      ref.read(productProvider.notifier).resetFilters();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(productProvider);
     final notifier = ref.read(productProvider.notifier);
     final cartState = ref.watch(cartProvider);
@@ -35,17 +106,10 @@ class ProductScreen extends ConsumerWidget {
           return ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
-              GlassCard(
-                child: Column(
-                  children: [
-                    GlassInput(
-                      label: AppStrings.search,
-                      hint: 'Search',
-                      prefixIcon: Icons.search_rounded,
-                      onChanged: notifier.setSearchQuery,
-                    ),
-                  ],
-                ),
+              GlassInput(
+                hint: 'Search products',
+                prefixIcon: Icons.search_rounded,
+                onChanged: notifier.setSearchQuery,
               ),
               const SizedBox(height: AppSizes.xl2),
               if (state.isLoading)
@@ -76,25 +140,29 @@ class ProductScreen extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Row(
-                                children: [
-                                  ...state.subCategories.expand(
-                                    (category) => [
-                                      GlassChip(
-                                        label: category.name.toUpperCase(),
-                                        variant: GlassChipVariant.primary,
-                                        isSelected: state.selectedSubCategoryId == category.id,
-                                        onTap: () => notifier.selectSubCategory(category.id),
-                                      ),
-                                      const SizedBox(width: AppSizes.sm),
-                                    ],
-                                  ),
-                                ],
+                            if (state.subCategories.isNotEmpty)
+                              SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Row(
+                                  children: [
+                                    ...state.subCategories.expand(
+                                      (category) => [
+                                        GlassChip(
+                                          label: category.name.toUpperCase(),
+                                          variant: GlassChipVariant.primary,
+                                          isSelected:
+                                              state.selectedSubCategoryId == category.id,
+                                          onTap: () =>
+                                              notifier.selectSubCategory(category.id),
+                                        ),
+                                        const SizedBox(width: AppSizes.sm),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: AppSizes.lg),
+                            if (state.subCategories.isNotEmpty)
+                              const SizedBox(height: AppSizes.lg),
                             Row(
                               children: [
                                 Text(
@@ -104,9 +172,10 @@ class ProductScreen extends ConsumerWidget {
                                 const Spacer(),
                                 Text(
                                   'Cart ${cartState.itemCount}',
-                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                        color: Theme.of(context).colorScheme.primary,
-                                      ),
+                                  style:
+                                      Theme.of(context).textTheme.titleMedium?.copyWith(
+                                            color: Theme.of(context).colorScheme.primary,
+                                          ),
                                 ),
                               ],
                             ),
@@ -120,7 +189,8 @@ class ProductScreen extends ConsumerWidget {
                                   onTap: (product) {
                                     Navigator.of(context).push(
                                       MaterialPageRoute<void>(
-                                        builder: (_) => ProductDetailsScreen(product: product),
+                                        builder: (_) =>
+                                            ProductDetailsScreen(product: product),
                                       ),
                                     );
                                   },
@@ -128,7 +198,10 @@ class ProductScreen extends ConsumerWidget {
                                     await cartNotifier.addProduct(product);
                                     if (!context.mounted) return;
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('${product.name} added to cart')),
+                                      SnackBar(
+                                        content:
+                                            Text('${product.name} added to cart'),
+                                      ),
                                     );
                                   },
                                 ),
@@ -277,7 +350,8 @@ class _CategoryRail extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 28,
-                  backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                  backgroundColor:
+                      Theme.of(context).colorScheme.primary.withOpacity(0.08),
                   child: Icon(
                     _iconFor(category?.name),
                     color: Theme.of(context).colorScheme.primary,
@@ -299,8 +373,12 @@ class _CategoryRail extends StatelessWidget {
 
   IconData _iconFor(String? name) {
     final value = (name ?? '').toLowerCase();
-    if (value.contains('rice') || value.contains('grain')) return Icons.inventory_2_outlined;
-    if (value.contains('meat') || value.contains('poultry')) return Icons.set_meal_outlined;
+    if (value.contains('rice') || value.contains('grain')) {
+      return Icons.inventory_2_outlined;
+    }
+    if (value.contains('meat') || value.contains('poultry')) {
+      return Icons.set_meal_outlined;
+    }
     if (value.contains('honey')) return Icons.water_drop_outlined;
     if (value.contains('spice')) return Icons.ramen_dining_outlined;
     if (value.contains('oil')) return Icons.local_drink_outlined;

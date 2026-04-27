@@ -1,0 +1,287 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wafi_ecommerce_app/core/config/app_config.dart';
+import 'package:wafi_ecommerce_app/core/constants/sizes.dart';
+import 'package:wafi_ecommerce_app/core/constants/strings.dart';
+import 'package:wafi_ecommerce_app/core/utils/validators.dart';
+import 'package:wafi_ecommerce_app/features/addresses/address_model.dart';
+import 'package:wafi_ecommerce_app/features/addresses/address_provider.dart';
+import 'package:wafi_ecommerce_app/features/auth/auth_provider.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/glass_chip.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/glass_input.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
+
+class AddressScreen extends ConsumerWidget {
+  const AddressScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(addressProvider);
+    final notifier = ref.read(addressProvider.notifier);
+
+    return Scaffold(
+      appBar: const WafiAppBar(
+        title: AppStrings.addresses,
+        subtitle: 'Save, edit, and manage your delivery locations',
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => showAddressSheet(context, ref),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text(AppStrings.addAddress),
+      ),
+      body: RefreshIndicator(
+        onRefresh: notifier.load,
+        child: state.isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : state.isEmpty
+                ? ListView(
+                    children: const [
+                      SizedBox(height: 180),
+                      _EmptyAddresses(),
+                    ],
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSizes.screenPaddingH,
+                      AppSizes.screenPaddingH,
+                      AppSizes.screenPaddingH,
+                      100,
+                    ),
+                    itemCount: state.items.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: AppSizes.md),
+                    itemBuilder: (context, index) {
+                      final address = state.items[index];
+                      return GlassCard(
+                        variant: GlassCardVariant.elevated,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                GlassChip(
+                                  label: address.typeLabel,
+                                  variant: GlassChipVariant.primary,
+                                ),
+                                const SizedBox(width: AppSizes.sm),
+                                if (address.isDefault)
+                                  const GlassChip(
+                                    label: AppStrings.defaultAddress,
+                                    variant: GlassChipVariant.success,
+                                  ),
+                                const Spacer(),
+                                IconButton(
+                                  onPressed: () => showAddressSheet(context, ref, initial: address),
+                                  icon: const Icon(Icons.edit_outlined),
+                                ),
+                                IconButton(
+                                  onPressed: () => notifier.remove(address.id),
+                                  icon: const Icon(Icons.delete_outline_rounded),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: AppSizes.sm),
+                            Text(
+                              address.formatted,
+                              style: Theme.of(context).textTheme.bodyLarge,
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+      ),
+    );
+  }
+}
+
+Future<void> showAddressSheet(
+  BuildContext context,
+  WidgetRef ref, {
+  AddressModel? initial,
+}) async {
+  final notifier = ref.read(addressProvider.notifier);
+  final state = ref.read(addressProvider);
+  final userId = ref.read(authProvider).user?.uid;
+
+  if (userId == null || userId.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Sign in first to manage addresses.')),
+    );
+    return;
+  }
+
+  if (initial == null && state.items.length >= AppConfig.addressMaxCount) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text(AppStrings.maxAddress)),
+    );
+    return;
+  }
+
+  final name = ValueNotifier<AddressType>(initial?.type ?? AddressType.home);
+  final addressLine1 = TextEditingController(text: initial?.addressLine1 ?? '');
+  final addressLine2 = TextEditingController(text: initial?.addressLine2 ?? '');
+  final city = TextEditingController(text: initial?.city ?? '');
+  final postalCode = TextEditingController(text: initial?.postalCode ?? '');
+  final country = TextEditingController(text: initial?.country ?? 'Bangladesh');
+  final isDefault = ValueNotifier<bool>(initial?.isDefault ?? state.items.isEmpty);
+
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    builder: (sheetContext) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(
+          AppSizes.lg,
+          AppSizes.lg,
+          AppSizes.lg,
+          MediaQuery.of(sheetContext).viewInsets.bottom + AppSizes.xl2,
+        ),
+        child: GlassCard(
+          variant: GlassCardVariant.elevated,
+          child: StatefulBuilder(
+            builder: (context, setModalState) {
+              return SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      initial == null ? AppStrings.addAddress : AppStrings.editAddress,
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: AppSizes.lg),
+                    Wrap(
+                      spacing: AppSizes.sm,
+                      children: [
+                        for (final type in AddressType.values)
+                          GlassChip(
+                            label: switch (type) {
+                              AddressType.home => AppStrings.addressHome,
+                              AddressType.office => AppStrings.addressOffice,
+                              AddressType.other => AppStrings.addressOther,
+                            },
+                            variant: GlassChipVariant.primary,
+                            isSelected: name.value == type,
+                            onTap: () {
+                              name.value = type;
+                              setModalState(() {});
+                            },
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSizes.lg),
+                    _SheetInput(controller: addressLine1, label: AppStrings.addressLine1),
+                    const SizedBox(height: AppSizes.md),
+                    _SheetInput(controller: addressLine2, label: AppStrings.addressLine2),
+                    const SizedBox(height: AppSizes.md),
+                    _SheetInput(controller: city, label: AppStrings.city),
+                    const SizedBox(height: AppSizes.md),
+                    _SheetInput(controller: postalCode, label: AppStrings.postalCode),
+                    const SizedBox(height: AppSizes.md),
+                    _SheetInput(controller: country, label: AppStrings.country),
+                    const SizedBox(height: AppSizes.md),
+                    SwitchListTile(
+                      value: isDefault.value,
+                      onChanged: (value) {
+                        isDefault.value = value;
+                        setModalState(() {});
+                      },
+                      title: const Text(AppStrings.setDefault),
+                    ),
+                    const SizedBox(height: AppSizes.md),
+                    GlassButton(
+                      label: initial == null ? AppStrings.addAddress : AppStrings.update,
+                      isLoading: ref.read(addressProvider).isSaving,
+                      onPressed: () async {
+                        final errors = [
+                          AppValidators.required(addressLine1.text),
+                          AppValidators.required(city.text),
+                          AppValidators.required(postalCode.text),
+                          AppValidators.required(country.text),
+                        ].whereType<String>().toList();
+
+                        if (errors.isNotEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(errors.first)),
+                          );
+                          return;
+                        }
+
+                        await notifier.save(
+                          AddressModel(
+                            id: initial?.id ?? '',
+                            userId: userId,
+                            type: name.value,
+                            addressLine1: addressLine1.text.trim(),
+                            addressLine2: addressLine2.text.trim(),
+                            city: city.text.trim(),
+                            postalCode: postalCode.text.trim(),
+                            country: country.text.trim(),
+                            isDefault: isDefault.value,
+                            createdAt: initial?.createdAt,
+                          ),
+                        );
+
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      );
+    },
+  );
+}
+
+class _SheetInput extends StatelessWidget {
+  const _SheetInput({
+    required this.controller,
+    required this.label,
+  });
+
+  final TextEditingController controller;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassInput(
+      controller: controller,
+      label: label,
+      hint: label,
+      onChanged: (_) {},
+    );
+  }
+}
+
+class _EmptyAddresses extends StatelessWidget {
+  const _EmptyAddresses();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSizes.screenPaddingH),
+        child: GlassCard(
+          variant: GlassCardVariant.elevated,
+          child: Column(
+            children: [
+              const Icon(Icons.location_on_outlined, size: AppSizes.iconXl),
+              const SizedBox(height: AppSizes.md),
+              Text(
+                AppStrings.emptyAddress,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

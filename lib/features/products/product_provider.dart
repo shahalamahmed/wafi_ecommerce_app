@@ -35,6 +35,15 @@ class ProductNotifier extends StateNotifier<ProductState> {
     state = state.copyWith(searchQuery: query);
   }
 
+  void resetFilters() {
+    state = state.copyWith(
+      clearSelectedCategory: true,
+      clearSelectedSubCategory: true,
+      searchQuery: '',
+      inStockOnly: false,
+    );
+  }
+
   void selectCategory(String? categoryId) {
     if (categoryId == null || categoryId.isEmpty) {
       state = state.copyWith(

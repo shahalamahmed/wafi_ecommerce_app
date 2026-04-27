@@ -109,7 +109,8 @@ abstract class AppStrings {
   static const String rating         = 'Rating';
   static const String noReviews      = 'No reviews yet. Be the first!';
   static const String writeReview    = 'Write a Review';
-
+  static const categories = 'Categories';
+  static const home = 'Home';
   // ─── Cart ────────────────────────────────────────────────────
   static const String cart           = 'Cart';
   static const String myCart         = 'My Cart';
@@ -123,6 +124,8 @@ abstract class AppStrings {
   static const String subtotal       = 'Subtotal';
   static const String total          = 'Total';
   static const String tax            = 'Tax';
+
+
 
   // ─── Checkout ────────────────────────────────────────────────
   static const String checkout       = 'Checkout';
@@ -155,7 +158,7 @@ abstract class AppStrings {
   static const String cancelConfirm  = 'Cancel this order?';
   static const String noOrders       = 'No orders yet';
   static const String trackOrder     = 'Track Order';
-
+  static const myOrders = 'My Orders';
   // ─── Order Status ────────────────────────────────────────────
   static const String statusPending   = 'Pending';
   static const String statusConfirmed = 'Confirmed';

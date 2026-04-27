@@ -7,6 +7,7 @@ import 'package:wafi_ecommerce_app/features/products/product_model.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_chip.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
 
 class ProductDetailsScreen extends ConsumerStatefulWidget {
   const ProductDetailsScreen({
@@ -31,8 +32,11 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
     final product = widget.product;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(product.name),
+      appBar: WafiAppBar(
+        title: product.name,
+        subtitle: product.shortDescription.trim().isNotEmpty
+            ? product.shortDescription
+            : AppStrings.productDetails,
         actions: [
           IconButton(
             onPressed: () {

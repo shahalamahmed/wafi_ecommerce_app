@@ -1,8 +1,6 @@
 import 'dart:async';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'auth_model.dart';
 import 'auth_service.dart';
 
@@ -186,7 +184,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> updateProfilePhoto(String imagePath) async {
     final currentUser = state.user;
-    if (currentUser == null) return;
+    if (currentUser == null) {
+      _setFailure('Sign in first to update your profile picture.');
+      return;
+    }
 
     state = state.copyWith(status: AuthStatus.loading, clearError: true);
 
@@ -199,7 +200,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
         clearError: true,
       );
     } catch (error) {
-      _setFailure(error.toString());
+      if (!mounted) return;
+      state = state.copyWith(
+        status: AuthStatus.authenticated,
+        user: currentUser,
+        errorMessage: error.toString(),
+      );
     }
   }
 

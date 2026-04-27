@@ -17,7 +17,7 @@ abstract class AppColors {
   static const Color glassPressedLight  = Color(0xCCFFFFFF); // 80% white
 
   static const Color glassBorderDark    = Color(0x1AFFFFFF); // 10%
-  static const Color glassBorderLight   = Color(0xB3FFFFFF); // 70%
+  static const Color glassBorderLight   = Color(0x26000000); // 15% black for visible light borders
 
   static const Color primaryDark        = Color(0xFF6366F1); // indigo-500
   static const Color primaryLight       = Color(0xFF4F46E5); // indigo-600
