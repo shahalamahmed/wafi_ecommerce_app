@@ -55,17 +55,22 @@ class HomeScreen extends ConsumerWidget {
     }
 
     final categories = productState.topLevelCategories;
-    final products = productState.products.where((product) => product.isActive).toList();
+    final products =
+    productState.products.where((p) => p.isActive).toList();
+
     final popularItems = [...products]
       ..sort((a, b) {
         final scoreA = (a.rating * 1000) + a.reviewCount;
         final scoreB = (b.rating * 1000) + b.reviewCount;
         return scoreB.compareTo(scoreA);
       });
+
     final newArrivals = [...products]
       ..sort((a, b) {
-        final dateA = a.updatedAt ?? a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-        final dateB = b.updatedAt ?? b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final dateA =
+            a.updatedAt ?? a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final dateB =
+            b.updatedAt ?? b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
         return dateB.compareTo(dateA);
       });
 
@@ -80,104 +85,123 @@ class HomeScreen extends ConsumerWidget {
           AppSizes.xl4,
         ),
         children: [
-          _HeroSection(
-            products: products.take(3).toList(),
-            onPrimaryTap: () => _openCatalog(
+          // ── Hero Banner ──────────────────────────────────────────
+          _HeroBanner(
+            onShopTap: () => _openCatalog(
               context,
-              title: 'All Grocery Products',
+              title: 'All Products',
               subtitle: 'Fresh picks, daily essentials, and pantry staples',
             ),
           ),
+
           const SizedBox(height: AppSizes.lg),
-          _SectionTile(
+
+          // ── Categories ───────────────────────────────────────────
+          _SectionWrapper(
             dark: true,
-            header: _SectionHeader(
-              eyebrow: 'Collections',
-              title: 'Browse by category.',
-              subtitle:
-                  'A lighter way to move through pantry, produce, protein, and household staples.',
-              actionLabel: AppStrings.seeAll,
-              onActionTap: () => _openCatalog(
-                context,
-                title: 'All Grocery Products',
-                subtitle: 'Browse every active grocery category',
-              ),
-            ),
-            child: _CategoryRailGrid(
-              categories: categories,
-              onTap: (category) => _openCatalog(
-                context,
-                title: category.name,
-                subtitle: category.description.isNotEmpty
-                    ? category.description
-                    : 'Selected grocery collection',
-                categoryId: category.id,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _SectionHeader(
+                  eyebrow: 'Collections',
+                  title: 'Browse by category.',
+                  actionLabel: AppStrings.seeAll,
+                  onActionTap: () => _openCatalog(
+                    context,
+                    title: 'All Products',
+                    subtitle: 'Browse every active category',
+                  ),
+                  dark: true,
+                ),
+                const SizedBox(height: AppSizes.lg),
+                _CategoryGrid(
+                  categories: categories,
+                  onTap: (cat) => _openCatalog(
+                    context,
+                    title: cat.name,
+                    subtitle: cat.description.isNotEmpty
+                        ? cat.description
+                        : 'Selected collection',
+                    categoryId: cat.id,
+                  ),
+                ),
+              ],
             ),
           ),
+
           const SizedBox(height: AppSizes.lg),
-          _SectionTile(
-            header: _SectionHeader(
-              eyebrow: 'Popular Now',
-              title: 'Most popular items.',
-              subtitle:
-                  'Top rated grocery picks, arranged as clean product cards with quick actions.',
-              actionLabel: AppStrings.seeAll,
-              onActionTap: () => _openCatalog(
-                context,
-                title: 'Popular Grocery Picks',
-                subtitle: 'Top rated products customers are choosing most',
-              ),
-            ),
-            child: _HorizontalProductStrip(
-              products: popularItems.take(6).toList(),
-              onTap: (product) {
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => ProductDetailsScreen(product: product),
+
+          // ── Popular Items ────────────────────────────────────────
+          _SectionWrapper(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _SectionHeader(
+                  eyebrow: 'Popular Now',
+                  title: 'Most popular items.',
+                  actionLabel: AppStrings.seeAll,
+                  onActionTap: () => _openCatalog(
+                    context,
+                    title: 'Popular Picks',
+                    subtitle: 'Top rated products',
                   ),
-                );
-              },
-              onAddToCart: (product) async {
-                await cartNotifier.addProduct(product);
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('${product.name} added to cart')),
-                );
-              },
+                ),
+                const SizedBox(height: AppSizes.lg),
+                _HorizontalProductStrip(
+                  products: popularItems.take(6).toList(),
+                  onTap: (p) => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => ProductDetailsScreen(product: p),
+                    ),
+                  ),
+                  onAddToCart: (p) async {
+                    await cartNotifier.addProduct(p);
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('${p.name} added to cart')),
+                    );
+                  },
+                ),
+              ],
             ),
           ),
+
           const SizedBox(height: AppSizes.lg),
-          _SectionTile(
+
+          // ── New Arrivals ─────────────────────────────────────────
+          _SectionWrapper(
             dark: true,
-            header: _SectionHeader(
-              eyebrow: 'New This Week',
-              title: 'Fresh arrivals.',
-              subtitle:
-                  'Newly stocked essentials with a darker, editorial product stage.',
-              actionLabel: AppStrings.seeAll,
-              onActionTap: () => _openCatalog(
-                context,
-                title: 'New Grocery Arrivals',
-                subtitle: 'Recently updated and newly stocked products',
-              ),
-            ),
-            child: _NewArrivalStack(
-              products: newArrivals.take(4).toList(),
-              onTap: (product) {
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => ProductDetailsScreen(product: product),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _SectionHeader(
+                  eyebrow: 'New This Week',
+                  title: 'Fresh arrivals.',
+                  actionLabel: AppStrings.seeAll,
+                  onActionTap: () => _openCatalog(
+                    context,
+                    title: 'New Arrivals',
+                    subtitle: 'Recently stocked products',
                   ),
-                );
-              },
-              onAddToCart: (product) async {
-                await cartNotifier.addProduct(product);
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('${product.name} added to cart')),
-                );
-              },
+                  dark: true,
+                ),
+                const SizedBox(height: AppSizes.lg),
+                _NewArrivalStrip(
+                  products: newArrivals.take(6).toList(),
+                  onTap: (p) => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => ProductDetailsScreen(product: p),
+                    ),
+                  ),
+                  onAddToCart: (p) async {
+                    await cartNotifier.addProduct(p);
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('${p.name} added to cart')),
+                    );
+                  },
+                ),
+              ],
             ),
           ),
         ],
@@ -186,11 +210,11 @@ class HomeScreen extends ConsumerWidget {
   }
 
   void _openCatalog(
-    BuildContext context, {
-    required String title,
-    required String subtitle,
-    String? categoryId,
-  }) {
+      BuildContext context, {
+        required String title,
+        required String subtitle,
+        String? categoryId,
+      }) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => ProductCatalogPage(
@@ -203,289 +227,91 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-class _HeroSection extends StatelessWidget {
-  const _HeroSection({
-    required this.products,
-    required this.onPrimaryTap,
-  });
+// ─────────────────────────────────────────────────────────────────────────────
+// Hero Banner  (Khaas Food-style promotional card, Apple-style radius/buttons)
+// ─────────────────────────────────────────────────────────────────────────────
+class _HeroBanner extends StatelessWidget {
+  const _HeroBanner({required this.onShopTap});
 
-  final List<ProductModel> products;
-  final VoidCallback onPrimaryTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppSizes.radiusXxl),
-      ),
-      child: Stack(
-        children: [
-          const Positioned(
-            top: 18,
-            right: 18,
-            child: _LiquidOrb(size: 120),
-          ),
-          const Positioned(
-            bottom: 36,
-            left: 16,
-            child: _LiquidOrb(size: 82, reverse: true),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(AppSizes.xl2),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _GlassEyebrow(label: 'Fresh Grocery Delivery'),
-                const SizedBox(height: AppSizes.xl),
-                Text(
-                  'A cleaner way to shop daily essentials.',
-                  style: theme.textTheme.displayLarge,
-                ),
-                const SizedBox(height: AppSizes.md),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 520),
-                  child: Text(
-                    'Use the Apple-inspired layout as the base, then add liquid glass depth, frosted chips, and gentle motion across hero, cards, and nav.',
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: theme.textTheme.bodySmall?.color,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppSizes.xl),
-                Wrap(
-                  spacing: AppSizes.sm,
-                  runSpacing: AppSizes.sm,
-                  children: [
-                    SizedBox(
-                      width: 154,
-                      child: GlassButton(
-                        label: 'Shop now',
-                        onPressed: onPrimaryTap,
-                      ),
-                    ),
-                    SizedBox(
-                      width: 154,
-                      child: GlassButton(
-                        label: 'Learn more',
-                        variant: GlassButtonVariant.ghost,
-                        onPressed: onPrimaryTap,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSizes.xl2),
-                _HeroShowcase(products: products),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeroShowcase extends StatelessWidget {
-  const _HeroShowcase({required this.products});
-
-  final List<ProductModel> products;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 280,
-      child: Row(
-        children: [
-          Expanded(
-            flex: 7,
-            child: _AnimatedProductStage(
-              product: products.isNotEmpty ? products.first : null,
-              dark: false,
-            ),
-          ),
-          const SizedBox(width: AppSizes.md),
-          Expanded(
-            flex: 4,
-            child: Column(
-              children: [
-                Expanded(
-                  child: _HeroInfoPanel(
-                    title: 'Daily offers',
-                    value: 'Up to 25% off',
-                    subtitle: 'Quiet blue actions, minimal chrome.',
-                  ),
-                ),
-                const SizedBox(height: AppSizes.md),
-                Expanded(
-                  child: _AnimatedProductStage(
-                    product: products.length > 1 ? products[1] : null,
-                    dark: true,
-                    compact: true,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeroInfoPanel extends StatelessWidget {
-  const _HeroInfoPanel({
-    required this.title,
-    required this.value,
-    required this.subtitle,
-  });
-
-  final String title;
-  final String value;
-  final String subtitle;
+  final VoidCallback onShopTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
 
-    return GlassCard(
-      variant: GlassCardVariant.elevated,
-      padding: const EdgeInsets.all(AppSizes.xl),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title.toUpperCase(),
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.primary,
-              fontWeight: FontWeight.w700,
-              letterSpacing: AppSizes.trackingWidest,
-            ),
-          ),
-          const Spacer(),
-          Text(
-            value,
-            style: theme.textTheme.headlineLarge,
-          ),
-          const SizedBox(height: AppSizes.xs),
-          Text(
-            subtitle,
-            style: theme.textTheme.bodySmall,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AnimatedProductStage extends StatelessWidget {
-  const _AnimatedProductStage({
-    required this.product,
-    required this.dark,
-    this.compact = false,
-  });
-
-  final ProductModel? product;
-  final bool dark;
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final hasImage = product?.primaryImage.trim().isNotEmpty ?? false;
-    final bg = dark ? const Color(0xFF272729) : const Color(0xFFF5F5F7);
-    final fg = dark ? Colors.white : theme.colorScheme.onSurface;
-
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.96, end: 1),
-      duration: const Duration(milliseconds: AppSizes.animVerySlow),
-      curve: Curves.easeOutCubic,
-      builder: (context, value, child) {
-        return Transform.scale(scale: value, child: child);
-      },
+    // Stack ব্যবহার করলে Positioned orbs button overflow ঘটাতে পারে।
+    // তাই orb গুলো Align দিয়ে দেখানো হচ্ছে এবং Stack-এ clipBehavior: hardEdge।
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppSizes.radiusXxl),
       child: Container(
-        padding: EdgeInsets.all(compact ? AppSizes.lg : AppSizes.xl),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(AppSizes.radiusXl),
-        ),
+        color: theme.colorScheme.surface,
         child: Stack(
+          clipBehavior: Clip.hardEdge,
           children: [
+            // Decorative orbs — Align ব্যবহার করলে layout affect হয় না
             Positioned(
-              right: -18,
-              top: -18,
-              child: Container(
-                width: compact ? 72 : 96,
-                height: compact ? 72 : 96,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(dark ? 0.08 : 0.7),
-                ),
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  product?.name ?? 'Curated grocery picks',
-                  maxLines: compact ? 2 : 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.headlineMedium?.copyWith(color: fg),
-                ),
-                const SizedBox(height: AppSizes.xs),
-                Text(
-                  product?.shortDescription.isNotEmpty == true
-                      ? product!.shortDescription
-                      : 'Photography-first product staging with soft depth.',
-                  maxLines: compact ? 2 : 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: dark ? const Color(0xFFCCCCCC) : null,
-                  ),
-                ),
-                const Spacer(),
-                Expanded(
-                  flex: compact ? 4 : 7,
-                  child: Center(
-                    child: hasImage
-                        ? Container(
-                            decoration: const BoxDecoration(
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Color(0x38000000),
-                                  blurRadius: 30,
-                                  offset: Offset(3, 5),
-                                ),
-                              ],
-                            ),
-                            child: Image.network(
-                              product!.primaryImage,
-                              fit: BoxFit.contain,
-                              errorBuilder: (_, __, ___) => _FallbackStage(
-                                icon: Icons.shopping_bag_outlined,
-                                dark: dark,
-                              ),
-                            ),
-                          )
-                        : _FallbackStage(
-                            icon: Icons.shopping_bag_outlined,
-                            dark: dark,
-                          ),
-                  ),
-                ),
-              ],
+              top: -40,
+              right: -40,
+              child: _Orb(size: 150, color: primary.withOpacity(0.11)),
             ),
             Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: _FrostedStatBar(
-                dark: dark,
-                leftLabel: 'Fresh picks',
-                rightLabel: product == null
-                    ? 'Gallery layout'
-                    : '${AppStrings.currencySymbol}${product!.price.toStringAsFixed(0)}',
+              bottom: -30,
+              left: -30,
+              child: _Orb(size: 110, color: primary.withOpacity(0.07)),
+            ),
+
+            // Main content — IntrinsicWidth দিয়ে button constrain করা
+            Padding(
+              padding: const EdgeInsets.all(AppSizes.xl2),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _EyebrowChip(label: 'Fresh Grocery Delivery'),
+                  const SizedBox(height: AppSizes.lg),
+
+                  Text(
+                    'A cleaner way\nto shop daily\nessentials.',
+                    style: theme.textTheme.headlineLarge?.copyWith(
+                      height: 1.15,
+                      letterSpacing: -0.5,
+                    ),
+                    maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: AppSizes.md),
+
+                  Text(
+                    'Fresh picks, daily essentials, and pantry staples — delivered.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.55),
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: AppSizes.xl),
+
+                  // ElevatedButton + OutlinedButton ব্যবহার করছি —
+                  // GlassButton এ minimumSize: infinity থাকায় overflow হচ্ছিল।
+                  // Expanded + standard buttons → নিশ্চিত no overflow।
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: onShopTap,
+                          child: const Text('Shop now'),
+                        ),
+                      ),
+                      const SizedBox(width: AppSizes.sm),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: onShopTap,
+                          child: const Text('Learn more'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ],
@@ -495,148 +321,61 @@ class _AnimatedProductStage extends StatelessWidget {
   }
 }
 
-class _FallbackStage extends StatelessWidget {
-  const _FallbackStage({
-    required this.icon,
-    required this.dark,
-  });
+// ─────────────────────────────────────────────────────────────────────────────
+// Section Wrapper
+//
+// dark: true  → Light mode: হালকা gray (#F2F2F7) | Dark mode: dark (#1C1C1E)
+// dark: false → Light mode: white              | Dark mode: elevated (#2C2C2E)
+// ─────────────────────────────────────────────────────────────────────────────
+class _SectionWrapper extends StatelessWidget {
+  const _SectionWrapper({required this.child, this.dark = false});
 
-  final IconData icon;
-  final bool dark;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 112,
-      height: 112,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: dark ? Colors.white.withOpacity(0.08) : Colors.white,
-      ),
-      child: Icon(
-        icon,
-        size: 44,
-        color: dark ? Colors.white : Theme.of(context).colorScheme.primary,
-      ),
-    );
-  }
-}
-
-class _FrostedStatBar extends StatelessWidget {
-  const _FrostedStatBar({
-    required this.dark,
-    required this.leftLabel,
-    required this.rightLabel,
-  });
-
-  final bool dark;
-  final String leftLabel;
-  final String rightLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    final fg = dark ? Colors.white : Theme.of(context).colorScheme.onSurface;
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(AppSizes.radiusFull),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(
-          sigmaX: AppSizes.blurMd,
-          sigmaY: AppSizes.blurMd,
-        ),
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSizes.md,
-            vertical: AppSizes.sm,
-          ),
-          decoration: BoxDecoration(
-            color: dark
-                ? Colors.white.withOpacity(0.12)
-                : Colors.white.withOpacity(0.72),
-            borderRadius: BorderRadius.circular(AppSizes.radiusFull),
-            border: Border.all(
-              color: Colors.white.withOpacity(dark ? 0.16 : 0.8),
-            ),
-          ),
-          child: Row(
-            children: [
-              Text(
-                leftLabel,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: fg,
-                    ),
-              ),
-              const Spacer(),
-              Text(
-                rightLabel,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: fg,
-                      fontWeight: FontWeight.w600,
-                    ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SectionTile extends StatelessWidget {
-  const _SectionTile({
-    required this.header,
-    required this.child,
-    this.dark = false,
-  });
-
-  final Widget header;
   final Widget child;
   final bool dark;
 
   @override
   Widget build(BuildContext context) {
-    final background = dark ? const Color(0xFF272729) : Colors.white;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final Color bg = dark
+        ? (isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF2F2F7))
+        : (isDark ? const Color(0xFF2C2C2E) : Colors.white);
 
     return Container(
       padding: const EdgeInsets.all(AppSizes.xl2),
       decoration: BoxDecoration(
-        color: background,
+        color: bg,
         borderRadius: BorderRadius.circular(AppSizes.radiusXxl),
       ),
-      child: DefaultTextStyle.merge(
-        style: TextStyle(color: dark ? Colors.white : null),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            header,
-            const SizedBox(height: AppSizes.xl),
-            child,
-          ],
-        ),
-      ),
+      child: child,
     );
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Section Header  (eyebrow + title + "See All" button — no overflow)
+// ─────────────────────────────────────────────────────────────────────────────
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({
     required this.eyebrow,
     required this.title,
-    required this.subtitle,
     required this.actionLabel,
     required this.onActionTap,
+    this.dark = false, // অব্যবহৃত, backward compat এর জন্য রাখা হয়েছে
   });
 
   final String eyebrow;
   final String title;
-  final String subtitle;
   final String actionLabel;
   final VoidCallback onActionTap;
+  final bool dark;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final darkParent = DefaultTextStyle.of(context).style.color == Colors.white;
+    final primary = theme.colorScheme.primary;
+    // Theme brightness দিয়ে text color নির্ধারণ — hardcoded নয়
+    final titleColor = theme.colorScheme.onSurface;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -648,40 +387,43 @@ class _SectionHeader extends StatelessWidget {
               Text(
                 eyebrow.toUpperCase(),
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: darkParent
-                      ? const Color(0xFF2997FF)
-                      : theme.colorScheme.primary,
+                  color: primary,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: AppSizes.trackingWidest,
+                  letterSpacing: 1.2,
                 ),
               ),
-              const SizedBox(height: AppSizes.sm),
+              const SizedBox(height: AppSizes.xs),
               Text(
                 title,
-                style: theme.textTheme.displayMedium?.copyWith(
-                  color: darkParent ? Colors.white : null,
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  color: titleColor,
+                  height: 1.2,
                 ),
-              ),
-              const SizedBox(height: AppSizes.sm),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 540),
-                child: Text(
-                  subtitle,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: darkParent ? const Color(0xFFCCCCCC) : null,
-                  ),
-                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
         ),
-        const SizedBox(width: AppSizes.lg),
-        SizedBox(
-          width: 124,
-          child: GlassButton(
-            label: actionLabel,
-            variant: GlassButtonVariant.ghost,
-            onPressed: onActionTap,
+        const SizedBox(width: AppSizes.md),
+        GestureDetector(
+          onTap: onActionTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSizes.lg,
+              vertical: AppSizes.sm,
+            ),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppSizes.radiusFull),
+              border: Border.all(color: primary.withOpacity(0.4)),
+            ),
+            child: Text(
+              actionLabel,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ),
       ],
@@ -689,8 +431,13 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _CategoryRailGrid extends StatelessWidget {
-  const _CategoryRailGrid({
+// ─────────────────────────────────────────────────────────────────────────────
+// Category Grid  (3-column, fixed aspect ratio, no overflow)
+// ─────────────────────────────────────────────────────────────────────────────
+// Category Horizontal Scroll
+// ─────────────────────────────────────────────────────────────────────────────
+class _CategoryGrid extends StatelessWidget {
+  const _CategoryGrid({
     required this.categories,
     required this.onTap,
   });
@@ -701,95 +448,120 @@ class _CategoryRailGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (categories.isEmpty) {
-      return const GlassCard(child: Text('No active categories found.'));
+      return const GlassCard(child: Text('No categories found.'));
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        final crossAxisCount = width > 920
-            ? 4
-            : width > 640
-                ? 3
-                : 2;
+    return SizedBox(
+      height: 110,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: categories.length,
+        separatorBuilder: (_, __) => const SizedBox(width: AppSizes.sm),
+        itemBuilder: (context, index) {
+          final cat = categories[index];
+          return _CategoryCard(category: cat, onTap: () => onTap(cat));
+        },
+      ),
+    );
+  }
+}
 
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: categories.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            mainAxisSpacing: AppSizes.md,
-            crossAxisSpacing: AppSizes.md,
-            childAspectRatio: 1.06,
+class _CategoryCard extends StatelessWidget {
+  const _CategoryCard({required this.category, required this.onTap});
+
+  final ProductCategory category;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        width: 90,   // fixed width — horizontal scroll card
+        child: Container(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.6),
+            borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+            border: Border.all(
+              color: theme.colorScheme.outline.withOpacity(0.2),
+            ),
           ),
-          itemBuilder: (context, index) {
-            final category = categories[index];
-
-            return GlassTappableCard(
-              onTap: () => onTap(category),
-              borderRadius: BorderRadius.circular(AppSizes.radiusLg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 54,
-                    height: 54,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.10),
-                      borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-                    ),
-                    child: Icon(
-                      _categoryIcon(category.name),
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    category.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                        ),
-                  ),
-                  const SizedBox(height: AppSizes.xs),
-                  Text(
-                    category.description.isNotEmpty
-                        ? category.description
-                        : 'Browse category products',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: const Color(0xFFCCCCCC),
-                        ),
-                  ),
-                ],
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSizes.sm,
+            vertical: AppSizes.md,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: primary.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                ),
+                child: Icon(
+                  _iconFor(category.name),
+                  color: primary,
+                  size: 22,
+                ),
               ),
-            );
-          },
-        );
-      },
+              const SizedBox(height: AppSizes.xs),
+              Text(
+                category.name,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurface,  // theme aware — hardcoded সাদা নয়
+                  fontWeight: FontWeight.w600,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
-  IconData _categoryIcon(String name) {
-    final value = name.toLowerCase();
-    if (value.contains('rice') || value.contains('grain')) {
+  IconData _iconFor(String name) {
+    final v = name.toLowerCase();
+    if (v.contains('rice') || v.contains('grain') || v.contains('pulse')) {
       return Icons.inventory_2_outlined;
     }
-    if (value.contains('meat') || value.contains('poultry')) {
+    if (v.contains('meat') || v.contains('poultry') || v.contains('chicken')) {
       return Icons.set_meal_outlined;
     }
-    if (value.contains('fish')) return Icons.phishing_outlined;
-    if (value.contains('spice')) return Icons.ramen_dining_outlined;
-    if (value.contains('vegetable') || value.contains('fruit')) {
+    if (v.contains('fish') || v.contains('seafood')) {
+      return Icons.phishing_outlined;
+    }
+    if (v.contains('spice') || v.contains('masala')) {
+      return Icons.ramen_dining_outlined;
+    }
+    if (v.contains('honey')) return Icons.hive_outlined;
+    if (v.contains('oil')) return Icons.opacity_outlined;
+    if (v.contains('vegetable') || v.contains('fruit') || v.contains('fresh')) {
       return Icons.eco_outlined;
+    }
+    if (v.contains('dairy') || v.contains('milk')) {
+      return Icons.water_drop_outlined;
+    }
+    if (v.contains('snack') || v.contains('biscuit')) {
+      return Icons.cookie_outlined;
+    }
+    if (v.contains('super') || v.contains('health')) {
+      return Icons.spa_outlined;
     }
     return Icons.shopping_bag_outlined;
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Horizontal Product Strip  (popular items — fixed height, no overflow)
+// ─────────────────────────────────────────────────────────────────────────────
 class _HorizontalProductStrip extends StatelessWidget {
   const _HorizontalProductStrip({
     required this.products,
@@ -804,11 +576,11 @@ class _HorizontalProductStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (products.isEmpty) {
-      return const GlassCard(child: Text('No products available right now.'));
+      return const GlassCard(child: Text('No products available.'));
     }
 
     return SizedBox(
-      height: 330,
+      height: 260,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: products.length,
@@ -816,8 +588,8 @@ class _HorizontalProductStrip extends StatelessWidget {
         itemBuilder: (context, index) {
           final product = products[index];
           return SizedBox(
-            width: 238,
-            child: _ProductGalleryCard(
+            width: 180,
+            child: _ProductCard(
               product: product,
               onTap: () => onTap(product),
               onAddToCart: () => onAddToCart(product),
@@ -829,8 +601,8 @@ class _HorizontalProductStrip extends StatelessWidget {
   }
 }
 
-class _ProductGalleryCard extends StatelessWidget {
-  const _ProductGalleryCard({
+class _ProductCard extends StatelessWidget {
+  const _ProductCard({
     required this.product,
     required this.onTap,
     required this.onAddToCart,
@@ -843,91 +615,135 @@ class _ProductGalleryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
     final hasImage = product.primaryImage.trim().isNotEmpty;
 
-    return GlassTappableCard(
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(AppSizes.radiusLg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F7),
-                borderRadius: BorderRadius.circular(AppSizes.radiusLg),
-              ),
-              child: Center(
-                child: hasImage
-                    ? Container(
-                        padding: const EdgeInsets.all(AppSizes.lg),
-                        decoration: const BoxDecoration(
-                          boxShadow: [
-                            BoxShadow(
-                              color: Color(0x38000000),
-                              blurRadius: 30,
-                              offset: Offset(3, 5),
-                            ),
-                          ],
-                        ),
-                        child: Image.network(
-                          product.primaryImage,
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => _FallbackStage(
-                            icon: Icons.shopping_basket_outlined,
-                            dark: false,
-                          ),
-                        ),
-                      )
-                    : const _FallbackStage(
-                        icon: Icons.shopping_basket_outlined,
-                        dark: false,
-                      ),
-              ),
-            ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+          border: Border.all(
+            color: theme.colorScheme.outline.withOpacity(0.3),
           ),
-          const SizedBox(height: AppSizes.lg),
-          Text(
-            product.name,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.titleMedium,
-          ),
-          const SizedBox(height: AppSizes.xs),
-          Text(
-            product.shortDescription.isNotEmpty
-                ? product.shortDescription
-                : product.description,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall,
-          ),
-          const SizedBox(height: AppSizes.md),
-          Row(
-            children: [
-              Text(
-                '${AppStrings.currencySymbol}${product.price.toStringAsFixed(0)}',
-                style: theme.textTheme.titleLarge,
-              ),
-              const Spacer(),
-              SizedBox(
-                width: 94,
-                child: GlassButton(
-                  label: product.inStock ? 'Buy' : 'Sold out',
-                  onPressed: product.inStock ? onAddToCart : null,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image area
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F7),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(AppSizes.radiusLg),
+                  ),
+                ),
+                child: Center(
+                  child: hasImage
+                      ? Image.network(
+                    product.primaryImage,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => Icon(
+                      Icons.shopping_basket_outlined,
+                      size: 36,
+                      color: primary,
+                    ),
+                  )
+                      : Icon(
+                    Icons.shopping_basket_outlined,
+                    size: 36,
+                    color: primary,
+                  ),
                 ),
               ),
-            ],
-          ),
-        ],
+            ),
+
+            // Info area
+            Padding(
+              padding: const EdgeInsets.all(AppSizes.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.name,
+                    style: theme.textTheme.titleSmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: AppSizes.xs),
+                  Text(
+                    product.shortDescription.isNotEmpty
+                        ? product.shortDescription
+                        : product.description,
+                    style: theme.textTheme.bodySmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: AppSizes.sm),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          '${AppStrings.currencySymbol}${product.price.toStringAsFixed(0)}',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            color: primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      // ADD button (Khaas Food style)
+                      GestureDetector(
+                        onTap: product.inStock ? onAddToCart : null,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSizes.md,
+                            vertical: AppSizes.xs,
+                          ),
+                          decoration: BoxDecoration(
+                            color: product.inStock
+                                ? primary.withOpacity(0.1)
+                                : Colors.grey.withOpacity(0.1),
+                            borderRadius:
+                            BorderRadius.circular(AppSizes.radiusSm),
+                            border: Border.all(
+                              color: product.inStock
+                                  ? primary.withOpacity(0.4)
+                                  : Colors.grey.withOpacity(0.3),
+                            ),
+                          ),
+                          child: Text(
+                            product.inStock ? 'ADD' : 'OUT',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: product.inStock ? primary : Colors.grey,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _NewArrivalStack extends StatelessWidget {
-  const _NewArrivalStack({
+// ─────────────────────────────────────────────────────────────────────────────
+// New Arrival Strip  (horizontal, dark cards)
+// ─────────────────────────────────────────────────────────────────────────────
+class _NewArrivalStrip extends StatelessWidget {
+  const _NewArrivalStrip({
     required this.products,
     required this.onTap,
     required this.onAddToCart,
@@ -940,256 +756,237 @@ class _NewArrivalStack extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (products.isEmpty) {
-      return const GlassCard(child: Text('No products available right now.'));
+      return const GlassCard(child: Text('No new arrivals.'));
     }
 
-    return Column(
-      children: [
-        for (var i = 0; i < products.length; i++) ...[
-          _EditorialRowCard(
-            product: products[i],
-            reverse: i.isOdd,
-            onTap: () => onTap(products[i]),
-            onAddToCart: () => onAddToCart(products[i]),
-          ),
-          if (i != products.length - 1) const SizedBox(height: AppSizes.md),
-        ],
-      ],
+    return SizedBox(
+      height: 280,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: products.length,
+        separatorBuilder: (_, __) => const SizedBox(width: AppSizes.md),
+        itemBuilder: (context, index) {
+          final product = products[index];
+          return SizedBox(
+            width: 200,
+            child: _NewArrivalCard(
+              product: product,
+              onTap: () => onTap(product),
+              onAddToCart: () => onAddToCart(product),
+            ),
+          );
+        },
+      ),
     );
   }
 }
 
-class _EditorialRowCard extends StatelessWidget {
-  const _EditorialRowCard({
+class _NewArrivalCard extends StatelessWidget {
+  const _NewArrivalCard({
     required this.product,
-    required this.reverse,
     required this.onTap,
     required this.onAddToCart,
   });
 
   final ProductModel product;
-  final bool reverse;
   final VoidCallback onTap;
   final VoidCallback onAddToCart;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
     final hasImage = product.primaryImage.trim().isNotEmpty;
-    final image = Expanded(
-      flex: 5,
-      child: Container(
-        height: 220,
-        decoration: BoxDecoration(
-          color: const Color(0xFF2A2A2C),
-          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
-        ),
-        child: Center(
-          child: hasImage
-              ? Container(
-                  padding: const EdgeInsets.all(AppSizes.xl),
-                  decoration: const BoxDecoration(
-                    boxShadow: [
-                      BoxShadow(
-                        color: Color(0x42000000),
-                        blurRadius: 30,
-                        offset: Offset(3, 5),
-                      ),
-                    ],
-                  ),
-                  child: Image.network(
-                    product.primaryImage,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => const _FallbackStage(
-                      icon: Icons.local_mall_outlined,
-                      dark: true,
-                    ),
-                  ),
-                )
-              : const _FallbackStage(
-                  icon: Icons.local_mall_outlined,
-                  dark: true,
-                ),
-        ),
-      ),
-    );
+    final cardBg = theme.colorScheme.surfaceContainerHighest;
+    final imgBg  = theme.colorScheme.surfaceContainerHighest.withOpacity(0.6);
 
-    final copy = Expanded(
-      flex: 6,
-      child: GlassCard(
-        variant: GlassCardVariant.elevated,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+          border: Border.all(
+            color: theme.colorScheme.outline.withOpacity(0.15),
+          ),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _GlassEyebrow(label: 'New arrival'),
-            const SizedBox(height: AppSizes.lg),
-            Text(
-              product.name,
-              style: theme.textTheme.headlineLarge?.copyWith(color: Colors.white),
-            ),
-            const SizedBox(height: AppSizes.sm),
-            Text(
-              product.shortDescription.isNotEmpty
-                  ? product.shortDescription
-                  : product.description,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: const Color(0xFFCCCCCC),
+            // Image area
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: imgBg,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(AppSizes.radiusLg),
+                  ),
+                ),
+                child: Center(
+                  child: hasImage
+                      ? Image.network(
+                    product.primaryImage,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => Icon(
+                      Icons.local_mall_outlined,
+                      size: 36,
+                      color: primary,
+                    ),
+                  )
+                      : Icon(
+                    Icons.local_mall_outlined,
+                    size: 36,
+                    color: primary,
+                  ),
+                ),
               ),
             ),
-            const Spacer(),
-            Row(
-              children: [
-                Text(
-                  '${AppStrings.currencySymbol}${product.price.toStringAsFixed(0)}',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    color: Colors.white,
+
+            // Info area
+            Padding(
+              padding: const EdgeInsets.all(AppSizes.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // NEW badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSizes.sm,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: primary.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(AppSizes.radiusFull),
+                    ),
+                    child: Text(
+                      'NEW',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: primary,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
                   ),
-                ),
-                const Spacer(),
-                SizedBox(
-                  width: 108,
-                  child: GlassButton(
-                    label: 'Details',
-                    variant: GlassButtonVariant.ghost,
-                    onPressed: onTap,
+                  const SizedBox(height: AppSizes.xs),
+                  Text(
+                    product.name,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: theme.colorScheme.onSurface,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-                const SizedBox(width: AppSizes.sm),
-                SizedBox(
-                  width: 108,
-                  child: GlassButton(
-                    label: 'Add',
-                    onPressed: product.inStock ? onAddToCart : null,
+                  const SizedBox(height: AppSizes.xs),
+                  Text(
+                    product.shortDescription.isNotEmpty
+                        ? product.shortDescription
+                        : product.description,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-              ],
+                  const SizedBox(height: AppSizes.sm),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          '${AppStrings.currencySymbol}${product.price.toStringAsFixed(0)}',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            color: primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: AppSizes.sm),
+                      GestureDetector(
+                        onTap: product.inStock ? onAddToCart : null,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSizes.md,
+                            vertical: AppSizes.xs,
+                          ),
+                          decoration: BoxDecoration(
+                            color: product.inStock
+                                ? primary
+                                : Colors.grey.withOpacity(0.3),
+                            borderRadius:
+                            BorderRadius.circular(AppSizes.radiusSm),
+                          ),
+                          child: Text(
+                            product.inStock ? 'ADD' : 'OUT',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ),
       ),
     );
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Row(
-        children: reverse
-            ? [copy, const SizedBox(width: AppSizes.md), image]
-            : [image, const SizedBox(width: AppSizes.md), copy],
-      ),
-    );
   }
 }
 
-class _GlassEyebrow extends StatelessWidget {
-  const _GlassEyebrow({required this.label});
+// ─────────────────────────────────────────────────────────────────────────────
+// Small helpers
+// ─────────────────────────────────────────────────────────────────────────────
+class _EyebrowChip extends StatelessWidget {
+  const _EyebrowChip({required this.label});
 
   final String label;
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(AppSizes.radiusFull),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(
-          sigmaX: AppSizes.blurMd,
-          sigmaY: AppSizes.blurMd,
-        ),
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSizes.md,
-            vertical: AppSizes.sm,
-          ),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.10),
-            borderRadius: BorderRadius.circular(AppSizes.radiusFull),
-            border: Border.all(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
-            ),
-          ),
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-          ),
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSizes.md,
+        vertical: AppSizes.xs,
+      ),
+      decoration: BoxDecoration(
+        color: primary.withOpacity(0.10),
+        borderRadius: BorderRadius.circular(AppSizes.radiusFull),
+        border: Border.all(color: primary.withOpacity(0.20)),
+      ),
+      child: Text(
+        label,
+        style: theme.textTheme.labelMedium?.copyWith(
+          color: primary,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
   }
 }
 
-class _LiquidOrb extends StatefulWidget {
-  const _LiquidOrb({
-    required this.size,
-    this.reverse = false,
-  });
+class _Orb extends StatelessWidget {
+  const _Orb({required this.size, required this.color});
 
   final double size;
-  final bool reverse;
-
-  @override
-  State<_LiquidOrb> createState() => _LiquidOrbState();
-}
-
-class _LiquidOrbState extends State<_LiquidOrb>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 4200),
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        final value = Curves.easeInOut.transform(_controller.value);
-        final dx = widget.reverse ? -10 + (value * 20) : 10 - (value * 20);
-        final dy = widget.reverse ? 6 - (value * 12) : -6 + (value * 12);
-
-        return Transform.translate(
-          offset: Offset(dx, dy),
-          child: child,
-        );
-      },
-      child: ClipOval(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: AppSizes.blurLg,
-            sigmaY: AppSizes.blurLg,
-          ),
-          child: Container(
-            width: widget.size,
-            height: widget.size,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white.withOpacity(0.95),
-                  const Color(0x800066CC),
-                ],
-              ),
-              border: Border.all(color: Colors.white.withOpacity(0.55)),
-            ),
-          ),
-        ),
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
       ),
     );
   }
