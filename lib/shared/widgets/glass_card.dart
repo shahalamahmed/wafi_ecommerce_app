@@ -34,6 +34,7 @@ class GlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final glass = Theme.of(context).extension<GlassTheme>()!;
     final radius = borderRadius ?? BorderRadius.circular(AppSizes.cardRadius);
 
@@ -58,19 +59,25 @@ class GlassCard extends StatelessWidget {
             boxShadow: [
               BoxShadow(
                 color: glass.shadowColor,
-                blurRadius: 24,
-                offset: const Offset(0, 10),
+                blurRadius: isDark ? 14 : 24,
+                offset: Offset(0, isDark ? 6 : 10),
               ),
             ],
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                glass.highlightColor,
-                bgColor,
-                glass.cardColor,
-              ],
-              stops: const [0, 0.25, 1],
+              colors: isDark
+                  ? [
+                      glass.elevatedColor,
+                      bgColor,
+                      glass.cardColor,
+                    ]
+                  : [
+                      glass.highlightColor,
+                      bgColor,
+                      glass.cardColor,
+                    ],
+              stops: isDark ? const [0, 0.45, 1] : const [0, 0.25, 1],
             ),
           ),
           child: Container(
@@ -86,10 +93,15 @@ class GlassCard extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  Colors.white.withOpacity(0.08),
-                  Colors.white.withOpacity(0.02),
-                ],
+                colors: isDark
+                    ? [
+                        Colors.white.withOpacity(0.02),
+                        Colors.transparent,
+                      ]
+                    : [
+                        Colors.white.withOpacity(0.08),
+                        Colors.white.withOpacity(0.02),
+                      ],
               ),
             ),
             child: child,

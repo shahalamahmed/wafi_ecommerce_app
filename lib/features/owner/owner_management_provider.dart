@@ -1,0 +1,431 @@
+import 'package:wafi_ecommerce_app/features/auth/auth_model.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wafi_ecommerce_app/features/orders/order_model.dart';
+import 'package:wafi_ecommerce_app/features/products/product_model.dart';
+
+import 'owner_management_service.dart';
+
+class OwnerProductManagementState {
+  const OwnerProductManagementState({
+    this.products = const [],
+    this.categories = const [],
+    this.isLoading = false,
+    this.isSaving = false,
+    this.searchQuery = '',
+    this.errorMessage,
+    this.successMessage,
+  });
+
+  final List<ProductModel> products;
+  final List<ProductCategory> categories;
+  final bool isLoading;
+  final bool isSaving;
+  final String searchQuery;
+  final String? errorMessage;
+  final String? successMessage;
+
+  bool get hasError => errorMessage != null && errorMessage!.trim().isNotEmpty;
+
+  List<ProductModel> get filteredProducts {
+    final query = searchQuery.trim().toLowerCase();
+    final items =
+        products.where((product) {
+          if (query.isEmpty) return true;
+          return product.name.toLowerCase().contains(query) ||
+              product.sku.toLowerCase().contains(query) ||
+              product.shortDescription.toLowerCase().contains(query);
+        }).toList()..sort((a, b) {
+          final aDate =
+              a.updatedAt ??
+              a.createdAt ??
+              DateTime.fromMillisecondsSinceEpoch(0);
+          final bDate =
+              b.updatedAt ??
+              b.createdAt ??
+              DateTime.fromMillisecondsSinceEpoch(0);
+          return bDate.compareTo(aDate);
+        });
+    return items;
+  }
+
+  OwnerProductManagementState copyWith({
+    List<ProductModel>? products,
+    List<ProductCategory>? categories,
+    bool? isLoading,
+    bool? isSaving,
+    String? searchQuery,
+    String? errorMessage,
+    bool clearError = false,
+    String? successMessage,
+    bool clearSuccess = false,
+  }) {
+    return OwnerProductManagementState(
+      products: products ?? this.products,
+      categories: categories ?? this.categories,
+      isLoading: isLoading ?? this.isLoading,
+      isSaving: isSaving ?? this.isSaving,
+      searchQuery: searchQuery ?? this.searchQuery,
+      errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
+      successMessage: clearSuccess
+          ? null
+          : successMessage ?? this.successMessage,
+    );
+  }
+}
+
+class OwnerProductManagementNotifier
+    extends StateNotifier<OwnerProductManagementState> {
+  OwnerProductManagementNotifier(this._service)
+    : super(const OwnerProductManagementState()) {
+    load();
+  }
+
+  final OwnerManagementService _service;
+
+  Future<void> load() async {
+    state = state.copyWith(
+      isLoading: true,
+      clearError: true,
+      clearSuccess: true,
+    );
+    try {
+      final categories = await _service.fetchCategories();
+      final products = await _service.fetchProducts();
+      state = state.copyWith(
+        categories: categories,
+        products: products,
+        isLoading: false,
+        clearError: true,
+      );
+    } catch (error) {
+      state = state.copyWith(isLoading: false, errorMessage: error.toString());
+    }
+  }
+
+  void setSearchQuery(String value) {
+    state = state.copyWith(searchQuery: value);
+  }
+
+  Future<void> createProduct(OwnerProductDraft draft) async {
+    state = state.copyWith(
+      isSaving: true,
+      clearError: true,
+      clearSuccess: true,
+    );
+    try {
+      await _service.createProduct(draft);
+      await load();
+      state = state.copyWith(
+        isSaving: false,
+        successMessage: 'Product created successfully.',
+      );
+    } catch (error) {
+      state = state.copyWith(isSaving: false, errorMessage: error.toString());
+    }
+  }
+
+  Future<void> updateProduct(String productId, OwnerProductDraft draft) async {
+    state = state.copyWith(
+      isSaving: true,
+      clearError: true,
+      clearSuccess: true,
+    );
+    try {
+      await _service.updateProduct(productId, draft);
+      await load();
+      state = state.copyWith(
+        isSaving: false,
+        successMessage: 'Product updated successfully.',
+      );
+    } catch (error) {
+      state = state.copyWith(isSaving: false, errorMessage: error.toString());
+    }
+  }
+
+  Future<void> deleteProduct(String productId) async {
+    state = state.copyWith(
+      isSaving: true,
+      clearError: true,
+      clearSuccess: true,
+    );
+    try {
+      await _service.deleteProduct(productId);
+      await load();
+      state = state.copyWith(
+        isSaving: false,
+        successMessage: 'Product removed successfully.',
+      );
+    } catch (error) {
+      state = state.copyWith(isSaving: false, errorMessage: error.toString());
+    }
+  }
+}
+
+class OwnerOrderManagementState {
+  const OwnerOrderManagementState({
+    this.orders = const [],
+    this.isLoading = false,
+    this.isSaving = false,
+    this.selectedStatus = 'all',
+    this.errorMessage,
+    this.successMessage,
+  });
+
+  final List<CustomerOrder> orders;
+  final bool isLoading;
+  final bool isSaving;
+  final String selectedStatus;
+  final String? errorMessage;
+  final String? successMessage;
+
+  bool get hasError => errorMessage != null && errorMessage!.trim().isNotEmpty;
+
+  List<CustomerOrder> get visibleOrders {
+    if (selectedStatus == 'all') return orders;
+    return orders.where((order) => order.status == selectedStatus).toList();
+  }
+
+  OwnerOrderManagementState copyWith({
+    List<CustomerOrder>? orders,
+    bool? isLoading,
+    bool? isSaving,
+    String? selectedStatus,
+    String? errorMessage,
+    bool clearError = false,
+    String? successMessage,
+    bool clearSuccess = false,
+  }) {
+    return OwnerOrderManagementState(
+      orders: orders ?? this.orders,
+      isLoading: isLoading ?? this.isLoading,
+      isSaving: isSaving ?? this.isSaving,
+      selectedStatus: selectedStatus ?? this.selectedStatus,
+      errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
+      successMessage: clearSuccess
+          ? null
+          : successMessage ?? this.successMessage,
+    );
+  }
+}
+
+class OwnerOrderManagementNotifier
+    extends StateNotifier<OwnerOrderManagementState> {
+  OwnerOrderManagementNotifier(this._service)
+    : super(const OwnerOrderManagementState()) {
+    load();
+  }
+
+  final OwnerManagementService _service;
+
+  Future<void> load() async {
+    state = state.copyWith(
+      isLoading: true,
+      clearError: true,
+      clearSuccess: true,
+    );
+    try {
+      final orders = await _service.fetchOrders();
+      state = state.copyWith(
+        orders: orders,
+        isLoading: false,
+        clearError: true,
+      );
+    } catch (error) {
+      state = state.copyWith(isLoading: false, errorMessage: error.toString());
+    }
+  }
+
+  void setStatusFilter(String status) {
+    state = state.copyWith(selectedStatus: status);
+  }
+
+  Future<void> updateOrderStatus({
+    required String orderId,
+    required String status,
+  }) async {
+    state = state.copyWith(
+      isSaving: true,
+      clearError: true,
+      clearSuccess: true,
+    );
+    try {
+      await _service.updateOrderStatus(orderDocId: orderId, status: status);
+      await load();
+      state = state.copyWith(
+        isSaving: false,
+        successMessage: 'Order status updated to ${_labelFor(status)}.',
+      );
+    } catch (error) {
+      state = state.copyWith(isSaving: false, errorMessage: error.toString());
+    }
+  }
+
+  String _labelFor(String value) {
+    switch (value) {
+      case 'confirmed':
+        return 'Confirmed';
+      case 'shipped':
+        return 'Shipped';
+      case 'delivered':
+        return 'Delivered';
+      case 'cancelled':
+        return 'Cancelled';
+      default:
+        return 'Pending';
+    }
+  }
+}
+
+class OwnerUserManagementState {
+  const OwnerUserManagementState({
+    this.users = const [],
+    this.isLoading = false,
+    this.isSaving = false,
+    this.searchQuery = '',
+    this.errorMessage,
+    this.successMessage,
+  });
+
+  final List<AppUser> users;
+  final bool isLoading;
+  final bool isSaving;
+  final String searchQuery;
+  final String? errorMessage;
+  final String? successMessage;
+
+  bool get hasError => errorMessage != null && errorMessage!.trim().isNotEmpty;
+
+  List<AppUser> get filteredUsers {
+    final query = searchQuery.trim().toLowerCase();
+    final items =
+        users.where((user) {
+          if (query.isEmpty) return true;
+          return user.displayName.toLowerCase().contains(query) ||
+              user.email.toLowerCase().contains(query) ||
+              user.phone.toLowerCase().contains(query);
+        }).toList()..sort((a, b) {
+          if (a.isOwner != b.isOwner) {
+            return a.isOwner ? -1 : 1;
+          }
+
+          final aDate =
+              a.updatedAt ??
+              a.createdAt ??
+              DateTime.fromMillisecondsSinceEpoch(0);
+          final bDate =
+              b.updatedAt ??
+              b.createdAt ??
+              DateTime.fromMillisecondsSinceEpoch(0);
+          return bDate.compareTo(aDate);
+        });
+    return items;
+  }
+
+  OwnerUserManagementState copyWith({
+    List<AppUser>? users,
+    bool? isLoading,
+    bool? isSaving,
+    String? searchQuery,
+    String? errorMessage,
+    bool clearError = false,
+    String? successMessage,
+    bool clearSuccess = false,
+  }) {
+    return OwnerUserManagementState(
+      users: users ?? this.users,
+      isLoading: isLoading ?? this.isLoading,
+      isSaving: isSaving ?? this.isSaving,
+      searchQuery: searchQuery ?? this.searchQuery,
+      errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
+      successMessage: clearSuccess
+          ? null
+          : successMessage ?? this.successMessage,
+    );
+  }
+}
+
+class OwnerUserManagementNotifier
+    extends StateNotifier<OwnerUserManagementState> {
+  OwnerUserManagementNotifier(this._service)
+    : super(const OwnerUserManagementState()) {
+    load();
+  }
+
+  final OwnerManagementService _service;
+
+  Future<void> load() async {
+    state = state.copyWith(
+      isLoading: true,
+      clearError: true,
+      clearSuccess: true,
+    );
+    try {
+      final users = await _service.fetchUsers();
+      state = state.copyWith(users: users, isLoading: false, clearError: true);
+    } catch (error) {
+      state = state.copyWith(isLoading: false, errorMessage: error.toString());
+    }
+  }
+
+  void setSearchQuery(String value) {
+    state = state.copyWith(searchQuery: value);
+  }
+
+  Future<void> updateUserRole({
+    required String userId,
+    required UserRole role,
+  }) async {
+    state = state.copyWith(
+      isSaving: true,
+      clearError: true,
+      clearSuccess: true,
+    );
+    try {
+      await _service.updateUserRole(userId: userId, role: role);
+      final users = await _service.fetchUsers();
+      state = state.copyWith(
+        users: users,
+        isSaving: false,
+        successMessage: role == UserRole.owner
+            ? 'User promoted to owner.'
+            : 'User changed to customer.',
+      );
+    } catch (error) {
+      state = state.copyWith(isSaving: false, errorMessage: error.toString());
+    }
+  }
+}
+
+final ownerManagementServiceProvider = Provider<OwnerManagementService>((ref) {
+  return OwnerManagementService();
+});
+
+final ownerProductManagementProvider =
+    StateNotifierProvider<
+      OwnerProductManagementNotifier,
+      OwnerProductManagementState
+    >((ref) {
+      return OwnerProductManagementNotifier(
+        ref.read(ownerManagementServiceProvider),
+      );
+    });
+
+final ownerOrderManagementProvider =
+    StateNotifierProvider<
+      OwnerOrderManagementNotifier,
+      OwnerOrderManagementState
+    >((ref) {
+      return OwnerOrderManagementNotifier(
+        ref.read(ownerManagementServiceProvider),
+      );
+    });
+
+final ownerUserManagementProvider =
+    StateNotifierProvider<
+      OwnerUserManagementNotifier,
+      OwnerUserManagementState
+    >((ref) {
+      return OwnerUserManagementNotifier(
+        ref.read(ownerManagementServiceProvider),
+      );
+    });

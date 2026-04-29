@@ -7,6 +7,8 @@ import 'package:wafi_ecommerce_app/features/auth/auth_provider.dart';
 import 'package:wafi_ecommerce_app/features/cart/cart_provider.dart';
 import 'package:wafi_ecommerce_app/features/cart/cart_screen.dart';
 import 'package:wafi_ecommerce_app/features/home/home_screen.dart';
+import 'package:wafi_ecommerce_app/features/owner/order_management_screen.dart';
+import 'package:wafi_ecommerce_app/features/owner/product_management_screen.dart';
 import 'package:wafi_ecommerce_app/features/orders/order_screen.dart';
 import 'package:wafi_ecommerce_app/features/products/product_screen.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/app_drawer.dart';
@@ -45,22 +47,20 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
         subtitle: isOwner
             ? 'Product catalog controls'
             : 'Browse all grocery collections',
-        icon: isOwner
-            ? Icons.inventory_2_outlined
-            : Icons.grid_view_rounded,
-        body: const ProductScreen(),
+        icon: isOwner ? Icons.inventory_2_outlined : Icons.grid_view_rounded,
+        body: isOwner ? const ProductManagementScreen() : const ProductScreen(),
       ),
 
       // 2 — Cart (customer) / Orders (owner)
       _ShellPage(
-        title: isOwner ? AppStrings.orders : AppStrings.cart,
+        title: isOwner ? AppStrings.manageOrders : AppStrings.cart,
         subtitle: isOwner
             ? 'Order processing workspace'
             : 'Review selected products before checkout',
         icon: isOwner
             ? Icons.receipt_long_outlined
             : Icons.shopping_bag_outlined,
-        body: isOwner ? const OrderScreen() : const CartScreen(),
+        body: isOwner ? const OrderManagementScreen() : const CartScreen(),
       ),
 
       // 3 — My Orders (customer) / Analytics (owner)
@@ -69,15 +69,13 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
         subtitle: isOwner
             ? 'Sales and fulfillment overview'
             : 'Track your placed orders and history',
-        icon: isOwner
-            ? Icons.bar_chart_rounded
-            : Icons.receipt_long_outlined,
+        icon: isOwner ? Icons.bar_chart_rounded : Icons.receipt_long_outlined,
         body: isOwner
             ? const _PlaceholderPage(
-          title: 'Analytics Workspace',
-          subtitle:
-          'Sales charts and fulfillment data will connect here.',
-        )
+                title: 'Analytics Workspace',
+                subtitle:
+                    'Sales charts and fulfillment data will connect here.',
+              )
             : const OrderScreen(),
       ),
     ];
@@ -124,7 +122,6 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
   }
 }
 
-
 class _ShellPage {
   const _ShellPage({
     required this.title,
@@ -152,21 +149,21 @@ class _OverviewPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final cards = <({String title, String value, IconData icon})>[
       (
-      title: 'Session',
-      value: user == null ? 'Guest' : 'Active',
-      icon: Icons.shield_outlined,
+        title: 'Session',
+        value: user == null ? 'Guest' : 'Active',
+        icon: Icons.shield_outlined,
       ),
       (
-      title: 'Role',
-      value: user?.isOwner == true ? 'Owner' : 'Customer',
-      icon: Icons.badge_outlined,
+        title: 'Role',
+        value: user?.isOwner == true ? 'Owner' : 'Customer',
+        icon: Icons.badge_outlined,
       ),
       (
-      title: 'Theme',
-      value: Theme.of(context).brightness == Brightness.dark
-          ? 'Pure Black'
-          : 'Pure White',
-      icon: Icons.contrast_rounded,
+        title: 'Theme',
+        value: Theme.of(context).brightness == Brightness.dark
+            ? 'Pure Black'
+            : 'Pure White',
+        icon: Icons.contrast_rounded,
       ),
     ];
 
@@ -206,11 +203,15 @@ class _OverviewPage extends StatelessWidget {
                     children: [
                       Icon(card.icon),
                       const SizedBox(height: AppSizes.md),
-                      Text(card.title,
-                          style: Theme.of(context).textTheme.titleMedium),
+                      Text(
+                        card.title,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                       const SizedBox(height: AppSizes.xs),
-                      Text(card.value,
-                          style: Theme.of(context).textTheme.headlineSmall),
+                      Text(
+                        card.value,
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
                     ],
                   ),
                 ),
@@ -227,10 +228,7 @@ class _OverviewPage extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _PlaceholderPage extends StatelessWidget {
-  const _PlaceholderPage({
-    required this.title,
-    required this.subtitle,
-  });
+  const _PlaceholderPage({required this.title, required this.subtitle});
 
   final String title;
   final String subtitle;
@@ -248,11 +246,9 @@ class _PlaceholderPage extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    style: Theme.of(context).textTheme.headlineSmall),
+                Text(title, style: Theme.of(context).textTheme.headlineSmall),
                 const SizedBox(height: AppSizes.sm),
-                Text(subtitle,
-                    style: Theme.of(context).textTheme.bodyMedium),
+                Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
               ],
             ),
           ),

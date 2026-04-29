@@ -1,6 +1,8 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:wafi_ecommerce_app/core/constants/sizes.dart';
 import 'package:wafi_ecommerce_app/core/constants/strings.dart';
 import 'package:wafi_ecommerce_app/features/addresses/address_model.dart';
@@ -14,7 +16,6 @@ import 'package:wafi_ecommerce_app/shared/widgets/glass_chip.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/profile_avatar.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
 
-
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
@@ -23,8 +24,6 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  final ImagePicker _picker = ImagePicker();
-
   Future<void> _pickAndUpload() async {
     final authState = ref.read(authProvider);
     if (!authState.isAuthenticated || authState.user == null) {
@@ -32,15 +31,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       return;
     }
 
-    final file = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-      maxWidth: 1400,
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'],
+      allowMultiple: false,
     );
 
-    if (file == null || !mounted) return;
+    if (result == null || result.files.isEmpty || !mounted) return;
 
-    await ref.read(authProvider.notifier).updateProfilePhoto(file.path);
+    final path = result.files.single.path;
+    if (path == null || path.trim().isEmpty || !File(path).existsSync()) {
+      _showSnack('Selected file could not be opened from device storage.');
+      return;
+    }
+
+    await ref.read(authProvider.notifier).updateProfilePhoto(path);
     if (!mounted) return;
 
     final nextState = ref.read(authProvider);
@@ -52,8 +57,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -91,9 +97,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: Text(
               isGuest
                   ? 'Guest users can browse products and view the profile panel. '
-                  'Sign in to upload a real profile picture.'
+                        'Sign in to upload a real profile picture.'
                   : 'Tap the plus icon on the avatar to choose a photo from '
-                  'the device and update your account picture.',
+                        'the device and update your account picture.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ),
@@ -110,16 +116,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           if (!isGuest && addressState.items.isNotEmpty)
             _ProfileAddressSection(
               items: addressState.items,
-              onEdit: (address) => showAddressSheet(context, ref, initial: address),
-              onDelete: (addressId) => ref.read(addressProvider.notifier).remove(addressId),
+              onEdit: (address) =>
+                  showAddressSheet(context, ref, initial: address),
+              onDelete: (addressId) =>
+                  ref.read(addressProvider.notifier).remove(addressId),
             ),
         ],
       ),
     );
   }
 }
-
-
 
 class _AvatarCard extends StatelessWidget {
   const _AvatarCard({
@@ -149,8 +155,7 @@ class _AvatarCard extends StatelessWidget {
                 bottom: -4,
                 child: InkWell(
                   onTap: isLoading ? null : onPickPhoto,
-                  borderRadius:
-                  BorderRadius.circular(AppSizes.radiusFull),
+                  borderRadius: BorderRadius.circular(AppSizes.radiusFull),
                   child: Container(
                     width: 34,
                     height: 34,
@@ -164,17 +169,17 @@ class _AvatarCard extends StatelessWidget {
                     ),
                     child: isLoading
                         ? const Padding(
-                      padding: EdgeInsets.all(8),
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
+                            padding: EdgeInsets.all(8),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
                         : const Icon(
-                      Icons.add_rounded,
-                      color: Colors.white,
-                      size: 20,
-                    ),
+                            Icons.add_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
                   ),
                 ),
               ),
@@ -221,10 +226,23 @@ class _InfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rows = <({String label, String value})>[
-      (label: 'Name',  value: user?.firstName.isNotEmpty == true ? user!.firstName : 'Guest User'),
-      (label: 'Email', value: user?.email.isNotEmpty == true ? user!.email : 'guest@local.session'),
-      (label: 'Role',  value: user?.isOwner == true ? 'Shop Owner' : 'Customer'),
-      (label: 'Phone', value: user?.phone.isNotEmpty == true ? user!.phone : 'Not added yet'),
+      (
+        label: 'Name',
+        value: user?.firstName.isNotEmpty == true
+            ? user!.firstName
+            : 'Guest User',
+      ),
+      (
+        label: 'Email',
+        value: user?.email.isNotEmpty == true
+            ? user!.email
+            : 'guest@local.session',
+      ),
+      (label: 'Role', value: user?.isOwner == true ? 'Shop Owner' : 'Customer'),
+      (
+        label: 'Phone',
+        value: user?.phone.isNotEmpty == true ? user!.phone : 'Not added yet',
+      ),
     ];
 
     return GlassCard(
@@ -238,7 +256,6 @@ class _InfoCard extends StatelessWidget {
     );
   }
 }
-
 
 class _ProfileInfoRow extends StatelessWidget {
   const _ProfileInfoRow({required this.label, required this.value});
@@ -255,13 +272,11 @@ class _ProfileInfoRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 72,
-            child: Text(label,
-                style: Theme.of(context).textTheme.labelLarge),
+            child: Text(label, style: Theme.of(context).textTheme.labelLarge),
           ),
           const SizedBox(width: AppSizes.md),
           Expanded(
-            child:
-            Text(value, style: Theme.of(context).textTheme.bodyLarge),
+            child: Text(value, style: Theme.of(context).textTheme.bodyLarge),
           ),
         ],
       ),
@@ -322,11 +337,9 @@ class _ProfileAddressRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSizes.md),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-        border: Border.all(
-          color: Theme.of(context).dividerColor,
-        ),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -357,10 +370,7 @@ class _ProfileAddressRow extends StatelessWidget {
             ],
           ),
           const SizedBox(height: AppSizes.sm),
-          Text(
-            address.formatted,
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
+          Text(address.formatted, style: Theme.of(context).textTheme.bodyLarge),
         ],
       ),
     );

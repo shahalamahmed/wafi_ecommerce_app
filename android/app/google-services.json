@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "175234345266-p3smota6eptov26u66qfi3gk5qc1kkk0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.wafi_ecommerce_app",
+            "certificate_hash": "67f6fbf8d33eb864050426c5941b9457a77d3632"
+          }
+        },
+        {
           "client_id": "175234345266-t59kfbmanrtnsr5qo9fb1mbo9u17s336.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -29,6 +37,13 @@
             {
               "client_id": "175234345266-t59kfbmanrtnsr5qo9fb1mbo9u17s336.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "175234345266-vlu002uvijaqqt06d7knasqot83nk6qs.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.wafiEcommerceApp"
+              }
             }
           ]
         }
@@ -43,6 +58,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "175234345266-8sjuoo6mas0nennt05abhk6j0ehdqdp6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "wafi.solution.com",
+            "certificate_hash": "67f6fbf8d33eb864050426c5941b9457a77d3632"
+          }
+        },
+        {
           "client_id": "175234345266-t59kfbmanrtnsr5qo9fb1mbo9u17s336.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -58,6 +81,13 @@
             {
               "client_id": "175234345266-t59kfbmanrtnsr5qo9fb1mbo9u17s336.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "175234345266-vlu002uvijaqqt06d7knasqot83nk6qs.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.wafiEcommerceApp"
+              }
             }
           ]
         }

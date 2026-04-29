@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wafi_ecommerce_app/core/constants/colors.dart';
 import 'package:wafi_ecommerce_app/core/constants/sizes.dart';
 import 'package:wafi_ecommerce_app/core/constants/strings.dart';
 import 'package:wafi_ecommerce_app/features/cart/cart_model.dart';
@@ -154,12 +155,16 @@ class _CartImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: 76,
       height: 76,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-        color: Theme.of(context).colorScheme.primary.withOpacity(0.06),
+        color: isDark
+            ? AppColors.glassElevatedDark
+            : Theme.of(context).colorScheme.primary.withOpacity(0.06),
       ),
       clipBehavior: Clip.antiAlias,
       child: imageUrl.trim().isNotEmpty
@@ -282,12 +287,17 @@ class _CartSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = isDark
+        ? const Color(0xFF1A1C1F)
+        : Theme.of(context).colorScheme.surface.withOpacity(0.95);
+
     return SafeArea(
       top: false,
       child: Container(
         padding: const EdgeInsets.all(AppSizes.screenPaddingH),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface.withOpacity(0.95),
+          color: surfaceColor,
           border: Border(
             top: BorderSide(color: Theme.of(context).dividerColor),
           ),

@@ -32,6 +32,7 @@ class GlassBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final glass = Theme.of(context).extension<GlassTheme>()!;
 
     return Padding(
@@ -56,17 +57,22 @@ class GlassBottomNav extends StatelessWidget {
               boxShadow: [
                 BoxShadow(
                   color: glass.shadowColor,
-                  blurRadius: 28,
-                  offset: const Offset(0, 16),
+                  blurRadius: isDark ? 16 : 28,
+                  offset: Offset(0, isDark ? 8 : 16),
                 ),
               ],
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  glass.highlightColor,
-                  glass.elevatedColor,
-                ],
+                colors: isDark
+                    ? [
+                        glass.cardColor,
+                        glass.elevatedColor,
+                      ]
+                    : [
+                        glass.highlightColor,
+                        glass.elevatedColor,
+                      ],
               ),
             ),
             child: Row(

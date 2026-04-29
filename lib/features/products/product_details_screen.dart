@@ -18,7 +18,8 @@ class ProductDetailsScreen extends ConsumerStatefulWidget {
   final ProductModel product;
 
   @override
-  ConsumerState<ProductDetailsScreen> createState() => _ProductDetailsScreenState();
+  ConsumerState<ProductDetailsScreen> createState() =>
+      _ProductDetailsScreenState();
 }
 
 class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
@@ -37,18 +38,6 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
         subtitle: product.shortDescription.trim().isNotEmpty
             ? product.shortDescription
             : AppStrings.productDetails,
-        actions: [
-          IconButton(
-            onPressed: () {
-              setState(() {
-                if (_quantity < 20 && _quantity < product.stock) {
-                  _quantity++;
-                }
-              });
-            },
-            icon: const Icon(Icons.add_rounded),
-          ),
-        ],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(
@@ -71,10 +60,11 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                     ),
                     child: product.primaryImage.trim().isNotEmpty
                         ? Image.network(
-                            product.primaryImage,
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) => _DetailsImageFallback(name: product.name),
-                          )
+                      product.primaryImage,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) =>
+                          _DetailsImageFallback(name: product.name),
+                    )
                         : _DetailsImageFallback(name: product.name),
                   ),
                 ),
@@ -83,10 +73,11 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(
                     product.images.isEmpty ? 1 : product.images.length,
-                    (index) => Container(
+                        (index) => Container(
                       width: 10,
                       height: 10,
-                      margin: const EdgeInsets.symmetric(horizontal: AppSizes.xs),
+                      margin:
+                      const EdgeInsets.symmetric(horizontal: AppSizes.xs),
                       decoration: BoxDecoration(
                         color: index == 0
                             ? Theme.of(context).colorScheme.primary
@@ -100,48 +91,76 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
               ],
             ),
           ),
+
           const SizedBox(height: AppSizes.xl2),
+
           Text(
             '${AppStrings.currencySymbol}${product.price.toStringAsFixed(0)}',
             style: Theme.of(context).textTheme.displaySmall,
           ),
+
           if (product.hasDiscount) ...[
             const SizedBox(height: AppSizes.xs),
             Text(
               '${AppStrings.currencySymbol}${product.originalPrice.toStringAsFixed(0)}',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    decoration: TextDecoration.lineThrough,
-                  ),
+                decoration: TextDecoration.lineThrough,
+              ),
             ),
           ],
+
           const SizedBox(height: AppSizes.lg),
+
           Text(
-            '${AppStrings.quantity}: $_quantity unit',
+            AppStrings.quantity,
             style: Theme.of(context).textTheme.headlineSmall,
           ),
+
           const SizedBox(height: AppSizes.md),
+
           Row(
             children: [
-              _OptionTile(
-                label: '1 unit',
-                isSelected: true,
-                onTap: () {},
+              Expanded(
+                child: _QuantitySelector(
+                  quantity: _quantity,
+                  onDecrease: _quantity > 1
+                      ? () {
+                    setState(() {
+                      _quantity--;
+                    });
+                  }
+                      : null,
+                  onIncrease: _quantity < 20 && _quantity < product.stock
+                      ? () {
+                    setState(() {
+                      _quantity++;
+                    });
+                  }
+                      : null,
+                ),
               ),
               const SizedBox(width: AppSizes.sm),
               if (product.sku.trim().isNotEmpty)
-                _OptionTile(
-                  label: product.sku,
-                  isSelected: false,
-                  onTap: () {},
+                Expanded(
+                  child: _OptionTile(
+                    label: product.sku,
+                    isSelected: false,
+                    onTap: () {},
+                  ),
                 ),
             ],
           ),
+
           const SizedBox(height: AppSizes.lg),
+
           Row(
             children: [
               GlassChip(
-                label: product.inStock ? AppStrings.inStock : AppStrings.outOfStock,
-                variant: product.inStock ? GlassChipVariant.success : GlassChipVariant.error,
+                label:
+                product.inStock ? AppStrings.inStock : AppStrings.outOfStock,
+                variant: product.inStock
+                    ? GlassChipVariant.success
+                    : GlassChipVariant.error,
               ),
               const SizedBox(width: AppSizes.sm),
               if (product.isLowStock)
@@ -151,12 +170,16 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                 ),
             ],
           ),
+
           const SizedBox(height: AppSizes.xl2),
+
           _SectionTabs(
             activeIndex: _activeTab,
             onChanged: (index) => setState(() => _activeTab = index),
           ),
+
           const SizedBox(height: AppSizes.lg),
+
           if (_activeTab == 0)
             _HighlightsSection(product: product)
           else if (_activeTab == 1)
@@ -190,44 +213,85 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                   variant: GlassButtonVariant.success,
                   onPressed: product.inStock
                       ? () async {
-                          await cartNotifier.addProduct(product, quantity: _quantity);
-                          if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('${product.name} added to cart')),
-                          );
-                        }
+                    await cartNotifier.addProduct(
+                      product,
+                      quantity: _quantity,
+                    );
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('${product.name} added to cart'),
+                      ),
+                    );
+                  }
                       : null,
                 ),
               ),
               const SizedBox(width: AppSizes.md),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: AppSizes.lg, vertical: AppSizes.md),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizes.lg,
+                  vertical: AppSizes.md,
+                ),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.primary,
                   borderRadius: BorderRadius.circular(AppSizes.radiusMd),
                 ),
                 child: Text(
                   '${AppStrings.currencySymbol}${(product.price * _quantity).toStringAsFixed(0)}',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ],
           ),
         ),
       ),
-      floatingActionButton: product.inStock
-          ? FloatingActionButton.small(
-              onPressed: () {
-                setState(() {
-                  if (_quantity > 1) {
-                    _quantity--;
-                  }
-                });
-              },
-              child: const Icon(Icons.remove_rounded),
-            )
-          : null,
-      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
+    );
+  }
+}
+
+class _QuantitySelector extends StatelessWidget {
+  const _QuantitySelector({
+    required this.quantity,
+    required this.onDecrease,
+    required this.onIncrease,
+  });
+
+  final int quantity;
+  final VoidCallback? onDecrease;
+  final VoidCallback? onIncrease;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 56,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+        border: Border.all(color: Theme.of(context).dividerColor),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: onDecrease,
+            icon: const Icon(Icons.remove_rounded),
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          Expanded(
+            child: Text(
+              '$quantity unit',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
+          IconButton(
+            onPressed: onIncrease,
+            icon: const Icon(Icons.add_rounded),
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -269,7 +333,9 @@ class _OptionTile extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppSizes.radiusSm),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppSizes.xl, vertical: AppSizes.md),
+        height: 56,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: AppSizes.md),
         decoration: BoxDecoration(
           color: isSelected
               ? Theme.of(context).colorScheme.primary
@@ -283,9 +349,11 @@ class _OptionTile extends StatelessWidget {
         ),
         child: Text(
           label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: isSelected ? Colors.white : null,
-              ),
+            color: isSelected ? Colors.white : null,
+          ),
         ),
       ),
     );
@@ -318,15 +386,16 @@ class _SectionTabs extends StatelessWidget {
                       ? Theme.of(context).colorScheme.primary
                       : Theme.of(context).colorScheme.primary.withOpacity(0.08),
                   border: Border.all(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.4),
+                    color:
+                    Theme.of(context).colorScheme.primary.withOpacity(0.4),
                   ),
                 ),
                 child: Text(
                   labels[index],
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: index == activeIndex ? Colors.white : null,
-                      ),
+                    color: index == activeIndex ? Colors.white : null,
+                  ),
                 ),
               ),
             ),
@@ -344,7 +413,8 @@ class _HighlightsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final points = <String>[
-      if (product.shortDescription.trim().isNotEmpty) product.shortDescription,
+      if (product.shortDescription.trim().isNotEmpty)
+        product.shortDescription,
       if (product.description.trim().isNotEmpty) product.description,
       if (product.sku.trim().isNotEmpty) 'SKU: ${product.sku}',
     ];
@@ -354,13 +424,13 @@ class _HighlightsSection extends StatelessWidget {
       children: points
           .map(
             (point) => Padding(
-              padding: const EdgeInsets.only(bottom: AppSizes.md),
-              child: Text(
-                point,
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-            ),
-          )
+          padding: const EdgeInsets.only(bottom: AppSizes.md),
+          child: Text(
+            point,
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
+        ),
+      )
           .toList(),
     );
   }
@@ -377,14 +447,25 @@ class _DetailsSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Name: ${product.name}', style: Theme.of(context).textTheme.bodyLarge),
-          const SizedBox(height: AppSizes.sm),
-          Text('Category ID: ${product.categoryId}', style: Theme.of(context).textTheme.bodyLarge),
-          const SizedBox(height: AppSizes.sm),
-          Text('Stock: ${product.stock}', style: Theme.of(context).textTheme.bodyLarge),
+          Text(
+            'Name: ${product.name}',
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
           const SizedBox(height: AppSizes.sm),
           Text(
-            product.description.trim().isNotEmpty ? product.description : product.shortDescription,
+            'Category ID: ${product.categoryId}',
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
+          const SizedBox(height: AppSizes.sm),
+          Text(
+            'Stock: ${product.stock}',
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
+          const SizedBox(height: AppSizes.sm),
+          Text(
+            product.description.trim().isNotEmpty
+                ? product.description
+                : product.shortDescription,
             style: Theme.of(context).textTheme.bodyLarge,
           ),
         ],
@@ -438,7 +519,9 @@ class _CartCountBadge extends StatelessWidget {
               backgroundColor: Theme.of(context).colorScheme.primary,
               child: Text(
                 '$count',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white),
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Colors.white,
+                ),
               ),
             ),
           ),

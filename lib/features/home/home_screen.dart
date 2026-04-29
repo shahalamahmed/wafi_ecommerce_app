@@ -85,7 +85,6 @@ class HomeScreen extends ConsumerWidget {
           AppSizes.xl4,
         ),
         children: [
-          // ── Hero Banner ──────────────────────────────────────────
           _HeroBanner(
             onShopTap: () => _openCatalog(
               context,
@@ -96,7 +95,6 @@ class HomeScreen extends ConsumerWidget {
 
           const SizedBox(height: AppSizes.lg),
 
-          // ── Categories ───────────────────────────────────────────
           _SectionWrapper(
             dark: true,
             child: Column(
@@ -131,7 +129,6 @@ class HomeScreen extends ConsumerWidget {
 
           const SizedBox(height: AppSizes.lg),
 
-          // ── Popular Items ────────────────────────────────────────
           _SectionWrapper(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,7 +165,6 @@ class HomeScreen extends ConsumerWidget {
 
           const SizedBox(height: AppSizes.lg),
 
-          // ── New Arrivals ─────────────────────────────────────────
           _SectionWrapper(
             dark: true,
             child: Column(
@@ -227,9 +223,6 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Hero Banner  (Khaas Food-style promotional card, Apple-style radius/buttons)
-// ─────────────────────────────────────────────────────────────────────────────
 class _HeroBanner extends StatelessWidget {
   const _HeroBanner({required this.onShopTap});
 
@@ -240,8 +233,7 @@ class _HeroBanner extends StatelessWidget {
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
 
-    // Stack ব্যবহার করলে Positioned orbs button overflow ঘটাতে পারে।
-    // তাই orb গুলো Align দিয়ে দেখানো হচ্ছে এবং Stack-এ clipBehavior: hardEdge।
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(AppSizes.radiusXxl),
       child: Container(
@@ -249,7 +241,6 @@ class _HeroBanner extends StatelessWidget {
         child: Stack(
           clipBehavior: Clip.hardEdge,
           children: [
-            // Decorative orbs — Align ব্যবহার করলে layout affect হয় না
             Positioned(
               top: -40,
               right: -40,
@@ -261,7 +252,6 @@ class _HeroBanner extends StatelessWidget {
               child: _Orb(size: 110, color: primary.withOpacity(0.07)),
             ),
 
-            // Main content — IntrinsicWidth দিয়ে button constrain করা
             Padding(
               padding: const EdgeInsets.all(AppSizes.xl2),
               child: Column(
@@ -291,9 +281,6 @@ class _HeroBanner extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSizes.xl),
 
-                  // ElevatedButton + OutlinedButton ব্যবহার করছি —
-                  // GlassButton এ minimumSize: infinity থাকায় overflow হচ্ছিল।
-                  // Expanded + standard buttons → নিশ্চিত no overflow।
                   Row(
                     children: [
                       Expanded(
@@ -321,12 +308,6 @@ class _HeroBanner extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Section Wrapper
-//
-// dark: true  → Light mode: হালকা gray (#F2F2F7) | Dark mode: dark (#1C1C1E)
-// dark: false → Light mode: white              | Dark mode: elevated (#2C2C2E)
-// ─────────────────────────────────────────────────────────────────────────────
 class _SectionWrapper extends StatelessWidget {
   const _SectionWrapper({required this.child, this.dark = false});
 
@@ -352,16 +333,13 @@ class _SectionWrapper extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Section Header  (eyebrow + title + "See All" button — no overflow)
-// ─────────────────────────────────────────────────────────────────────────────
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({
     required this.eyebrow,
     required this.title,
     required this.actionLabel,
     required this.onActionTap,
-    this.dark = false, // অব্যবহৃত, backward compat এর জন্য রাখা হয়েছে
+    this.dark = false,
   });
 
   final String eyebrow;
@@ -374,7 +352,6 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
-    // Theme brightness দিয়ে text color নির্ধারণ — hardcoded নয়
     final titleColor = theme.colorScheme.onSurface;
 
     return Row(
@@ -431,11 +408,6 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Category Grid  (3-column, fixed aspect ratio, no overflow)
-// ─────────────────────────────────────────────────────────────────────────────
-// Category Horizontal Scroll
-// ─────────────────────────────────────────────────────────────────────────────
 class _CategoryGrid extends StatelessWidget {
   const _CategoryGrid({
     required this.categories,
@@ -480,7 +452,7 @@ class _CategoryCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
-        width: 90,   // fixed width — horizontal scroll card
+        width: 90,
         child: Container(
           decoration: BoxDecoration(
             color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.6),
@@ -513,7 +485,7 @@ class _CategoryCard extends StatelessWidget {
               Text(
                 category.name,
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurface,  // theme aware — hardcoded সাদা নয়
+                  color: theme.colorScheme.onSurface,
                   fontWeight: FontWeight.w600,
                 ),
                 maxLines: 2,
@@ -559,9 +531,7 @@ class _CategoryCard extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Horizontal Product Strip  (popular items — fixed height, no overflow)
-// ─────────────────────────────────────────────────────────────────────────────
+
 class _HorizontalProductStrip extends StatelessWidget {
   const _HorizontalProductStrip({
     required this.products,
@@ -631,7 +601,7 @@ class _ProductCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image area
+
             Expanded(
               child: Container(
                 width: double.infinity,
@@ -661,7 +631,6 @@ class _ProductCard extends StatelessWidget {
               ),
             ),
 
-            // Info area
             Padding(
               padding: const EdgeInsets.all(AppSizes.md),
               child: Column(
@@ -697,7 +666,6 @@ class _ProductCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      // ADD button (Khaas Food style)
                       GestureDetector(
                         onTap: product.inStock ? onAddToCart : null,
                         child: Container(
@@ -739,9 +707,6 @@ class _ProductCard extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// New Arrival Strip  (horizontal, dark cards)
-// ─────────────────────────────────────────────────────────────────────────────
 class _NewArrivalStrip extends StatelessWidget {
   const _NewArrivalStrip({
     required this.products,
@@ -813,7 +778,6 @@ class _NewArrivalCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image area
             Expanded(
               child: Container(
                 width: double.infinity,
@@ -843,13 +807,11 @@ class _NewArrivalCard extends StatelessWidget {
               ),
             ),
 
-            // Info area
             Padding(
               padding: const EdgeInsets.all(AppSizes.md),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // NEW badge
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSizes.sm,
@@ -939,9 +901,6 @@ class _NewArrivalCard extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Small helpers
-// ─────────────────────────────────────────────────────────────────────────────
 class _EyebrowChip extends StatelessWidget {
   const _EyebrowChip({required this.label});
 

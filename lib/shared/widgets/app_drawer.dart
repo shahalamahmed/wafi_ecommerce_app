@@ -4,11 +4,15 @@ import 'package:wafi_ecommerce_app/core/constants/sizes.dart';
 import 'package:wafi_ecommerce_app/core/constants/strings.dart';
 import 'package:wafi_ecommerce_app/core/theme/theme_provider.dart';
 import 'package:wafi_ecommerce_app/features/auth/auth_provider.dart';
+import 'package:wafi_ecommerce_app/features/owner/order_management_screen.dart';
+import 'package:wafi_ecommerce_app/features/owner/product_management_screen.dart';
+import 'package:wafi_ecommerce_app/features/owner/user_management_screen.dart';
 import 'package:wafi_ecommerce_app/features/settings/settings_screen.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_chip.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/profile_avatar.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
 
 class AppDrawer extends ConsumerWidget {
   const AppDrawer({super.key});
@@ -29,7 +33,6 @@ class AppDrawer extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.all(AppSizes.lg),
           children: [
-            // ── Profile header ──────────────────────────────────────────
             GlassCard(
               variant: GlassCardVariant.elevated,
               child: Column(
@@ -68,10 +71,69 @@ class AppDrawer extends ConsumerWidget {
                 ],
               ),
             ),
-
             const SizedBox(height: AppSizes.xl2),
-
-            // ── Settings ────────────────────────────────────────────────
+            if (isOwner) ...[
+              GlassButton(
+                label: 'Product Management',
+                prefixIcon: Icons.inventory_2_outlined,
+                isFullWidth: true,
+                variant: GlassButtonVariant.ghost,
+                onPressed: () {
+                  Navigator.of(context)
+                    ..pop()
+                    ..push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const _DrawerScreen(
+                          title: 'Product Management',
+                          subtitle: 'Catalog operations and inventory controls',
+                          child: ProductManagementScreen(),
+                        ),
+                      ),
+                    );
+                },
+              ),
+              const SizedBox(height: AppSizes.sm),
+              GlassButton(
+                label: 'Order Management',
+                prefixIcon: Icons.receipt_long_outlined,
+                isFullWidth: true,
+                variant: GlassButtonVariant.ghost,
+                onPressed: () {
+                  Navigator.of(context)
+                    ..pop()
+                    ..push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const _DrawerScreen(
+                          title: 'Order Management',
+                          subtitle: 'Queue, fulfillment, and status updates',
+                          child: OrderManagementScreen(),
+                        ),
+                      ),
+                    );
+                },
+              ),
+              const SizedBox(height: AppSizes.sm),
+              GlassButton(
+                label: 'User Management',
+                prefixIcon: Icons.manage_accounts_outlined,
+                isFullWidth: true,
+                variant: GlassButtonVariant.ghost,
+                onPressed: () {
+                  Navigator.of(context)
+                    ..pop()
+                    ..push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const _DrawerScreen(
+                          title: 'User Management',
+                          subtitle: 'Assign owner access and review user roles',
+                          child: UserManagementScreen(),
+                        ),
+                      ),
+                    );
+                },
+              ),
+              const SizedBox(height: AppSizes.xl2),
+            ],
             GlassButton(
               label: AppStrings.settings,
               prefixIcon: Icons.settings_outlined,
@@ -87,10 +149,7 @@ class AppDrawer extends ConsumerWidget {
                   );
               },
             ),
-
             const SizedBox(height: AppSizes.xl2),
-
-            // ── Theme switcher ──────────────────────────────────────────
             Text('Theme Mode', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: AppSizes.md),
             GlassButton(
@@ -119,10 +178,7 @@ class AppDrawer extends ConsumerWidget {
                   : GlassButtonVariant.ghost,
               onPressed: () => themeNotifier.setTheme(AppThemeMode.dark),
             ),
-
             const SizedBox(height: AppSizes.xl2),
-
-            // ── Logout ──────────────────────────────────────────────────
             GlassButton(
               label: authState.isAnonymous
                   ? 'Back to Sign In'
@@ -137,6 +193,26 @@ class AppDrawer extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _DrawerScreen extends StatelessWidget {
+  const _DrawerScreen({
+    required this.title,
+    required this.subtitle,
+    required this.child,
+  });
+
+  final String title;
+  final String subtitle;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: WafiAppBar(title: title, subtitle: subtitle),
+      body: child,
     );
   }
 }

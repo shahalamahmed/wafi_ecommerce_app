@@ -122,7 +122,7 @@ class GlassTheme extends ThemeExtension<GlassTheme> {
     elevatedColor: AppColors.glassElevatedDark,
     pressedColor: AppColors.glassPressedDark,
     borderColor: AppColors.glassBorderDark,
-    highlightColor: Color(0x40FFFFFF),
+    highlightColor: Color(0x0DFFFFFF),
     shadowColor: Color(0x4D000000),
     blurSigma: AppSizes.blurMd,
     primaryGlass: AppColors.primaryGlassDark,

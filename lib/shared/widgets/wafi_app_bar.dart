@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wafi_ecommerce_app/core/constants/sizes.dart';
 import 'package:wafi_ecommerce_app/core/theme/app_theme.dart';
 import 'package:wafi_ecommerce_app/features/auth/auth_provider.dart';
-import 'package:wafi_ecommerce_app/profile/profile_screen.dart';
+import 'package:wafi_ecommerce_app/features/profile/profile_screen.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/profile_avatar.dart';
 
 class WafiAppBar extends ConsumerWidget implements PreferredSizeWidget {
@@ -33,6 +33,7 @@ class WafiAppBar extends ConsumerWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final authState = ref.watch(authProvider);
     final user = authState.user;
     final isGuest = authState.isAnonymous || !authState.isAuthenticated;
@@ -62,10 +63,15 @@ class WafiAppBar extends ConsumerWidget implements PreferredSizeWidget {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  glass.highlightColor,
-                  glass.cardColor,
-                ],
+                colors: isDark
+                    ? [
+                        glass.elevatedColor,
+                        glass.cardColor,
+                      ]
+                    : [
+                        glass.highlightColor,
+                        glass.cardColor,
+                      ],
               ),
             ),
             child: hasSubtitle
@@ -108,6 +114,7 @@ class _ProfileActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final glass = Theme.of(context).extension<GlassTheme>()!;
 
     return InkWell(
@@ -130,10 +137,15 @@ class _ProfileActionButton extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  glass.highlightColor,
-                  glass.elevatedColor,
-                ],
+                colors: isDark
+                    ? [
+                        glass.cardColor,
+                        glass.elevatedColor,
+                      ]
+                    : [
+                        glass.highlightColor,
+                        glass.elevatedColor,
+                      ],
               ),
             ),
             child: ProfileAvatar(

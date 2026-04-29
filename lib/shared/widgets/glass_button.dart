@@ -110,6 +110,7 @@ class _GlassButtonState extends State<GlassButton>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final style = _resolve(context);
     final disabled = widget.onPressed == null || widget.isLoading;
     final radius = widget.borderRadius ?? AppSizes.buttonRadius;
@@ -172,19 +173,25 @@ class _GlassButtonState extends State<GlassButton>
               boxShadow: widget.variant == GlassButtonVariant.primary
                   ? [
                       BoxShadow(
-                        color: AppColors.primaryLight.withOpacity(0.18),
-                        blurRadius: 24,
-                        offset: const Offset(0, 10),
+                        color: (isDark ? AppColors.primaryDark : AppColors.primaryLight)
+                            .withOpacity(isDark ? 0.08 : 0.18),
+                        blurRadius: isDark ? 12 : 24,
+                        offset: Offset(0, isDark ? 5 : 10),
                       ),
                     ]
                   : null,
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  Colors.white.withOpacity(0.14),
-                  style.bg,
-                ],
+                colors: isDark
+                    ? [
+                        style.bg,
+                        style.bg.withOpacity(0.92),
+                      ]
+                    : [
+                        Colors.white.withOpacity(0.14),
+                        style.bg,
+                      ],
               ),
             ),
             child: ColoredBox(

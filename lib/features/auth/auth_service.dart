@@ -1,10 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'dart:io';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 import 'package:wafi_ecommerce_app/core/storage/local_storage.dart';
 import 'package:wafi_ecommerce_app/core/storage/secure_storage.dart';
-import 'dart:io';
 import 'package:wafi_ecommerce_app/firebase_options.dart';
 
 import 'auth_model.dart';
@@ -16,26 +17,30 @@ class AuthService {
     GoogleSignIn? googleSignIn,
     SecureStorage? secureStorage,
     LocalStorage? localStorage,
-    FirebaseStorage? storage,
-  })  : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
-        _firestore = firestore ?? FirebaseFirestore.instance,
-        _googleSignIn = googleSignIn ?? GoogleSignIn(),
-        _secureStorage = secureStorage ?? SecureStorage(),
-        _localStorage = localStorage ?? LocalStorage(),
-        _storage = storage ?? _buildStorage();
+  }) : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
+       _firestore = firestore ?? FirebaseFirestore.instance,
+       _googleSignIn = googleSignIn ?? _buildGoogleSignIn(),
+       _secureStorage = secureStorage ?? SecureStorage(),
+       _localStorage = localStorage ?? LocalStorage();
 
   final FirebaseAuth _firebaseAuth;
   final FirebaseFirestore _firestore;
   final GoogleSignIn _googleSignIn;
   final SecureStorage _secureStorage;
   final LocalStorage _localStorage;
-  final FirebaseStorage _storage;
 
-  static FirebaseStorage _buildStorage() {
-    final bucket = DefaultFirebaseOptions.currentPlatform.storageBucket;
-    if (bucket == null || bucket.isEmpty) return FirebaseStorage.instance;
-    final normalizedBucket = bucket.startsWith('gs://') ? bucket : 'gs://$bucket';
-    return FirebaseStorage.instanceFor(bucket: normalizedBucket);
+  static const String _googleWebClientId =
+      '175234345266-t59kfbmanrtnsr5qo9fb1mbo9u17s336.apps.googleusercontent.com';
+
+  static GoogleSignIn _buildGoogleSignIn() {
+    if (Platform.isIOS) {
+      return GoogleSignIn(
+        clientId: DefaultFirebaseOptions.ios.iosClientId,
+        serverClientId: _googleWebClientId,
+      );
+    }
+
+    return GoogleSignIn(serverClientId: _googleWebClientId);
   }
 
   Stream<User?> authStateChanges() => _firebaseAuth.authStateChanges();
@@ -67,7 +72,9 @@ class AuthService {
     );
 
     final firebaseUser = result.user!;
-    await firebaseUser.updateDisplayName('${data.firstName} ${data.lastName}'.trim());
+    await firebaseUser.updateDisplayName(
+      '${data.firstName} ${data.lastName}'.trim(),
+    );
     await _upsertUserProfile(
       uid: firebaseUser.uid,
       email: data.email.trim(),
@@ -85,6 +92,7 @@ class AuthService {
   }
 
   Future<AppUser> signInWithGoogle() async {
+    await _googleSignIn.signOut().catchError((_) => null);
     final googleUser = await _googleSignIn.signIn();
     if (googleUser == null) {
       throw FirebaseAuthException(
@@ -94,9 +102,21 @@ class AuthService {
     }
 
     final googleAuth = await googleUser.authentication;
+    final accessToken = googleAuth.accessToken;
+    final idToken = googleAuth.idToken;
+
+    if ((accessToken == null || accessToken.isEmpty) &&
+        (idToken == null || idToken.isEmpty)) {
+      throw FirebaseAuthException(
+        code: 'google-sign-in-misconfigured',
+        message:
+            'Google sign in did not return a valid token. Check the Firebase OAuth client configuration.',
+      );
+    }
+
     final credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
+      accessToken: accessToken,
+      idToken: idToken,
     );
 
     final result = await _firebaseAuth.signInWithCredential(credential);
@@ -125,7 +145,7 @@ class AuthService {
   }
 
   Future<void> signOut() async {
-    await _googleSignIn.signOut().catchError((_) {});
+    await _googleSignIn.signOut().catchError((_) => null);
     await _firebaseAuth.signOut();
     await _secureStorage.clearAll();
   }
@@ -140,42 +160,52 @@ class AuthService {
       throw Exception('Selected image file was not found on device.');
     }
 
-    final ref = _storage
-        .ref()
-        .child('users')
-        .child(userId)
-        .child('profile.jpg');
-
-    final uploadTask = await ref.putFile(
-      file,
-      SettableMetadata(
-        contentType: 'image/jpeg',
-        cacheControl: 'public,max-age=3600',
-      ),
+    final savedImagePath = await _saveProfilePhotoLocally(
+      userId: userId,
+      sourceFile: file,
     );
 
-    if (uploadTask.state != TaskState.success) {
-      throw Exception('Profile picture upload did not complete successfully.');
-    }
-
-    final downloadUrl = await uploadTask.ref.getDownloadURL();
-
     await _firestore.collection('users').doc(userId).set({
-      'profilePicture': downloadUrl,
+      'profilePicture': savedImagePath,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 
     final firebaseUser = _firebaseAuth.currentUser;
     if (firebaseUser != null && firebaseUser.uid == userId) {
-      await firebaseUser.updatePhotoURL(downloadUrl);
+      await firebaseUser.updatePhotoURL(savedImagePath);
     }
 
     final doc = await _firestore.collection('users').doc(userId).get();
     return AppUser.fromMap(doc.id, doc.data() ?? <String, dynamic>{});
   }
 
+  Future<String> _saveProfilePhotoLocally({
+    required String userId,
+    required File sourceFile,
+  }) async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final profileDir = Directory(path.join(appDir.path, 'profile_photos'));
+    if (!await profileDir.exists()) {
+      await profileDir.create(recursive: true);
+    }
+
+    final extension = _normalizedExtension(sourceFile.path);
+    final targetPath = path.join(profileDir.path, '$userId.$extension');
+    final targetFile = File(targetPath);
+
+    if (await targetFile.exists()) {
+      await targetFile.delete();
+    }
+
+    final copiedFile = await sourceFile.copy(targetPath);
+    return copiedFile.path;
+  }
+
   Future<AppUser> _fetchOrCreateUserProfile(User firebaseUser) async {
-    final doc = await _firestore.collection('users').doc(firebaseUser.uid).get();
+    final doc = await _firestore
+        .collection('users')
+        .doc(firebaseUser.uid)
+        .get();
     if (doc.exists && doc.data() != null) {
       return AppUser.fromMap(doc.id, doc.data()!);
     }
@@ -193,8 +223,14 @@ class AuthService {
       profilePicture: firebaseUser.photoURL ?? '',
     );
 
-    final createdDoc = await _firestore.collection('users').doc(firebaseUser.uid).get();
-    return AppUser.fromMap(createdDoc.id, createdDoc.data() ?? <String, dynamic>{});
+    final createdDoc = await _firestore
+        .collection('users')
+        .doc(firebaseUser.uid)
+        .get();
+    return AppUser.fromMap(
+      createdDoc.id,
+      createdDoc.data() ?? <String, dynamic>{},
+    );
   }
 
   Future<void> _upsertUserProfile({
@@ -243,9 +279,10 @@ class AuthService {
     final cartRef = _firestore.collection('carts').doc(userId);
     final cartDoc = await cartRef.get();
 
-    final existingItems = (cartDoc.data()?['items'] as List<dynamic>? ?? <dynamic>[])
-        .map((item) => Map<String, dynamic>.from(item as Map))
-        .toList();
+    final existingItems =
+        (cartDoc.data()?['items'] as List<dynamic>? ?? <dynamic>[])
+            .map((item) => Map<String, dynamic>.from(item as Map))
+            .toList();
 
     final mergedItems = <String, Map<String, dynamic>>{};
 
@@ -275,7 +312,8 @@ class AuthService {
           'subtotal': quantity * price,
         };
       } else {
-        final mergedQuantity = ((current['quantity'] as num?)?.toInt() ?? 0) + quantity;
+        final mergedQuantity =
+            ((current['quantity'] as num?)?.toInt() ?? 0) + quantity;
         final currentPrice = (current['price'] as num?)?.toDouble() ?? price;
         mergedItems[productId] = {
           ...current,
@@ -289,7 +327,8 @@ class AuthService {
     final items = mergedItems.values.toList();
     final subtotal = items.fold<double>(
       0,
-      (sum, item) => sum + ((item['subtotal'] as num?)?.toDouble() ?? 0),
+      (runningTotal, item) =>
+          runningTotal + ((item['subtotal'] as num?)?.toDouble() ?? 0),
     );
     final tax = double.parse((subtotal * 0.05).toStringAsFixed(2));
     final total = subtotal + tax;
@@ -319,13 +358,28 @@ class AuthService {
       lastName: parts.sublist(1).join(' '),
     );
   }
+
+  String _normalizedExtension(String imagePath) {
+    final lastDot = imagePath.lastIndexOf('.');
+    if (lastDot < 0 || lastDot == imagePath.length - 1) {
+      return 'jpg';
+    }
+
+    final raw = imagePath.substring(lastDot + 1).toLowerCase();
+    return switch (raw) {
+      'png' => 'png',
+      'webp' => 'webp',
+      'heic' => 'heic',
+      'heif' => 'heif',
+      'jpeg' => 'jpg',
+      'jpg' => 'jpg',
+      _ => 'jpg',
+    };
+  }
 }
 
 class _DisplayNameParts {
-  const _DisplayNameParts({
-    this.firstName = '',
-    this.lastName = '',
-  });
+  const _DisplayNameParts({this.firstName = '', this.lastName = ''});
 
   final String firstName;
   final String lastName;
