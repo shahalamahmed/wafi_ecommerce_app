@@ -136,9 +136,7 @@ class _ShellPage {
   final Widget body;
 }
 
-// ---------------------------------------------------------------------------
-// Owner dashboard overview
-// ---------------------------------------------------------------------------
+
 
 class _OverviewPage extends StatelessWidget {
   const _OverviewPage({required this.user});

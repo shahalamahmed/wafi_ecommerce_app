@@ -173,7 +173,7 @@ abstract class AppStrings {
   static const String totalProducts  = 'Total Products';
   static const String pendingOrders  = 'Pending Orders';
   static const String addProduct     = 'Add Product';
-  static const String editProduct    = 'Edit Product';
+  static const String editProduct    = 'Edit';
   static const String deleteProduct  = 'Delete Product';
   static const String deleteProductConfirm = 'Delete this product permanently?';
   static const String productName    = 'Product Name';

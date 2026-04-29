@@ -45,12 +45,6 @@ class ProductManagementScreen extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    Expanded(
-                      child: Text(
-                        'Product Catalog Management',
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                    ),
                     GlassButton(
                       label: AppStrings.addProduct,
                       prefixIcon: Icons.add_rounded,
@@ -280,28 +274,29 @@ class _ProductManagementCard extends StatelessWidget {
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: AppSizes.md),
+          Text(
+            '${AppStrings.currencySymbol}${product.price.toStringAsFixed(0)}',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: AppSizes.md),
           Row(
             children: [
               Expanded(
-                child: Text(
-                  '${AppStrings.currencySymbol}${product.price.toStringAsFixed(0)}',
-                  style: Theme.of(context).textTheme.titleLarge,
+                child: GlassButton(
+                  label: AppStrings.editProduct,
+                  prefixIcon: Icons.edit_outlined,
+                  variant: GlassButtonVariant.ghost,
+                  onPressed: onEdit,
                 ),
               ),
-              GlassButton(
-                label: AppStrings.editProduct,
-                prefixIcon: Icons.edit_outlined,
-                isFullWidth: false,
-                variant: GlassButtonVariant.ghost,
-                onPressed: onEdit,
-              ),
               const SizedBox(width: AppSizes.sm),
-              GlassButton(
-                label: AppStrings.delete,
-                prefixIcon: Icons.delete_outline_rounded,
-                isFullWidth: false,
-                variant: GlassButtonVariant.danger,
-                onPressed: onDelete,
+              Expanded(
+                child: GlassButton(
+                  label: AppStrings.delete,
+                  prefixIcon: Icons.delete_outline_rounded,
+                  variant: GlassButtonVariant.danger,
+                  onPressed: onDelete,
+                ),
               ),
             ],
           ),

@@ -208,37 +208,30 @@ class _UserManagementCard extends ConsumerWidget {
             ),
           ],
           const SizedBox(height: AppSizes.md),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  isSelf
-                      ? 'You cannot change your own role from this device.'
-                      : 'Role change will update access immediately after next profile refresh.',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ),
-              const SizedBox(width: AppSizes.md),
-              GlassButton(
-                label: actionLabel,
-                variant: user.isOwner
-                    ? GlassButtonVariant.danger
-                    : GlassButtonVariant.primary,
-                prefixIcon: user.isOwner
-                    ? Icons.person_off_outlined
-                    : Icons.verified_user_outlined,
-                isFullWidth: false,
-                isLoading: isSaving,
-                onPressed: isSelf
-                    ? null
-                    : () => _confirmRoleChange(
-                        context,
-                        ref,
-                        user: user,
-                        targetRole: targetRole,
-                      ),
-              ),
-            ],
+          Text(
+            isSelf
+                ? 'You cannot change your own role from this device.'
+                : 'Role change will update access immediately after next profile refresh.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: AppSizes.md),
+          GlassButton(
+            label: actionLabel,
+            variant: user.isOwner
+                ? GlassButtonVariant.danger
+                : GlassButtonVariant.primary,
+            prefixIcon: user.isOwner
+                ? Icons.person_off_outlined
+                : Icons.verified_user_outlined,
+            isLoading: isSaving,
+            onPressed: isSelf
+                ? null
+                : () => _confirmRoleChange(
+              context,
+              ref,
+              user: user,
+              targetRole: targetRole,
+            ),
           ),
         ],
       ),

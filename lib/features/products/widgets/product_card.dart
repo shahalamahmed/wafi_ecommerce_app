@@ -63,6 +63,8 @@ class ProductCard extends StatelessWidget {
                     children: [
                       Text(
                         '${AppStrings.currencySymbol}${product.price.toStringAsFixed(0)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
