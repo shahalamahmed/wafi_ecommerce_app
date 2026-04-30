@@ -94,23 +94,25 @@ class HomeScreen extends ConsumerWidget {
           ),
 
           const SizedBox(height: AppSizes.lg),
-
+          _SectionWrapper(
+            dark: true,
+            child: _SectionHeader(
+              eyebrow: 'Collections',
+              title: 'Browse by category.',
+              actionLabel: AppStrings.seeAll,
+              onActionTap: () => _openCatalog(
+                context,
+                title: 'All Products',
+                subtitle: 'Browse every active category',
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSizes.lg),
           _SectionWrapper(
             dark: true,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _SectionHeader(
-                  eyebrow: 'Collections',
-                  title: 'Browse by category.',
-                  actionLabel: AppStrings.seeAll,
-                  onActionTap: () => _openCatalog(
-                    context,
-                    title: 'All Products',
-                    subtitle: 'Browse every active category',
-                  ),
-                  dark: true,
-                ),
                 const SizedBox(height: AppSizes.lg),
                 _CategoryGrid(
                   categories: categories,
@@ -128,22 +130,23 @@ class HomeScreen extends ConsumerWidget {
           ),
 
           const SizedBox(height: AppSizes.lg),
-
+          _SectionWrapper(
+            child: _SectionHeader(
+              eyebrow: 'Popular Now',
+              title: 'Most popular items.',
+              actionLabel: AppStrings.seeAll,
+              onActionTap: () => _openCatalog(
+                context,
+                title: 'Popular Picks',
+                subtitle: 'Top rated products',
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSizes.lg),
           _SectionWrapper(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _SectionHeader(
-                  eyebrow: 'Popular Now',
-                  title: 'Most popular items.',
-                  actionLabel: AppStrings.seeAll,
-                  onActionTap: () => _openCatalog(
-                    context,
-                    title: 'Popular Picks',
-                    subtitle: 'Top rated products',
-                  ),
-                ),
-                const SizedBox(height: AppSizes.lg),
                 _HorizontalProductStrip(
                   products: popularItems.take(6).toList(),
                   onTap: (p) => Navigator.of(context).push(
@@ -164,23 +167,24 @@ class HomeScreen extends ConsumerWidget {
           ),
 
           const SizedBox(height: AppSizes.lg),
-
+          _SectionWrapper(
+            dark: true,
+            child: _SectionHeader(
+              eyebrow: 'New This Week',
+              title: 'Fresh arrivals.',
+              actionLabel: AppStrings.seeAll,
+              onActionTap: () => _openCatalog(
+                context,
+                title: 'New Arrivals',
+                subtitle: 'Recently stocked products',
+              ),
+            ),
+          ),
           _SectionWrapper(
             dark: true,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _SectionHeader(
-                  eyebrow: 'New This Week',
-                  title: 'Fresh arrivals.',
-                  actionLabel: AppStrings.seeAll,
-                  onActionTap: () => _openCatalog(
-                    context,
-                    title: 'New Arrivals',
-                    subtitle: 'Recently stocked products',
-                  ),
-                  dark: true,
-                ),
                 const SizedBox(height: AppSizes.lg),
                 _NewArrivalStrip(
                   products: newArrivals.take(6).toList(),
@@ -323,7 +327,6 @@ class _SectionWrapper extends StatelessWidget {
         : (isDark ? const Color(0xFF2C2C2E) : Colors.white);
 
     return Container(
-      padding: const EdgeInsets.all(AppSizes.xl2),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(AppSizes.radiusXxl),
@@ -339,20 +342,17 @@ class _SectionHeader extends StatelessWidget {
     required this.title,
     required this.actionLabel,
     required this.onActionTap,
-    this.dark = false,
   });
 
   final String eyebrow;
   final String title;
   final String actionLabel;
   final VoidCallback onActionTap;
-  final bool dark;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
-    final titleColor = theme.colorScheme.onSurface;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -373,7 +373,7 @@ class _SectionHeader extends StatelessWidget {
               Text(
                 title,
                 style: theme.textTheme.headlineMedium?.copyWith(
-                  color: titleColor,
+                  color: theme.colorScheme.onSurface,
                   height: 1.2,
                 ),
                 maxLines: 2,
@@ -387,19 +387,30 @@ class _SectionHeader extends StatelessWidget {
           onTap: onActionTap,
           child: Container(
             padding: const EdgeInsets.symmetric(
-              horizontal: AppSizes.lg,
+              horizontal: AppSizes.md,
               vertical: AppSizes.sm,
             ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppSizes.radiusFull),
               border: Border.all(color: primary.withOpacity(0.4)),
             ),
-            child: Text(
-              actionLabel,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: primary,
-                fontWeight: FontWeight.w600,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  actionLabel,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 11,
+                  color: primary,
+                ),
+              ],
             ),
           ),
         ),

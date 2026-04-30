@@ -24,7 +24,8 @@ class GlassChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     final (Color bg, Color border, Color fg) = switch (variant) {
       GlassChipVariant.primary => isDark
@@ -66,10 +67,9 @@ class GlassChip extends StatelessWidget {
             ],
             Text(
               label,
-              style: TextStyle(
-                color:       fg,
-                fontSize:    AppSizes.labelMd,
-                fontWeight:  FontWeight.w500,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: fg,
+                fontWeight: FontWeight.w500,
               ),
             ),
             if (onDelete != null) ...[

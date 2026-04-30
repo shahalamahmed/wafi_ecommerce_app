@@ -102,18 +102,22 @@ class _GlassButtonState extends State<GlassButton>
         GlassButtonSize.lg => AppSizes.buttonHeightLg,
       };
 
-  double get _fontSize => switch (widget.size) {
-        GlassButtonSize.sm => AppSizes.bodySm,
-        GlassButtonSize.md => AppSizes.bodyLg,
-        GlassButtonSize.lg => AppSizes.headingSm,
-      };
-
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final style = _resolve(context);
     final disabled = widget.onPressed == null || widget.isLoading;
     final radius = widget.borderRadius ?? AppSizes.buttonRadius;
+    final labelStyle = switch (widget.size) {
+      GlassButtonSize.sm => theme.textTheme.bodySmall,
+      GlassButtonSize.md => theme.textTheme.bodyLarge,
+      GlassButtonSize.lg => theme.textTheme.titleLarge,
+    }?.copyWith(
+      color: style.fg,
+      fontWeight: FontWeight.w400,
+      letterSpacing: AppSizes.trackingNormal,
+    );
 
     final content = Row(
       mainAxisSize:
@@ -136,12 +140,7 @@ class _GlassButtonState extends State<GlassButton>
         else
           Text(
             widget.label,
-            style: TextStyle(
-              color: style.fg,
-              fontSize: _fontSize,
-              fontWeight: FontWeight.w400,
-              letterSpacing: AppSizes.trackingNormal,
-            ),
+            style: labelStyle,
           ),
         if (widget.suffixIcon != null && !widget.isLoading) ...[
           const SizedBox(width: AppSizes.sm),

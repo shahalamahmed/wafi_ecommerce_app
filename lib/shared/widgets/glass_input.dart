@@ -79,8 +79,9 @@ class _GlassInputState extends State<GlassInput> {
 
   @override
   Widget build(BuildContext context) {
-    final glass   = Theme.of(context).extension<GlassTheme>()!;
-    final isDark  = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final glass   = theme.extension<GlassTheme>()!;
+    final isDark  = theme.brightness == Brightness.dark;
     final hasError = widget.errorText != null;
 
     final borderColor = hasError
@@ -105,11 +106,10 @@ class _GlassInputState extends State<GlassInput> {
         if (widget.label != null) ...[
           Text(
             widget.label!,
-            style: TextStyle(
-              color:      isDark
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: isDark
                   ? Colors.white.withOpacity(.6)
                   : Colors.black.withOpacity(.6),
-              fontSize:   AppSizes.labelMd,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -149,14 +149,15 @@ class _GlassInputState extends State<GlassInput> {
                 autofocus:       widget.autofocus,
                 autocorrect:     widget.autocorrect,
                 inputFormatters: widget.inputFormatters,
-                style: TextStyle(
+                style: theme.textTheme.bodyMedium?.copyWith(
                   color:      textColor,
-                  fontSize:   AppSizes.bodyMd,
                   fontWeight: FontWeight.w400,
                 ),
                 decoration: InputDecoration(
                   hintText:  widget.hint,
-                  hintStyle: TextStyle(color: hintColor, fontSize: AppSizes.bodyMd),
+                  hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                    color: hintColor,
+                  ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: AppSizes.inputPaddingH,
                     vertical:   AppSizes.md,
@@ -188,11 +189,10 @@ class _GlassInputState extends State<GlassInput> {
           const SizedBox(height: AppSizes.xs),
           Text(
             widget.errorText ?? widget.helperText!,
-            style: TextStyle(
+            style: theme.textTheme.labelLarge?.copyWith(
               color:    hasError
                   ? Theme.of(context).colorScheme.error
                   : hintColor,
-              fontSize: AppSizes.labelMd,
             ),
           ),
         ],
