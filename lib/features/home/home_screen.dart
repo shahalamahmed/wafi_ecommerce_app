@@ -1,4 +1,4 @@
-import 'dart:ui';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -82,7 +82,7 @@ class HomeScreen extends ConsumerWidget {
           AppSizes.screenPaddingH,
           AppSizes.md,
           AppSizes.screenPaddingH,
-          AppSizes.xl4,
+          100,
         ),
         children: [
           _HeroBanner(
@@ -204,6 +204,7 @@ class HomeScreen extends ConsumerWidget {
               ],
             ),
           ),
+          const SizedBox(height: 100),
         ],
       ),
     );
@@ -227,86 +228,220 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-class _HeroBanner extends StatelessWidget {
-  const _HeroBanner({required this.onShopTap});
+// ─── Banner data model ───────────────────────────────────────────────────────
 
+class _BannerItem {
+  const _BannerItem({
+    required this.imageUrl,
+    required this.eyebrow,
+    required this.title,
+    required this.subtitle,
+  });
+  final String imageUrl;
+  final String eyebrow;
+  final String title;
+  final String subtitle;
+}
+
+// ─── Hero Banner (auto-sliding carousel) ─────────────────────────────────────
+
+class _HeroBanner extends StatefulWidget {
+  const _HeroBanner({required this.onShopTap});
   final VoidCallback onShopTap;
+
+  @override
+  State<_HeroBanner> createState() => _HeroBannerState();
+}
+
+class _HeroBannerState extends State<_HeroBanner> {
+  static const _banners = [
+    _BannerItem(
+      imageUrl: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&q=80',
+      eyebrow: 'Fresh Grocery Delivery',
+      title: 'A cleaner way\nto shop daily\nessentials.',
+      subtitle: 'Fresh picks, daily essentials, and pantry staples — delivered.',
+    ),
+    _BannerItem(
+      imageUrl: 'https://images.unsplash.com/photo-1610348725531-843dff563e2c?w=800&q=80',
+      eyebrow: 'Farm Fresh Produce',
+      title: 'Straight from\nthe farm to\nyour table.',
+      subtitle: 'Organic vegetables and fruits, sourced daily from local farms.',
+    ),
+    _BannerItem(
+      imageUrl: 'https://images.unsplash.com/photo-1579113800032-c38bd7635818?w=800&q=80',
+      eyebrow: 'Premium Quality',
+      title: 'The finest\nspices and\ndry goods.',
+      subtitle: 'Authentic flavors from across the region, at your doorstep.',
+    ),
+  ];
+
+  late final PageController _controller;
+  late Timer _timer;
+  int _current = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = PageController();
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!mounted) return;
+      final next = (_current + 1) % _banners.length;
+      _controller.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
+  void _resetTimer() {
+    _timer.cancel();
+    _startTimer();
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
 
-
     return ClipRRect(
       borderRadius: BorderRadius.circular(AppSizes.radiusXxl),
-      child: Container(
-        color: theme.colorScheme.surface,
+      child: SizedBox(
+        height: 280,
         child: Stack(
-          clipBehavior: Clip.hardEdge,
           children: [
-            Positioned(
-              top: -40,
-              right: -40,
-              child: _Orb(size: 150, color: primary.withOpacity(0.11)),
+            // ── PageView ──────────────────────────────────────────────────
+            PageView.builder(
+              controller: _controller,
+              itemCount: _banners.length,
+              onPageChanged: (i) {
+                setState(() => _current = i);
+                _resetTimer();
+              },
+              itemBuilder: (context, index) {
+                final banner = _banners[index];
+                return _BannerSlide(
+                  banner: banner,
+                  onShopTap: widget.onShopTap,
+                );
+              },
             ),
+
+            // ── Dot indicators ────────────────────────────────────────────
             Positioned(
-              bottom: -30,
-              left: -30,
-              child: _Orb(size: 110, color: primary.withOpacity(0.07)),
-            ),
-
-            Padding(
-              padding: const EdgeInsets.all(AppSizes.xl2),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _EyebrowChip(label: 'Fresh Grocery Delivery'),
-                  const SizedBox(height: AppSizes.lg),
-
-                  Text(
-                    'A cleaner way\nto shop daily\nessentials.',
-                    style: theme.textTheme.headlineLarge?.copyWith(
-                      height: 1.15,
-                      letterSpacing: -0.5,
+              bottom: 14,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(_banners.length, (i) {
+                  final isActive = i == _current;
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    width: isActive ? 20 : 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: isActive
+                          ? primary
+                          : primary.withOpacity(0.35),
+                      borderRadius: BorderRadius.circular(4),
                     ),
-                    maxLines: 4,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: AppSizes.md),
-
-                  Text(
-                    'Fresh picks, daily essentials, and pantry staples — delivered.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.55),
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: AppSizes.xl),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: onShopTap,
-                          child: const Text('Shop now'),
-                        ),
-                      ),
-                      const SizedBox(width: AppSizes.sm),
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: onShopTap,
-                          child: const Text('Learn more'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                  );
+                }),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ─── Single banner slide ──────────────────────────────────────────────────────
+
+class _BannerSlide extends StatelessWidget {
+  const _BannerSlide({required this.banner, required this.onShopTap});
+
+  final _BannerItem banner;
+  final VoidCallback onShopTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      color: theme.colorScheme.surface,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // ── Background image ─────────────────────────────────────────
+          Image.network(
+            banner.imageUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+          ),
+
+          // ── Dark gradient overlay so text is readable ────────────────
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.centerRight,
+                end: Alignment.centerLeft,
+                colors: [
+                  Colors.transparent,
+                  theme.colorScheme.surface.withOpacity(0.75),
+                  theme.colorScheme.surface.withOpacity(0.95),
+                ],
+              ),
+            ),
+          ),
+
+          // ── Text content ─────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSizes.xl2, AppSizes.xl2, AppSizes.xl2, 36,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _EyebrowChip(label: banner.eyebrow),
+                const SizedBox(height: AppSizes.md),
+                Text(
+                  banner.title,
+                  style: theme.textTheme.headlineLarge?.copyWith(
+                    height: 1.15,
+                    letterSpacing: -0.5,
+                  ),
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: AppSizes.sm),
+                Text(
+                  banner.subtitle,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: AppSizes.lg),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -939,21 +1074,3 @@ class _EyebrowChip extends StatelessWidget {
   }
 }
 
-class _Orb extends StatelessWidget {
-  const _Orb({required this.size, required this.color});
-
-  final double size;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color,
-      ),
-    );
-  }
-}

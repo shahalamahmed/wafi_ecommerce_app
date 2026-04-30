@@ -35,7 +35,7 @@ class CartScreen extends ConsumerWidget {
                 AppSizes.screenPaddingH,
                 AppSizes.lg,
                 AppSizes.screenPaddingH,
-                AppSizes.xl3,
+                100,
               ),
               itemCount: state.items.length,
               separatorBuilder: (_, __) => const SizedBox(height: AppSizes.md),
@@ -53,6 +53,7 @@ class CartScreen extends ConsumerWidget {
           ),
         ),
         _CartSummary(state: state),
+        const SizedBox(height: 100),
       ],
     );
   }

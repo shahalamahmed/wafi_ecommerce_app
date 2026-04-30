@@ -18,11 +18,11 @@ class WafiApp extends ConsumerWidget {
 
     final showMainLayout =
         authState.status == AuthStatus.authenticated ||
-            authState.status == AuthStatus.anonymous;
+        authState.status == AuthStatus.anonymous;
 
     final showBootSplash =
         authState.status == AuthStatus.loading ||
-            authState.status == AuthStatus.initial;
+        authState.status == AuthStatus.initial;
     final themeMode = switch (themeState.mode) {
       AppThemeMode.system => ThemeMode.system,
       AppThemeMode.light => ThemeMode.light,
@@ -45,13 +45,16 @@ class WafiApp extends ConsumerWidget {
             : AppTheme.light;
 
         return MediaQuery(
-          data: mediaQuery.copyWith(textScaler: TextScaler.noScaling),
+          data: mediaQuery.copyWith(
+            textScaler: TextScaler.noScaling,
+          ),
           child: Theme(
             data: ResponsiveTextScale.apply(activeTheme, scaleFactor),
             child: child!,
           ),
         );
       },
+
       home: showMainLayout
           ? const MainLayout()
           : showBootSplash
@@ -66,8 +69,6 @@ class _BootSplash extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
-    );
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }

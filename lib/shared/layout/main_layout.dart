@@ -91,6 +91,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     final activePage = pages[_currentIndex];
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: WafiAppBar(
         title: activePage.title,
         subtitle: activePage.subtitle,
@@ -224,14 +225,13 @@ class _OverviewPage extends StatelessWidget {
               ),
           ],
         ),
+        const SizedBox(height: 100),
       ],
     );
   }
 }
 
-// ---------------------------------------------------------------------------
-// Placeholder page
-// ---------------------------------------------------------------------------
+
 
 class _PlaceholderPage extends StatelessWidget {
   const _PlaceholderPage({required this.title, required this.subtitle});

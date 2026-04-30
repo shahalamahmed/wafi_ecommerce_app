@@ -116,6 +116,7 @@ class UserManagementScreen extends ConsumerWidget {
                 ),
               ),
             ),
+          const SizedBox(height: 100),
         ],
       ),
     );

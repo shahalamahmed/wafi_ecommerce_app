@@ -27,6 +27,7 @@ class OrderScreen extends ConsumerWidget {
           children: const [
             SizedBox(height: 180),
             _EmptyOrders(),
+            SizedBox(height: 100),
           ],
         ),
       );
@@ -35,7 +36,12 @@ class OrderScreen extends ConsumerWidget {
     return RefreshIndicator(
       onRefresh: notifier.loadOrders,
       child: ListView.separated(
-        padding: const EdgeInsets.all(AppSizes.screenPaddingH),
+        padding: const EdgeInsets.fromLTRB(
+          AppSizes.screenPaddingH,
+          AppSizes.screenPaddingH,
+          AppSizes.screenPaddingH,
+          100,
+        ),
         itemCount: state.orders.length,
         separatorBuilder: (_, __) => const SizedBox(height: AppSizes.md),
         itemBuilder: (context, index) {
@@ -187,6 +193,7 @@ class OrderDetailsScreen extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(height: 100),
         ],
       ),
     );

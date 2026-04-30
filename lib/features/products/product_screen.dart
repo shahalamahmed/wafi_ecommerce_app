@@ -126,7 +126,10 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                     if (state.visibleProducts.isEmpty) {
                       return ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        children: const [_ProductEmptyState()],
+                        children: const [
+                          _ProductEmptyState(),
+                          SizedBox(height: 100),
+                        ],
                       );
                     }
 
@@ -244,6 +247,7 @@ class _ProductLoadingState extends StatelessWidget {
           padding: EdgeInsets.all(AppSizes.xl3),
           child: Center(child: CircularProgressIndicator()),
         ),
+        SizedBox(height: 100),
       ],
     );
   }
@@ -293,6 +297,7 @@ class _ProductErrorState extends StatelessWidget {
             ],
           ),
         ),
+        const SizedBox(height: 100),
       ],
     );
   }

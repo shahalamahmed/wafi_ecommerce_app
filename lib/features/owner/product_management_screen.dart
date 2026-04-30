@@ -136,6 +136,7 @@ class ProductManagementScreen extends ConsumerWidget {
                 ),
               ),
             ),
+          const SizedBox(height: 100),
         ],
       ),
     );
