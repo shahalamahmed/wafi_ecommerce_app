@@ -1,9 +1,9 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'dart:io';
-import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
+import 'package:wafi_ecommerce_app/core/media/cloudinary_media_service.dart';
 import 'package:wafi_ecommerce_app/core/storage/local_storage.dart';
 import 'package:wafi_ecommerce_app/core/storage/secure_storage.dart';
 import 'package:wafi_ecommerce_app/firebase_options.dart';
@@ -17,17 +17,20 @@ class AuthService {
     GoogleSignIn? googleSignIn,
     SecureStorage? secureStorage,
     LocalStorage? localStorage,
+    CloudinaryMediaService? mediaService,
   }) : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
        _firestore = firestore ?? FirebaseFirestore.instance,
        _googleSignIn = googleSignIn ?? _buildGoogleSignIn(),
        _secureStorage = secureStorage ?? SecureStorage(),
-       _localStorage = localStorage ?? LocalStorage();
+       _localStorage = localStorage ?? LocalStorage(),
+       _mediaService = mediaService ?? CloudinaryMediaService();
 
   final FirebaseAuth _firebaseAuth;
   final FirebaseFirestore _firestore;
   final GoogleSignIn _googleSignIn;
   final SecureStorage _secureStorage;
   final LocalStorage _localStorage;
+  final CloudinaryMediaService _mediaService;
 
   static const String _googleWebClientId =
       '175234345266-t59kfbmanrtnsr5qo9fb1mbo9u17s336.apps.googleusercontent.com';
@@ -155,14 +158,9 @@ class AuthService {
   }
 
   Future<AppUser> updateProfilePhoto(String userId, String imagePath) async {
-    final file = File(imagePath);
-    if (!file.existsSync()) {
-      throw Exception('Selected image file was not found on device.');
-    }
-
-    final savedImagePath = await _saveProfilePhotoLocally(
+    final savedImagePath = await _mediaService.uploadProfileImage(
       userId: userId,
-      sourceFile: file,
+      imagePath: imagePath,
     );
 
     await _firestore.collection('users').doc(userId).set({
@@ -177,28 +175,6 @@ class AuthService {
 
     final doc = await _firestore.collection('users').doc(userId).get();
     return AppUser.fromMap(doc.id, doc.data() ?? <String, dynamic>{});
-  }
-
-  Future<String> _saveProfilePhotoLocally({
-    required String userId,
-    required File sourceFile,
-  }) async {
-    final appDir = await getApplicationDocumentsDirectory();
-    final profileDir = Directory(path.join(appDir.path, 'profile_photos'));
-    if (!await profileDir.exists()) {
-      await profileDir.create(recursive: true);
-    }
-
-    final extension = _normalizedExtension(sourceFile.path);
-    final targetPath = path.join(profileDir.path, '$userId.$extension');
-    final targetFile = File(targetPath);
-
-    if (await targetFile.exists()) {
-      await targetFile.delete();
-    }
-
-    final copiedFile = await sourceFile.copy(targetPath);
-    return copiedFile.path;
   }
 
   Future<AppUser> _fetchOrCreateUserProfile(User firebaseUser) async {
@@ -357,24 +333,6 @@ class AuthService {
       firstName: parts.first,
       lastName: parts.sublist(1).join(' '),
     );
-  }
-
-  String _normalizedExtension(String imagePath) {
-    final lastDot = imagePath.lastIndexOf('.');
-    if (lastDot < 0 || lastDot == imagePath.length - 1) {
-      return 'jpg';
-    }
-
-    final raw = imagePath.substring(lastDot + 1).toLowerCase();
-    return switch (raw) {
-      'png' => 'png',
-      'webp' => 'webp',
-      'heic' => 'heic',
-      'heif' => 'heif',
-      'jpeg' => 'jpg',
-      'jpg' => 'jpg',
-      _ => 'jpg',
-    };
   }
 }
 

@@ -610,6 +610,7 @@ class _ProductCard extends StatelessWidget {
             Expanded(
               child: Container(
                 width: double.infinity,
+                clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
                   color: const Color(0xFFF5F5F7),
                   borderRadius: const BorderRadius.vertical(
@@ -786,6 +787,7 @@ class _NewArrivalCard extends StatelessWidget {
             Expanded(
               child: Container(
                 width: double.infinity,
+                clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
                   color: imgBg,
                   borderRadius: const BorderRadius.vertical(

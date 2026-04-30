@@ -98,26 +98,34 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
 
       drawer: const AppDrawer(),
 
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: AppSizes.animNormal),
-        child: KeyedSubtree(
-          key: ValueKey(_currentIndex),
-          child: activePage.body,
+        body: Stack(
+          children: [
+            AnimatedSwitcher(
+                duration: const Duration(milliseconds: AppSizes.animNormal),
+                child: KeyedSubtree(
+                  key: ValueKey(_currentIndex),
+                  child: activePage.body,
+                ),
+              ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: GlassBottomNav(
+                currentIndex: _currentIndex,
+                onTap: (index) => setState(() => _currentIndex = index),
+                items: pages.map((page) {
+                  final isCartTab = !isOwner && page.title == AppStrings.cart;
+                  return GlassBottomNavItem(
+                    label: page.title,
+                    icon: page.icon,
+                    badgeCount: isCartTab ? cartState.itemCount : 0,
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
         ),
-      ),
-
-      bottomNavigationBar: GlassBottomNav(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        items: pages.map((page) {
-          final isCartTab = !isOwner && page.title == AppStrings.cart;
-          return GlassBottomNavItem(
-            label: page.title,
-            icon: page.icon,
-            badgeCount: isCartTab ? cartState.itemCount : 0,
-          );
-        }).toList(),
-      ),
     );
   }
 }

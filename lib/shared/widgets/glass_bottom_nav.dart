@@ -46,8 +46,8 @@ class GlassBottomNav extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppSizes.bottomNavRadius),
         child: BackdropFilter(
           filter: ImageFilter.blur(
-            sigmaX: AppSizes.blurLg,
-            sigmaY: AppSizes.blurLg,
+            sigmaX: 24,
+            sigmaY: 24,
           ),
           child: Container(
             height: AppSizes.bottomNavHeight,
@@ -66,13 +66,13 @@ class GlassBottomNav extends StatelessWidget {
                 end: Alignment.bottomRight,
                 colors: isDark
                     ? [
-                        glass.cardColor,
-                        glass.elevatedColor,
-                      ]
+                  const Color(0xFF0A0A0A).withOpacity(0.75),
+                  const Color(0xFF0A0A0A).withOpacity(0.65),
+                ]
                     : [
-                        glass.highlightColor,
-                        glass.elevatedColor,
-                      ],
+                  const Color(0xFFFDFDFF).withOpacity(0.75),
+                  const Color(0xFFFDFDFF).withOpacity(0.65),
+                ],
               ),
             ),
             child: Row(
