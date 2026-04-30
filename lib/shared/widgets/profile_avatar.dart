@@ -18,8 +18,8 @@ class ProfileAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final imageSource = user?.profilePicture.trim() ?? '';
-    final initials = user?.displayName.trim().isNotEmpty == true
-        ? user!.displayName.trim().characters.first.toUpperCase()
+    final initials = user?.firstName.trim().isNotEmpty == true
+        ? user!.firstName.trim().characters.first.toUpperCase()
         : isGuest
         ? 'G'
         : 'U';

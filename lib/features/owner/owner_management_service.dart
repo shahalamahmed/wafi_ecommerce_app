@@ -1,13 +1,21 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:path/path.dart' as path;
 import 'package:wafi_ecommerce_app/features/auth/auth_model.dart';
 import 'package:wafi_ecommerce_app/features/orders/order_model.dart';
 import 'package:wafi_ecommerce_app/features/products/product_model.dart';
 
 class OwnerManagementService {
-  OwnerManagementService({FirebaseFirestore? firestore})
-    : _firestore = firestore ?? FirebaseFirestore.instance;
+  OwnerManagementService({
+    FirebaseFirestore? firestore,
+    FirebaseStorage? storage,
+  }) : _firestore = firestore ?? FirebaseFirestore.instance,
+       _storage = storage ?? FirebaseStorage.instance;
 
   final FirebaseFirestore _firestore;
+  final FirebaseStorage _storage;
 
   CollectionReference<Map<String, dynamic>> get _products =>
       _firestore.collection('products');
@@ -58,6 +66,31 @@ class OwnerManagementService {
 
   Future<void> deleteProduct(String productId) async {
     await _products.doc(productId).delete();
+  }
+
+  Future<List<String>> uploadProductImages(
+    List<String> imagePaths, {
+    required String folderId,
+  }) async {
+    final uploads = <String>[];
+
+    for (final imagePath in imagePaths) {
+      final file = File(imagePath);
+      if (!file.existsSync()) {
+        throw Exception('Selected image file was not found on device.');
+      }
+
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = path.basename(imagePath);
+      final ref = _storage.ref().child(
+        'products/$folderId/${timestamp}_$fileName',
+      );
+
+      final snapshot = await ref.putFile(file);
+      uploads.add(await snapshot.ref.getDownloadURL());
+    }
+
+    return uploads;
   }
 
   Future<List<CustomerOrder>> fetchOrders() async {

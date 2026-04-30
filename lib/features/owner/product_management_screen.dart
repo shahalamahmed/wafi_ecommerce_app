@@ -1,7 +1,12 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wafi_ecommerce_app/core/constants/file_upload.dart';
 import 'package:wafi_ecommerce_app/core/constants/sizes.dart';
 import 'package:wafi_ecommerce_app/core/constants/strings.dart';
+import 'package:wafi_ecommerce_app/core/theme/app_theme.dart';
 import 'package:wafi_ecommerce_app/features/owner/owner_management_provider.dart';
 import 'package:wafi_ecommerce_app/features/owner/owner_management_service.dart';
 import 'package:wafi_ecommerce_app/features/products/product_model.dart';
@@ -178,16 +183,44 @@ class ProductManagementScreen extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       builder: (context) {
-        return Padding(
+        final theme = Theme.of(context);
+        final glass = theme.extension<GlassTheme>()!;
+
+        return AnimatedPadding(
+          duration: const Duration(milliseconds: AppSizes.animFast),
+          curve: Curves.easeOutCubic,
           padding: EdgeInsets.only(
-            left: AppSizes.screenPaddingH,
-            right: AppSizes.screenPaddingH,
-            top: AppSizes.screenPaddingH,
-            bottom:
-                MediaQuery.of(context).viewInsets.bottom +
-                AppSizes.screenPaddingH,
+            left: AppSizes.md,
+            right: AppSizes.md,
+            top: AppSizes.md,
+            bottom: MediaQuery.of(context).viewInsets.bottom + AppSizes.md,
           ),
-          child: _ProductEditorSheet(categories: categories, product: product),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: glass.elevatedColor,
+              borderRadius: BorderRadius.circular(AppSizes.radiusXxl),
+              border: Border.all(color: glass.borderColor, width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: glass.shadowColor.withValues(alpha: 0.18),
+                  blurRadius: 28,
+                  offset: const Offset(0, 16),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSizes.screenPaddingH,
+                AppSizes.xl,
+                AppSizes.screenPaddingH,
+                AppSizes.screenPaddingH,
+              ),
+              child: _ProductEditorSheet(
+                categories: categories,
+                product: product,
+              ),
+            ),
+          ),
         );
       },
     );
@@ -326,12 +359,15 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
   final _thresholdController = TextEditingController();
   final _shortDescriptionController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _imagesController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
   String? _selectedCategoryId;
   String? _selectedSubCategoryId;
   bool _isActive = true;
+  bool _isUploadingImages = false;
+  late final String _uploadFolderId;
+  final List<String> _existingImages = [];
+  final List<String> _selectedImagePaths = [];
 
   bool get _isEditing => widget.product != null;
 
@@ -339,6 +375,8 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
   void initState() {
     super.initState();
     final product = widget.product;
+    _uploadFolderId =
+        product?.id ?? 'draft_${DateTime.now().millisecondsSinceEpoch}';
     if (product != null) {
       _nameController.text = product.name;
       _skuController.text = product.sku;
@@ -348,7 +386,7 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
       _thresholdController.text = product.lowStockThreshold.toString();
       _shortDescriptionController.text = product.shortDescription;
       _descriptionController.text = product.description;
-      _imagesController.text = product.images.join(', ');
+      _existingImages.addAll(product.images);
       _selectedCategoryId = product.categoryId;
       _selectedSubCategoryId = product.subCategoryId;
       _isActive = product.isActive;
@@ -368,13 +406,58 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
     _thresholdController.dispose();
     _shortDescriptionController.dispose();
     _descriptionController.dispose();
-    _imagesController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImages() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: FileUpload.imageExtensions,
+      allowMultiple: true,
+    );
+
+    if (result == null || result.files.isEmpty || !mounted) return;
+
+    final newPaths = <String>[];
+    for (final file in result.files) {
+      final path = file.path;
+      if (path == null || path.trim().isEmpty || !File(path).existsSync()) {
+        _showSnack('Selected file could not be opened from device storage.');
+        return;
+      }
+      if (!_selectedImagePaths.contains(path) && !newPaths.contains(path)) {
+        newPaths.add(path);
+      }
+    }
+
+    if (newPaths.isEmpty) return;
+
+    setState(() {
+      _selectedImagePaths.addAll(newPaths);
+    });
+  }
+
+  void _removeExistingImage(String imageUrl) {
+    setState(() {
+      _existingImages.remove(imageUrl);
+    });
+  }
+
+  void _removeSelectedImage(String imagePath) {
+    setState(() {
+      _selectedImagePaths.remove(imagePath);
+    });
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(ownerProductManagementProvider);
+    final theme = Theme.of(context);
+    final isBusy = state.isSaving || _isUploadingImages;
     final categories =
         widget.categories.where((item) => item.isTopLevel).toList()
           ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
@@ -392,9 +475,19 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                _isEditing ? AppStrings.editProduct : AppStrings.addProduct,
-                style: Theme.of(context).textTheme.headlineSmall,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _isEditing ? AppStrings.editProduct : AppStrings.addProduct,
+                    style: theme.textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: AppSizes.xs),
+                  Text(
+                    'Manage catalog details, upload imagery, and control storefront visibility.',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ],
               ),
               const SizedBox(height: AppSizes.lg),
               GlassInput(
@@ -504,21 +597,31 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
                 maxLines: 4,
               ),
               const SizedBox(height: AppSizes.md),
-              GlassInput(
-                controller: _imagesController,
-                label: AppStrings.uploadImages,
-                hint: 'Comma separated image URLs',
-                maxLines: 2,
+              _ProductImagesField(
+                existingImages: _existingImages,
+                selectedImagePaths: _selectedImagePaths,
+                isUploading: _isUploadingImages,
+                onAddImages: isBusy ? null : _pickImages,
+                onRemoveExisting: isBusy ? null : _removeExistingImage,
+                onRemoveSelected: isBusy ? null : _removeSelectedImage,
               ),
               const SizedBox(height: AppSizes.md),
-              SwitchListTile.adaptive(
-                value: _isActive,
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Product is active'),
-                subtitle: const Text(
-                  'Inactive products stay hidden from customers.',
+              _EditorSection(
+                child: SwitchListTile.adaptive(
+                  value: _isActive,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: AppSizes.md,
+                  ),
+                  title: Text(
+                    'Product is active',
+                    style: theme.textTheme.titleMedium,
+                  ),
+                  subtitle: Text(
+                    'Inactive products stay hidden from customers.',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                  onChanged: (value) => setState(() => _isActive = value),
                 ),
-                onChanged: (value) => setState(() => _isActive = value),
               ),
               const SizedBox(height: AppSizes.lg),
               Row(
@@ -527,15 +630,15 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
                     child: GlassButton(
                       label: AppStrings.cancel,
                       variant: GlassButtonVariant.ghost,
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed: isBusy ? null : () => Navigator.of(context).pop(),
                     ),
                   ),
                   const SizedBox(width: AppSizes.md),
                   Expanded(
                     child: GlassButton(
                       label: _isEditing ? AppStrings.update : AppStrings.save,
-                      isLoading: state.isSaving,
-                      onPressed: state.isSaving ? null : _submit,
+                      isLoading: isBusy,
+                      onPressed: isBusy ? null : _submit,
                     ),
                   ),
                 ],
@@ -570,12 +673,37 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
       );
       return;
     }
+    final imageList = [..._existingImages];
 
-    final imageList = _imagesController.text
-        .split(',')
-        .map((item) => item.trim())
-        .where((item) => item.isNotEmpty)
-        .toList();
+    if (_selectedImagePaths.isNotEmpty) {
+      setState(() {
+        _isUploadingImages = true;
+      });
+
+      try {
+        final uploadedImages = await ref
+            .read(ownerManagementServiceProvider)
+            .uploadProductImages(
+              _selectedImagePaths,
+              folderId: _uploadFolderId,
+            );
+        imageList.addAll(uploadedImages);
+        _existingImages.addAll(uploadedImages);
+        _selectedImagePaths.clear();
+      } catch (error) {
+        if (!mounted) return;
+        _showSnack(error.toString());
+        setState(() {
+          _isUploadingImages = false;
+        });
+        return;
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _isUploadingImages = false;
+      });
+    }
 
     final draft = OwnerProductDraft(
       name: name,
@@ -600,7 +728,186 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
     }
 
     if (!mounted) return;
+    final nextState = ref.read(ownerProductManagementProvider);
+    if (nextState.hasError) {
+      return;
+    }
     Navigator.of(context).pop();
+  }
+}
+
+class _ProductImagesField extends StatelessWidget {
+  const _ProductImagesField({
+    required this.existingImages,
+    required this.selectedImagePaths,
+    required this.isUploading,
+    required this.onAddImages,
+    required this.onRemoveExisting,
+    required this.onRemoveSelected,
+  });
+
+  final List<String> existingImages;
+  final List<String> selectedImagePaths;
+  final bool isUploading;
+  final VoidCallback? onAddImages;
+  final ValueChanged<String>? onRemoveExisting;
+  final ValueChanged<String>? onRemoveSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final hasImages = existingImages.isNotEmpty || selectedImagePaths.isNotEmpty;
+
+    return _EditorSection(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            AppStrings.uploadImages,
+            style: theme.textTheme.labelLarge,
+          ),
+          const SizedBox(height: AppSizes.xs),
+          Text(
+            'Pick one or more files from device storage. Uploaded images will be saved to Firebase Storage.',
+            style: theme.textTheme.bodySmall,
+          )
+          ,
+          const SizedBox(height: AppSizes.md),
+          GlassButton(
+            label: isUploading ? 'Uploading images...' : 'Choose Images',
+            prefixIcon: Icons.add_photo_alternate_outlined,
+            variant: GlassButtonVariant.ghost,
+            onPressed: onAddImages,
+          ),
+          const SizedBox(height: AppSizes.md),
+          if (!hasImages)
+            Text(
+              'No product images selected yet.',
+              style: theme.textTheme.bodySmall,
+            )
+          else
+            Wrap(
+              spacing: AppSizes.sm,
+              runSpacing: AppSizes.sm,
+              children: [
+                for (final imageUrl in existingImages)
+                  _ProductImagePreview(
+                    imageSource: imageUrl,
+                    isLocalFile: false,
+                    onRemove: onRemoveExisting == null
+                        ? null
+                        : () => onRemoveExisting!(imageUrl),
+                  ),
+                for (final imagePath in selectedImagePaths)
+                  _ProductImagePreview(
+                    imageSource: imagePath,
+                    isLocalFile: true,
+                    onRemove: onRemoveSelected == null
+                        ? null
+                        : () => onRemoveSelected!(imagePath),
+                  ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProductImagePreview extends StatelessWidget {
+  const _ProductImagePreview({
+    required this.imageSource,
+    required this.isLocalFile,
+    this.onRemove,
+  });
+
+  final String imageSource;
+  final bool isLocalFile;
+  final VoidCallback? onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      width: 92,
+      padding: const EdgeInsets.all(AppSizes.xs),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+        border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        children: [
+          Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+                child: SizedBox(
+                  width: 80,
+                  height: 80,
+                  child: isLocalFile
+                      ? Image.file(
+                          File(imageSource),
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) =>
+                              const _ProductImageFallback(),
+                        )
+                      : Image.network(
+                          imageSource,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) =>
+                              const _ProductImageFallback(),
+                        ),
+                ),
+              ),
+              if (onRemove != null)
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: InkWell(
+                    onTap: onRemove,
+                    borderRadius: BorderRadius.circular(AppSizes.radiusFull),
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.55),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.close_rounded,
+                        color: Colors.white,
+                        size: 14,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSizes.xs),
+          Text(
+            isLocalFile ? 'New file' : 'Saved',
+            style: theme.textTheme.labelSmall,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProductImageFallback extends StatelessWidget {
+  const _ProductImageFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      alignment: Alignment.center,
+      child: Icon(
+        Icons.image_not_supported_outlined,
+        color: Theme.of(context).colorScheme.primary,
+      ),
+    );
   }
 }
 
@@ -619,22 +926,72 @@ class _DropdownField<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InputDecorator(
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+    final theme = Theme.of(context);
+    final glass = theme.extension<GlassTheme>()!;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: theme.textTheme.bodySmall?.color,
+            fontWeight: FontWeight.w500,
+          ),
         ),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<T>(
-          value: items.any((item) => item.value == value) ? value : null,
-          isExpanded: true,
-          hint: const Text('Select'),
-          items: items,
-          onChanged: onChanged,
+        const SizedBox(height: AppSizes.xs),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: AppSizes.inputPaddingH),
+          decoration: BoxDecoration(
+            color: glass.cardColor,
+            borderRadius: BorderRadius.circular(AppSizes.inputRadius),
+            border: Border.all(color: glass.borderColor, width: 1),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<T>(
+              value: items.any((item) => item.value == value) ? value : null,
+              isExpanded: true,
+              dropdownColor: glass.elevatedColor,
+              icon: Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: theme.textTheme.bodySmall?.color,
+              ),
+              hint: Text(
+                'Select',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.textTheme.bodySmall?.color,
+                ),
+              ),
+              items: items,
+              style: theme.textTheme.bodyMedium,
+              borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+              onChanged: onChanged,
+            ),
+          ),
         ),
+      ],
+    );
+  }
+}
+
+class _EditorSection extends StatelessWidget {
+  const _EditorSection({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final glass = theme.extension<GlassTheme>()!;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.md),
+      decoration: BoxDecoration(
+        color: glass.cardColor,
+        borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+        border: Border.all(color: glass.borderColor, width: 1),
       ),
+      child: child,
     );
   }
 }

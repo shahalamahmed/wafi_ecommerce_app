@@ -412,14 +412,15 @@ abstract class AppTheme {
         ),
       ),
       bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: Colors.white,
-        modalBackgroundColor: Colors.white,
+        backgroundColor: isDark ? const Color(0xFF111214) : Colors.white,
+        modalBackgroundColor: isDark ? const Color(0xFF111214) : Colors.white,
         elevation: 0,
         modalElevation: 0,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(
+        shape: RoundedRectangleBorder(
+          borderRadius: const BorderRadius.vertical(
             top: Radius.circular(AppSizes.radiusXxl),
           ),
+          side: BorderSide(color: glassBorder, width: 1),
         ),
         dragHandleColor: divider,
         dragHandleSize: const Size(40, 4),

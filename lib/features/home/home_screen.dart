@@ -321,14 +321,8 @@ class _SectionWrapper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    final Color bg = dark
-        ? (isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF2F2F7))
-        : (isDark ? const Color(0xFF2C2C2E) : Colors.white);
-
     return Container(
       decoration: BoxDecoration(
-        color: bg,
         borderRadius: BorderRadius.circular(AppSizes.radiusXxl),
       ),
       child: child,
