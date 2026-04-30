@@ -149,19 +149,17 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              if (state.selectedCategory != null) ...[
+                                GlassChip(
+                                  label: state.selectedCategory!.name,
+                                  variant: GlassChipVariant.primary,
+                                  isSelected: true,
+                                  onTap: () => notifier.selectCategory(null),
+                                ),
+                                const SizedBox(height: AppSizes.md),
+                              ],
                               Row(
                                 children: [
-                                  if (state.selectedCategory != null) ...[
-                                    Expanded(
-                                      child: GlassChip(
-                                        label: state.selectedCategory!.name,
-                                        variant: GlassChipVariant.primary,
-                                        isSelected: true,
-                                        onTap: () => notifier.selectCategory(null),
-                                      ),
-                                    ),
-                                    const SizedBox(width: AppSizes.md),
-                                  ],
                                   Text(
                                     '${state.visibleProducts.length} items',
                                     style:

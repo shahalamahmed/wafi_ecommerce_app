@@ -28,10 +28,13 @@ class ProductList extends StatelessWidget {
       separatorBuilder: (_, __) => const SizedBox(height: AppSizes.md),
       itemBuilder: (context, index) {
         final product = products[index];
+        final categoryLabel =
+            categoryLookup[product.subCategoryId] ??
+            categoryLookup[product.categoryId];
 
         return ProductCard(
           product: product,
-          categoryName: categoryLookup[product.categoryId],
+          categoryName: categoryLabel,
           onTap: () => onTap(product),
           onAddToCart: () => onAddToCart(product),
         );
