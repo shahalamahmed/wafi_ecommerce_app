@@ -53,6 +53,50 @@ class OwnerManagementService {
     return categories;
   }
 
+  Future<void> createCategory(OwnerCategoryDraft draft) async {
+    await _categories.add(draft.toMap());
+  }
+
+  Future<void> updateCategory(String categoryId, OwnerCategoryDraft draft) async {
+    await _categories.doc(categoryId).update(
+      draft.toMap(includeCreatedAt: false),
+    );
+  }
+
+  Future<void> deleteCategory(String categoryId) async {
+    final childCategories = await _categories
+        .where('parentId', isEqualTo: categoryId)
+        .limit(1)
+        .get();
+    if (childCategories.docs.isNotEmpty) {
+      throw const CategoryDeleteBlockedException(
+        'Delete blocked: this category still has subcategories.',
+      );
+    }
+
+    final directProducts = await _products
+        .where('category', isEqualTo: categoryId)
+        .limit(1)
+        .get();
+    if (directProducts.docs.isNotEmpty) {
+      throw const CategoryDeleteBlockedException(
+        'Delete blocked: products still use this category.',
+      );
+    }
+
+    final childProducts = await _products
+        .where('subCategory', isEqualTo: categoryId)
+        .limit(1)
+        .get();
+    if (childProducts.docs.isNotEmpty) {
+      throw const CategoryDeleteBlockedException(
+        'Delete blocked: products still use this subcategory.',
+      );
+    }
+
+    await _categories.doc(categoryId).delete();
+  }
+
   Future<void> createProduct(OwnerProductDraft draft) async {
     await _products.add(draft.toMap());
   }
@@ -206,4 +250,55 @@ class OwnerProductDraft {
       isActive: product.isActive,
     );
   }
+}
+
+class OwnerCategoryDraft {
+  const OwnerCategoryDraft({
+    required this.name,
+    required this.description,
+    required this.image,
+    required this.parentId,
+    required this.displayOrder,
+    required this.isActive,
+  });
+
+  final String name;
+  final String description;
+  final String image;
+  final String? parentId;
+  final int displayOrder;
+  final bool isActive;
+
+  Map<String, dynamic> toMap({bool includeCreatedAt = true}) {
+    return {
+      'name': name,
+      'description': description,
+      'image': image,
+      'parentId': parentId,
+      'displayOrder': displayOrder,
+      'isActive': isActive,
+      if (includeCreatedAt) 'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+  }
+
+  factory OwnerCategoryDraft.fromCategory(ProductCategory category) {
+    return OwnerCategoryDraft(
+      name: category.name,
+      description: category.description,
+      image: category.image,
+      parentId: category.parentId,
+      displayOrder: category.displayOrder,
+      isActive: category.isActive,
+    );
+  }
+}
+
+class CategoryDeleteBlockedException implements Exception {
+  const CategoryDeleteBlockedException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
 }

@@ -7,8 +7,8 @@ import 'package:wafi_ecommerce_app/features/auth/auth_provider.dart';
 import 'package:wafi_ecommerce_app/features/cart/cart_provider.dart';
 import 'package:wafi_ecommerce_app/features/cart/cart_screen.dart';
 import 'package:wafi_ecommerce_app/features/home/home_screen.dart';
+import 'package:wafi_ecommerce_app/features/owner/owner_catalog_screen.dart';
 import 'package:wafi_ecommerce_app/features/owner/order_management_screen.dart';
-import 'package:wafi_ecommerce_app/features/owner/product_management_screen.dart';
 import 'package:wafi_ecommerce_app/features/orders/order_screen.dart';
 import 'package:wafi_ecommerce_app/features/products/product_screen.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/app_drawer.dart';
@@ -45,10 +45,10 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
       _ShellPage(
         title: isOwner ? AppStrings.products : AppStrings.categories,
         subtitle: isOwner
-            ? 'Product catalog controls'
+            ? 'Category and product catalog controls'
             : 'Browse all grocery collections',
         icon: isOwner ? Icons.inventory_2_outlined : Icons.grid_view_rounded,
-        body: isOwner ? const ProductManagementScreen() : const ProductScreen(),
+        body: isOwner ? const OwnerCatalogScreen() : const ProductScreen(),
       ),
 
       // 2 — Cart (customer) / Orders (owner)

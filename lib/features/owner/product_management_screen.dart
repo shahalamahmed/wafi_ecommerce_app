@@ -769,7 +769,7 @@ class _ProductImagesField extends StatelessWidget {
           ),
           const SizedBox(height: AppSizes.xs),
           Text(
-            'Pick one or more files from device storage. Uploaded images will be saved to Firebase Storage.',
+            'Pick one or more files from device storage. Uploaded images will be saved to Cloudinary.',
             style: theme.textTheme.bodySmall,
           )
           ,

@@ -4,8 +4,8 @@ import 'package:wafi_ecommerce_app/core/constants/sizes.dart';
 import 'package:wafi_ecommerce_app/core/constants/strings.dart';
 import 'package:wafi_ecommerce_app/core/theme/theme_provider.dart';
 import 'package:wafi_ecommerce_app/features/auth/auth_provider.dart';
+import 'package:wafi_ecommerce_app/features/owner/owner_catalog_screen.dart';
 import 'package:wafi_ecommerce_app/features/owner/order_management_screen.dart';
-import 'package:wafi_ecommerce_app/features/owner/product_management_screen.dart';
 import 'package:wafi_ecommerce_app/features/owner/user_management_screen.dart';
 import 'package:wafi_ecommerce_app/features/settings/settings_screen.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
@@ -74,7 +74,7 @@ class AppDrawer extends ConsumerWidget {
             const SizedBox(height: AppSizes.xl2),
             if (isOwner) ...[
               GlassButton(
-                label: 'Product Management',
+                label: 'Catalog Management',
                 prefixIcon: Icons.inventory_2_outlined,
                 isFullWidth: true,
                 variant: GlassButtonVariant.ghost,
@@ -84,9 +84,9 @@ class AppDrawer extends ConsumerWidget {
                     ..push(
                       MaterialPageRoute<void>(
                         builder: (_) => const _DrawerScreen(
-                          title: 'Product Management',
-                          subtitle: 'Catalog operations and inventory controls',
-                          child: ProductManagementScreen(),
+                          title: 'Catalog Management',
+                          subtitle: 'Category, product, and inventory controls',
+                          child: OwnerCatalogScreen(),
                         ),
                       ),
                     );

@@ -139,7 +139,7 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                         SizedBox(
                           width: isCompact ? 86 : 110,
                           child: _CategoryRail(
-                            categories: state.topLevelCategories,
+                            categories: state.activeCategories,
                             selectedCategoryId: state.selectedCategoryId,
                             onSelect: notifier.selectCategory,
                           ),
@@ -149,31 +149,19 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              if (state.subCategories.isNotEmpty)
-                                SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: Row(
-                                    children: [
-                                      ...state.subCategories.expand(
-                                        (category) => [
-                                          GlassChip(
-                                            label: category.name.toUpperCase(),
-                                            variant: GlassChipVariant.primary,
-                                            isSelected: state.selectedSubCategoryId ==
-                                                category.id,
-                                            onTap: () => notifier
-                                                .selectSubCategory(category.id),
-                                          ),
-                                          const SizedBox(width: AppSizes.sm),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              if (state.subCategories.isNotEmpty)
-                                const SizedBox(height: AppSizes.lg),
                               Row(
                                 children: [
+                                  if (state.selectedCategory != null) ...[
+                                    Expanded(
+                                      child: GlassChip(
+                                        label: state.selectedCategory!.name,
+                                        variant: GlassChipVariant.primary,
+                                        isSelected: true,
+                                        onTap: () => notifier.selectCategory(null),
+                                      ),
+                                    ),
+                                    const SizedBox(width: AppSizes.md),
+                                  ],
                                   Text(
                                     '${state.visibleProducts.length} items',
                                     style:

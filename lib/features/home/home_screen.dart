@@ -54,7 +54,7 @@ class HomeScreen extends ConsumerWidget {
       );
     }
 
-    final categories = productState.topLevelCategories;
+    final categories = productState.activeCategories;
     final products =
     productState.products.where((p) => p.isActive).toList();
 

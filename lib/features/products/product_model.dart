@@ -153,10 +153,27 @@ class ProductState {
 
   bool get hasError => errorMessage != null && errorMessage!.trim().isNotEmpty;
 
+  List<ProductCategory> get activeCategories => categories
+      .where((category) => category.isActive)
+      .toList()
+    ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+
   List<ProductCategory> get topLevelCategories => categories
       .where((category) => category.isActive && category.isTopLevel)
       .toList()
     ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+
+  ProductCategory? get selectedCategory {
+    final categoryId = selectedCategoryId;
+    if (categoryId == null || categoryId.isEmpty) return null;
+
+    for (final category in categories) {
+      if (category.id == categoryId) {
+        return category;
+      }
+    }
+    return null;
+  }
 
   List<ProductCategory> get subCategories {
     if (selectedCategoryId == null || selectedCategoryId!.isEmpty) {
@@ -174,7 +191,25 @@ class ProductState {
     Iterable<ProductModel> filtered = products.where((product) => product.isActive);
 
     if (selectedCategoryId != null && selectedCategoryId!.isNotEmpty) {
-      filtered = filtered.where((product) => product.categoryId == selectedCategoryId);
+      final category = selectedCategory;
+      final categoryId = selectedCategoryId!;
+
+      if (category == null) {
+        filtered = filtered.where((product) => product.categoryId == categoryId);
+      } else if (category.isTopLevel) {
+        final descendantIds = _descendantCategoryIds(categoryId);
+        filtered = filtered.where((product) {
+          if (product.categoryId == categoryId) return true;
+          if (descendantIds.contains(product.categoryId)) return true;
+          return product.subCategoryId != null &&
+              descendantIds.contains(product.subCategoryId);
+        });
+      } else {
+        filtered = filtered.where((product) {
+          return product.categoryId == categoryId ||
+              product.subCategoryId == categoryId;
+        });
+      }
     }
 
     if (selectedSubCategoryId != null && selectedSubCategoryId!.isNotEmpty) {
@@ -201,6 +236,23 @@ class ProductState {
         return updatedB.compareTo(updatedA);
       });
     return result;
+  }
+
+  Set<String> _descendantCategoryIds(String parentId) {
+    final descendants = <String>{};
+    final pending = <String>[parentId];
+
+    while (pending.isNotEmpty) {
+      final currentId = pending.removeLast();
+      for (final category in categories) {
+        if (!category.isActive || category.parentId != currentId) continue;
+        if (descendants.add(category.id)) {
+          pending.add(category.id);
+        }
+      }
+    }
+
+    return descendants;
   }
 
   ProductState copyWith({
