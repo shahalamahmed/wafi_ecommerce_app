@@ -95,6 +95,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
       appBar: WafiAppBar(
         title: activePage.title,
         subtitle: activePage.subtitle,
+        leading: const _DrawerLogoButton(),
       ),
 
       drawer: const AppDrawer(),
@@ -127,6 +128,30 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
             ),
           ],
         ),
+    );
+  }
+}
+
+class _DrawerLogoButton extends StatelessWidget {
+  const _DrawerLogoButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Builder(
+      builder: (context) {
+        return IconButton(
+          onPressed: () => Scaffold.of(context).openDrawer(),
+          icon: ClipRRect(
+            borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+            child: Image.asset(
+              'assets/wafi_solution_logo.png',
+              width: 28,
+              height: 28,
+              fit: BoxFit.cover,
+            ),
+          ),
+        );
+      },
     );
   }
 }
