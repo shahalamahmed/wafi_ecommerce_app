@@ -23,7 +23,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       if (user == null) {
         state = state.copyWith(
-          status: AuthStatus.unauthenticated,
+          status: AuthStatus.anonymous,
           clearUser: true,
           clearError: true,
         );
@@ -159,7 +159,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _service.signOut();
       if (!mounted) return;
       state = state.copyWith(
-        status: AuthStatus.unauthenticated,
+        status: AuthStatus.anonymous,
         clearUser: true,
         clearError: true,
       );
@@ -192,7 +192,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(status: AuthStatus.loading, clearError: true);
 
     try {
-      final user = await _service.updateProfilePhoto(currentUser.uid, imagePath);
+      final user = await _service.updateProfilePhoto(
+        currentUser.uid,
+        imagePath,
+      );
       if (!mounted) return;
       state = state.copyWith(
         status: AuthStatus.authenticated,
@@ -217,9 +220,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
     if (!mounted) return;
 
     if (firebaseUser == null) {
-      if (state.status != AuthStatus.anonymous) {
+      if (state.status == AuthStatus.unauthenticated) {
         state = state.copyWith(
           status: AuthStatus.unauthenticated,
+          clearUser: true,
+          clearError: true,
+        );
+      } else if (state.status != AuthStatus.anonymous) {
+        state = state.copyWith(
+          status: AuthStatus.anonymous,
           clearUser: true,
           clearError: true,
         );

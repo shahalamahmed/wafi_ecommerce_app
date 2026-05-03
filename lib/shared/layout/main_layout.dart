@@ -7,10 +7,11 @@ import 'package:wafi_ecommerce_app/features/auth/auth_provider.dart';
 import 'package:wafi_ecommerce_app/features/cart/cart_provider.dart';
 import 'package:wafi_ecommerce_app/features/cart/cart_screen.dart';
 import 'package:wafi_ecommerce_app/features/home/home_screen.dart';
-import 'package:wafi_ecommerce_app/features/owner/owner_catalog_screen.dart';
 import 'package:wafi_ecommerce_app/features/owner/order_management_screen.dart';
+import 'package:wafi_ecommerce_app/features/owner/owner_catalog_screen.dart';
 import 'package:wafi_ecommerce_app/features/orders/order_screen.dart';
 import 'package:wafi_ecommerce_app/features/products/product_screen.dart';
+import 'package:wafi_ecommerce_app/features/profile/profile_screen.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/app_drawer.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_bottom_nav.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
@@ -26,57 +27,71 @@ class MainLayout extends ConsumerStatefulWidget {
 class _MainLayoutState extends ConsumerState<MainLayout> {
   int _currentIndex = 0;
 
-  // ── 4-tab bottom nav pages ─────────────────────────────────────────────
   List<_ShellPage> _pagesFor(AppUser? user) {
     final isOwner = user?.isOwner == true;
 
-    return [
-      // 0 — Home / Dashboard
-      _ShellPage(
-        title: isOwner ? AppStrings.dashboard : AppStrings.home,
-        subtitle: isOwner
-            ? 'Operations workspace'
-            : 'Fresh grocery picks, categories, and daily essentials',
-        icon: isOwner ? Icons.dashboard_outlined : Icons.home_outlined,
-        body: isOwner ? _OverviewPage(user: user) : const HomeScreen(),
-      ),
+    if (isOwner) {
+      return [
+        _ShellPage(
+          title: AppStrings.dashboard,
+          subtitle: 'Operations workspace',
+          icon: Icons.dashboard_outlined,
+          body: _OverviewPage(user: user),
+        ),
+        const _ShellPage(
+          title: AppStrings.products,
+          subtitle: 'Category and product catalog controls',
+          icon: Icons.inventory_2_outlined,
+          body: OwnerCatalogScreen(),
+        ),
+        const _ShellPage(
+          title: AppStrings.manageOrders,
+          subtitle: 'Order processing workspace',
+          icon: Icons.receipt_long_outlined,
+          body: OrderManagementScreen(),
+        ),
+        const _ShellPage(
+          title: 'Analytics',
+          subtitle: 'Sales and fulfillment overview',
+          icon: Icons.bar_chart_rounded,
+          body: _PlaceholderPage(
+            title: 'Analytics Workspace',
+            subtitle: 'Sales charts and fulfillment data will connect here.',
+          ),
+        ),
+      ];
+    }
 
-      // 1 — Categories / Products
+    return const [
       _ShellPage(
-        title: isOwner ? AppStrings.products : AppStrings.categories,
-        subtitle: isOwner
-            ? 'Category and product catalog controls'
-            : 'Browse all grocery collections',
-        icon: isOwner ? Icons.inventory_2_outlined : Icons.grid_view_rounded,
-        body: isOwner ? const OwnerCatalogScreen() : const ProductScreen(),
+        title: AppStrings.home,
+        subtitle: 'Fresh grocery picks, categories, and daily essentials',
+        icon: Icons.home_outlined,
+        body: HomeScreen(),
       ),
-
-      // 2 — Cart (customer) / Orders (owner)
       _ShellPage(
-        title: isOwner ? AppStrings.manageOrders : AppStrings.cart,
-        subtitle: isOwner
-            ? 'Order processing workspace'
-            : 'Review selected products before checkout',
-        icon: isOwner
-            ? Icons.receipt_long_outlined
-            : Icons.shopping_bag_outlined,
-        body: isOwner ? const OrderManagementScreen() : const CartScreen(),
+        title: AppStrings.categories,
+        subtitle: 'Browse all grocery collections',
+        icon: Icons.grid_view_rounded,
+        body: ProductScreen(),
       ),
-
-      // 3 — My Orders (customer) / Analytics (owner)
       _ShellPage(
-        title: isOwner ? 'Analytics' : AppStrings.myOrders,
-        subtitle: isOwner
-            ? 'Sales and fulfillment overview'
-            : 'Track your placed orders and history',
-        icon: isOwner ? Icons.bar_chart_rounded : Icons.receipt_long_outlined,
-        body: isOwner
-            ? const _PlaceholderPage(
-                title: 'Analytics Workspace',
-                subtitle:
-                    'Sales charts and fulfillment data will connect here.',
-              )
-            : const OrderScreen(),
+        title: AppStrings.cart,
+        subtitle: 'Review selected products before checkout',
+        icon: Icons.shopping_bag_outlined,
+        body: CartScreen(),
+      ),
+      _ShellPage(
+        title: AppStrings.myOrders,
+        subtitle: 'Track your placed orders and history',
+        icon: Icons.receipt_long_outlined,
+        body: OrderScreen(),
+      ),
+      _ShellPage(
+        title: AppStrings.profile,
+        subtitle: 'Account shortcuts, settings, and support',
+        icon: Icons.person_outline_rounded,
+        body: ProfileScreen(),
       ),
     ];
   }
@@ -88,7 +103,19 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     final user = authState.user;
     final isOwner = user?.isOwner == true;
     final pages = _pagesFor(user);
-    final activePage = pages[_currentIndex];
+    final safeIndex = _currentIndex >= pages.length
+        ? pages.length - 1
+        : _currentIndex;
+
+    if (safeIndex != _currentIndex) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() => _currentIndex = safeIndex);
+        }
+      });
+    }
+
+    final activePage = pages[safeIndex];
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -96,16 +123,15 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
         title: activePage.title,
         subtitle: activePage.subtitle,
         leading: const _DrawerLogoButton(),
+        showNotificationAction: !isOwner,
       ),
-
       drawer: const AppDrawer(),
-
       body: Stack(
         children: [
           AnimatedSwitcher(
             duration: const Duration(milliseconds: AppSizes.animNormal),
             child: KeyedSubtree(
-              key: ValueKey(_currentIndex),
+              key: ValueKey(safeIndex),
               child: activePage.body,
             ),
           ),
@@ -114,7 +140,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
             right: 0,
             bottom: 0,
             child: GlassBottomNav(
-              currentIndex: _currentIndex,
+              currentIndex: safeIndex,
               onTap: (index) => setState(() => _currentIndex = index),
               items: pages.map((page) {
                 final isCartTab = !isOwner && page.title == AppStrings.cart;
@@ -216,9 +242,7 @@ class _OverviewPage extends StatelessWidget {
               ),
               const SizedBox(height: AppSizes.sm),
               Text(
-                user?.isOwner == true
-                    ? 'Owner shell is ready for dashboard, product, and order integrations.'
-                    : 'Customer shell is ready for auth-gated shopping, orders, and profile flows.',
+                'Owner shell is ready for dashboard, product, and order integrations.',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ],

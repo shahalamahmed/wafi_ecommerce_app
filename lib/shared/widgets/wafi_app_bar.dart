@@ -1,20 +1,17 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wafi_ecommerce_app/core/constants/sizes.dart';
 import 'package:wafi_ecommerce_app/core/theme/app_theme.dart';
-import 'package:wafi_ecommerce_app/features/auth/auth_provider.dart';
-import 'package:wafi_ecommerce_app/features/profile/profile_screen.dart';
-import 'package:wafi_ecommerce_app/shared/widgets/profile_avatar.dart';
+import 'package:wafi_ecommerce_app/features/notifications/notifications_screen.dart';
 
-class WafiAppBar extends ConsumerWidget implements PreferredSizeWidget {
+class WafiAppBar extends StatelessWidget implements PreferredSizeWidget {
   const WafiAppBar({
     super.key,
     required this.title,
     this.subtitle,
     this.actions,
-    this.showProfileAction = true,
+    this.showNotificationAction = false,
     this.leading,
     this.automaticallyImplyLeading = true,
   });
@@ -22,21 +19,17 @@ class WafiAppBar extends ConsumerWidget implements PreferredSizeWidget {
   final String title;
   final String? subtitle;
   final List<Widget>? actions;
-  final bool showProfileAction;
+  final bool showNotificationAction;
   final Widget? leading;
   final bool automaticallyImplyLeading;
 
   @override
-  Size get preferredSize => Size.fromHeight(
-        (subtitle?.trim().isNotEmpty ?? false) ? 92 : 68,
-      );
+  Size get preferredSize =>
+      Size.fromHeight((subtitle?.trim().isNotEmpty ?? false) ? 92 : 68);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final authState = ref.watch(authProvider);
-    final user = authState.user;
-    final isGuest = authState.isAnonymous || !authState.isAuthenticated;
     final hasSubtitle = subtitle?.trim().isNotEmpty ?? false;
     final glass = Theme.of(context).extension<GlassTheme>()!;
 
@@ -64,14 +57,8 @@ class WafiAppBar extends ConsumerWidget implements PreferredSizeWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: isDark
-                    ? [
-                        glass.elevatedColor,
-                        glass.cardColor,
-                      ]
-                    : [
-                        glass.highlightColor,
-                        glass.cardColor,
-                      ],
+                    ? [glass.elevatedColor, glass.cardColor]
+                    : [glass.highlightColor, glass.cardColor],
               ),
             ),
             child: hasSubtitle
@@ -93,24 +80,18 @@ class WafiAppBar extends ConsumerWidget implements PreferredSizeWidget {
       ),
       actions: [
         if (actions != null) ...actions!,
-        if (showProfileAction)
+        if (showNotificationAction)
           Padding(
             padding: const EdgeInsets.only(right: AppSizes.lg),
-            child: _ProfileActionButton(user: user, isGuest: isGuest),
+            child: const _NotificationActionButton(),
           ),
       ],
     );
   }
 }
 
-class _ProfileActionButton extends StatelessWidget {
-  const _ProfileActionButton({
-    required this.user,
-    required this.isGuest,
-  });
-
-  final dynamic user;
-  final bool isGuest;
+class _NotificationActionButton extends StatelessWidget {
+  const _NotificationActionButton();
 
   @override
   Widget build(BuildContext context) {
@@ -119,10 +100,11 @@ class _ProfileActionButton extends StatelessWidget {
 
     return InkWell(
       onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const ProfileScreen()),
+        MaterialPageRoute<void>(builder: (_) => const NotificationsScreen()),
       ),
       borderRadius: BorderRadius.circular(AppSizes.radiusFull),
-      child: ClipOval(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppSizes.radiusFull),
         child: BackdropFilter(
           filter: ImageFilter.blur(
             sigmaX: AppSizes.blurMd,
@@ -138,20 +120,14 @@ class _ProfileActionButton extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: isDark
-                    ? [
-                        glass.cardColor,
-                        glass.elevatedColor,
-                      ]
-                    : [
-                        glass.highlightColor,
-                        glass.elevatedColor,
-                      ],
+                    ? [glass.cardColor, glass.elevatedColor]
+                    : [glass.highlightColor, glass.elevatedColor],
               ),
             ),
-            child: ProfileAvatar(
-              user: user,
-              isGuest: isGuest,
-              radius: 21,
+            child: Icon(
+              Icons.notifications_none_rounded,
+              color: Theme.of(context).colorScheme.primary,
+              size: AppSizes.iconMd,
             ),
           ),
         ),
