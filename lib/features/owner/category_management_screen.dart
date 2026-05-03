@@ -1,5 +1,9 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wafi_ecommerce_app/core/constants/file_upload.dart';
 import 'package:wafi_ecommerce_app/core/constants/sizes.dart';
 import 'package:wafi_ecommerce_app/core/constants/strings.dart';
 import 'package:wafi_ecommerce_app/core/theme/app_theme.dart';
@@ -332,11 +336,14 @@ class _CategoryEditorSheet extends ConsumerStatefulWidget {
 class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _imageController = TextEditingController();
   final _displayOrderController = TextEditingController();
 
   String? _selectedParentId;
   bool _isActive = true;
+  bool _isUploadingImage = false;
+  late final String _uploadFolderId;
+  String? _existingImageUrl;
+  String? _selectedImagePath;
 
   bool get _isEditing => widget.category != null;
 
@@ -344,10 +351,12 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
   void initState() {
     super.initState();
     final category = widget.category;
+    _uploadFolderId =
+        category?.id ?? 'draft_${DateTime.now().millisecondsSinceEpoch}';
     if (category != null) {
       _nameController.text = category.name;
       _descriptionController.text = category.description;
-      _imageController.text = category.image;
+      _existingImageUrl = category.image.trim().isEmpty ? null : category.image;
       _displayOrderController.text = category.displayOrder.toString();
       _selectedParentId = category.parentId;
       _isActive = category.isActive;
@@ -360,16 +369,50 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
   void dispose() {
     _nameController.dispose();
     _descriptionController.dispose();
-    _imageController.dispose();
     _displayOrderController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: FileUpload.imageExtensions,
+    );
+
+    if (result == null || result.files.isEmpty || !mounted) return;
+
+    final path = result.files.single.path;
+    if (path == null || path.trim().isEmpty || !File(path).existsSync()) {
+      _showSnack('Selected file could not be opened from device storage.');
+      return;
+    }
+
+    setState(() {
+      _selectedImagePath = path;
+    });
+  }
+
+  void _removeExistingImage() {
+    setState(() {
+      _existingImageUrl = null;
+    });
+  }
+
+  void _removeSelectedImage() {
+    setState(() {
+      _selectedImagePath = null;
+    });
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(ownerCategoryManagementProvider);
     final theme = Theme.of(context);
-    final isBusy = state.isSaving;
+    final isBusy = state.isSaving || _isUploadingImage;
     final availableParents = _availableParents(widget.categories, widget.category);
 
     return SafeArea(
@@ -401,10 +444,17 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
               maxLines: 3,
             ),
             const SizedBox(height: AppSizes.md),
-            GlassInput(
-              controller: _imageController,
-              label: 'Image URL',
-              hint: 'https://...',
+            _CategoryImageField(
+              existingImageUrl: _existingImageUrl,
+              selectedImagePath: _selectedImagePath,
+              isUploading: _isUploadingImage,
+              onAddImage: isBusy ? null : _pickImage,
+              onRemoveExisting: isBusy || _existingImageUrl == null
+                  ? null
+                  : _removeExistingImage,
+              onRemoveSelected: isBusy || _selectedImagePath == null
+                  ? null
+                  : _removeSelectedImage,
             ),
             const SizedBox(height: AppSizes.md),
             Row(
@@ -525,14 +575,43 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
   Future<void> _submit() async {
     final name = _nameController.text.trim();
     final description = _descriptionController.text.trim();
-    final image = _imageController.text.trim();
     final displayOrder = int.tryParse(_displayOrderController.text.trim());
 
     if (name.isEmpty || displayOrder == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please complete all required fields.')),
-      );
+      _showSnack('Please complete all required fields.');
       return;
+    }
+
+    var image = _existingImageUrl ?? '';
+
+    if (_selectedImagePath != null) {
+      setState(() {
+        _isUploadingImage = true;
+      });
+
+      try {
+        final uploadedImages = await ref
+            .read(ownerManagementServiceProvider)
+            .uploadProductImages(
+              [_selectedImagePath!],
+              folderId: _uploadFolderId,
+            );
+        image = uploadedImages.isEmpty ? '' : uploadedImages.first;
+        _existingImageUrl = image.isEmpty ? null : image;
+        _selectedImagePath = null;
+      } catch (error) {
+        if (!mounted) return;
+        _showSnack(error.toString());
+        setState(() {
+          _isUploadingImage = false;
+        });
+        return;
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _isUploadingImage = false;
+      });
     }
 
     final draft = OwnerCategoryDraft(
@@ -555,6 +634,180 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
     final nextState = ref.read(ownerCategoryManagementProvider);
     if (nextState.hasError) return;
     Navigator.of(context).pop();
+  }
+}
+
+class _CategoryImageField extends StatelessWidget {
+  const _CategoryImageField({
+    required this.existingImageUrl,
+    required this.selectedImagePath,
+    required this.isUploading,
+    required this.onAddImage,
+    required this.onRemoveExisting,
+    required this.onRemoveSelected,
+  });
+
+  final String? existingImageUrl;
+  final String? selectedImagePath;
+  final bool isUploading;
+  final VoidCallback? onAddImage;
+  final VoidCallback? onRemoveExisting;
+  final VoidCallback? onRemoveSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final hasImage =
+        (existingImageUrl?.isNotEmpty ?? false) ||
+        (selectedImagePath?.isNotEmpty ?? false);
+
+    return _CategoryEditorSection(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            AppStrings.uploadImages,
+            style: theme.textTheme.labelLarge,
+          ),
+          const SizedBox(height: AppSizes.xs),
+          Text(
+            'Pick an image file from device storage. The uploaded image will be saved to Cloudinary.',
+            style: theme.textTheme.bodySmall,
+          ),
+          const SizedBox(height: AppSizes.md),
+          GlassButton(
+            label: isUploading ? 'Uploading image...' : 'Choose Image',
+            prefixIcon: Icons.add_photo_alternate_outlined,
+            variant: GlassButtonVariant.ghost,
+            onPressed: onAddImage,
+          ),
+          const SizedBox(height: AppSizes.md),
+          if (!hasImage)
+            Text(
+              'No category image selected yet.',
+              style: theme.textTheme.bodySmall,
+            )
+          else
+            Wrap(
+              spacing: AppSizes.sm,
+              runSpacing: AppSizes.sm,
+              children: [
+                if (existingImageUrl?.isNotEmpty ?? false)
+                  _CategoryImagePreview(
+                    imageSource: existingImageUrl!,
+                    isLocalFile: false,
+                    onRemove: onRemoveExisting,
+                  ),
+                if (selectedImagePath?.isNotEmpty ?? false)
+                  _CategoryImagePreview(
+                    imageSource: selectedImagePath!,
+                    isLocalFile: true,
+                    onRemove: onRemoveSelected,
+                  ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CategoryImagePreview extends StatelessWidget {
+  const _CategoryImagePreview({
+    required this.imageSource,
+    required this.isLocalFile,
+    this.onRemove,
+  });
+
+  final String imageSource;
+  final bool isLocalFile;
+  final VoidCallback? onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      width: 92,
+      padding: const EdgeInsets.all(AppSizes.xs),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        children: [
+          Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+                child: SizedBox(
+                  width: 80,
+                  height: 80,
+                  child: isLocalFile
+                      ? Image.file(
+                          File(imageSource),
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) =>
+                              const _CategoryImageFallback(),
+                        )
+                      : Image.network(
+                          imageSource,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) =>
+                              const _CategoryImageFallback(),
+                        ),
+                ),
+              ),
+              if (onRemove != null)
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: InkWell(
+                    onTap: onRemove,
+                    borderRadius: BorderRadius.circular(AppSizes.radiusFull),
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.55),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.close_rounded,
+                        color: Colors.white,
+                        size: 14,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSizes.xs),
+          Text(
+            isLocalFile ? 'New file' : 'Saved',
+            style: theme.textTheme.labelSmall,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CategoryImageFallback extends StatelessWidget {
+  const _CategoryImageFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      alignment: Alignment.center,
+      child: Icon(
+        Icons.image_not_supported_outlined,
+        color: Theme.of(context).colorScheme.primary,
+      ),
+    );
   }
 }
 

@@ -9,13 +9,24 @@ import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_chip.dart';
 
 class AuthScreen extends ConsumerWidget {
-  const AuthScreen({super.key});
+  const AuthScreen({
+    super.key,
+    this.closeOnSuccess = false,
+  });
+
+  final bool closeOnSuccess;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
     final authNotifier = ref.read(authProvider.notifier);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    ref.listen(authProvider, (previous, next) {
+      if (!closeOnSuccess) return;
+      if (previous?.isAuthenticated == true || !next.isAuthenticated) return;
+      Navigator.of(context).pop(true);
+    });
 
     return Scaffold(
       body: DecoratedBox(

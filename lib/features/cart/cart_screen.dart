@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wafi_ecommerce_app/core/constants/colors.dart';
 import 'package:wafi_ecommerce_app/core/constants/sizes.dart';
 import 'package:wafi_ecommerce_app/core/constants/strings.dart';
+import 'package:wafi_ecommerce_app/features/auth/auth_provider.dart';
+import 'package:wafi_ecommerce_app/features/auth/auth_screen.dart';
 import 'package:wafi_ecommerce_app/features/cart/cart_model.dart';
 import 'package:wafi_ecommerce_app/features/cart/cart_provider.dart';
 import 'package:wafi_ecommerce_app/features/orders/checkout_screen.dart';
@@ -281,13 +283,14 @@ class _StepperButton extends StatelessWidget {
   }
 }
 
-class _CartSummary extends StatelessWidget {
+class _CartSummary extends ConsumerWidget {
   const _CartSummary({required this.state});
 
   final CartState state;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final surfaceColor = isDark
         ? const Color(0xFF1A1C1F)
@@ -325,7 +328,16 @@ class _CartSummary extends StatelessWidget {
             GlassButton(
               label: 'Proceed',
               isFullWidth: true,
-              onPressed: () {
+              onPressed: () async {
+                if (!authState.isAuthenticated) {
+                  final didLogin = await Navigator.of(context).push<bool>(
+                    MaterialPageRoute<bool>(
+                      builder: (_) => const AuthScreen(closeOnSuccess: true),
+                    ),
+                  );
+                  if (!context.mounted || didLogin != true) return;
+                }
+
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (_) => const CheckoutScreen(),

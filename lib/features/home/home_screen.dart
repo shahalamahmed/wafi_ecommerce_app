@@ -625,7 +625,7 @@ class _CategoryCard extends StatelessWidget {
                         imageUrl,
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => Icon(
-                          _iconFor(category.name),
+                          _iconFor(category.image),
                           color: primary,
                           size: 22,
                         ),
