@@ -28,10 +28,7 @@ class ProductCatalogPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: WafiAppBar(
-        title: title,
-        subtitle: subtitle,
-      ),
+      appBar: WafiAppBar(title: title, subtitle: subtitle),
       body: Padding(
         padding: const EdgeInsets.all(AppSizes.screenPaddingH),
         child: ProductScreen(
@@ -162,8 +159,9 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                                 children: [
                                   Text(
                                     '${state.visibleProducts.length} items',
-                                    style:
-                                        Theme.of(context).textTheme.titleMedium,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleMedium,
                                   ),
                                   const Spacer(),
                                   Text(
@@ -172,9 +170,9 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                                         .textTheme
                                         .titleMedium
                                         ?.copyWith(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .primary,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
                                         ),
                                   ),
                                 ],
@@ -188,8 +186,9 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                                   onTap: (product) {
                                     Navigator.of(context).push(
                                       MaterialPageRoute<void>(
-                                        builder: (_) =>
-                                            ProductDetailsScreen(product: product),
+                                        builder: (_) => ProductDetailsScreen(
+                                          product: product,
+                                        ),
                                       ),
                                     );
                                   },
@@ -198,8 +197,9 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                                     if (!context.mounted) return;
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
-                                        content:
-                                            Text('${product.name} added to cart'),
+                                        content: Text(
+                                          '${product.name} added to cart',
+                                        ),
                                       ),
                                     );
                                   },
@@ -240,10 +240,7 @@ class _ProductLoadingState extends StatelessWidget {
 }
 
 class _ProductErrorState extends StatelessWidget {
-  const _ProductErrorState({
-    required this.message,
-    required this.onRetry,
-  });
+  const _ProductErrorState({required this.message, required this.onRetry});
 
   final String message;
   final Future<void> Function() onRetry;
@@ -339,6 +336,9 @@ class _CategoryRail extends StatelessWidget {
         final isSelected = category == null
             ? selectedCategoryId == null
             : selectedCategoryId == category.id;
+        final imageUrl = category?.image.trim() ?? '';
+        final hasImage = imageUrl.isNotEmpty;
+        final primary = Theme.of(context).colorScheme.primary;
 
         return InkWell(
           onTap: () => onSelect(category?.id),
@@ -364,12 +364,35 @@ class _CategoryRail extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 20,
-                  backgroundColor:
-                      Theme.of(context).colorScheme.primary.withOpacity(0.08),
-                  child: Icon(
-                    _iconFor(category?.name),
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                  backgroundColor: primary.withOpacity(0.08),
+                  child: category == null
+                      ? Icon(_iconFor(category?.name), color: primary)
+                      : ClipOval(
+                          child: SizedBox(
+                            width: 40,
+                            height: 40,
+                            child: hasImage
+                                ? Image.network(
+                                    imageUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Icon(
+                                      _iconFor(category.name),
+                                      color: primary,
+                                    ),
+                                    loadingBuilder:
+                                        (context, child, loadingProgress) {
+                                          if (loadingProgress == null) {
+                                            return child;
+                                          }
+                                          return Icon(
+                                            _iconFor(category.name),
+                                            color: primary,
+                                          );
+                                        },
+                                  )
+                                : Icon(_iconFor(category.name), color: primary),
+                          ),
+                        ),
                 ),
                 const SizedBox(height: AppSizes.sm),
                 Text(

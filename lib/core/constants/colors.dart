@@ -15,14 +15,14 @@ abstract class AppColors {
   static const Color glassBorderDark = Color(0x33FFFFFF);
   static const Color glassBorderLight = Color(0x14FFFFFF);
 
-  static const Color primaryDark = Color(0xFF2997FF);
-  static const Color primaryLight = Color(0xFF0066CC);
+  static const Color primaryDark = Color(0xFFFFA94D);
+  static const Color primaryLight = Color(0xFFF28C28);
 
-  static const Color primaryGlassDark = Color(0x332997FF);
-  static const Color primaryGlassLight = Color(0x1F0066CC);
+  static const Color primaryGlassDark = Color(0x33FFA94D);
+  static const Color primaryGlassLight = Color(0x1FF28C28);
 
-  static const Color primaryBorderDark = Color(0x662997FF);
-  static const Color primaryBorderLight = Color(0x330066CC);
+  static const Color primaryBorderDark = Color(0x66FFA94D);
+  static const Color primaryBorderLight = Color(0x33F28C28);
 
   static const Color onPrimary = Color(0xFFFFFFFF);
 
@@ -88,46 +88,44 @@ abstract class AppColors {
 
   static Color glassCard(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark
-          ? glassCardDark
-          : glassCardLight;
+      ? glassCardDark
+      : glassCardLight;
 
   static Color glassBorder(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark
-          ? glassBorderDark
-          : glassBorderLight;
+      ? glassBorderDark
+      : glassBorderLight;
 
   static Color primary(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark
-          ? primaryDark
-          : primaryLight;
+      ? primaryDark
+      : primaryLight;
 
   static Color textPrimary(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark
-          ? textPrimaryDark
-          : textPrimaryLight;
+      ? textPrimaryDark
+      : textPrimaryLight;
 
   static Color textSecondary(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark
-          ? textSecondaryDark
-          : textSecondaryLight;
+      ? textSecondaryDark
+      : textSecondaryLight;
 
   static Color success(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark
-          ? successDark
-          : successLight;
+      ? successDark
+      : successLight;
 
   static Color error(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark
-          ? errorDark
-          : errorLight;
+      Theme.of(context).brightness == Brightness.dark ? errorDark : errorLight;
 
   static Color warning(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark
-          ? warningDark
-          : warningLight;
+      ? warningDark
+      : warningLight;
 
   static Color divider(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark
-          ? dividerDark
-          : dividerLight;
+      ? dividerDark
+      : dividerLight;
 }

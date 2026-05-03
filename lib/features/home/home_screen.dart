@@ -55,8 +55,7 @@ class HomeScreen extends ConsumerWidget {
     }
 
     final categories = productState.activeCategories;
-    final products =
-    productState.products.where((p) => p.isActive).toList();
+    final products = productState.products.where((p) => p.isActive).toList();
 
     final popularItems = [...products]
       ..sort((a, b) {
@@ -68,9 +67,13 @@ class HomeScreen extends ConsumerWidget {
     final newArrivals = [...products]
       ..sort((a, b) {
         final dateA =
-            a.updatedAt ?? a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+            a.updatedAt ??
+            a.createdAt ??
+            DateTime.fromMillisecondsSinceEpoch(0);
         final dateB =
-            b.updatedAt ?? b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+            b.updatedAt ??
+            b.createdAt ??
+            DateTime.fromMillisecondsSinceEpoch(0);
         return dateB.compareTo(dateA);
       });
 
@@ -211,11 +214,11 @@ class HomeScreen extends ConsumerWidget {
   }
 
   void _openCatalog(
-      BuildContext context, {
-        required String title,
-        required String subtitle,
-        String? categoryId,
-      }) {
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+    String? categoryId,
+  }) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => ProductCatalogPage(
@@ -256,19 +259,24 @@ class _HeroBanner extends StatefulWidget {
 class _HeroBannerState extends State<_HeroBanner> {
   static const _banners = [
     _BannerItem(
-      imageUrl: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&q=80',
+      imageUrl:
+          'https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&q=80',
       eyebrow: 'Fresh Grocery Delivery',
       title: 'A cleaner way\nto shop daily\nessentials.',
-      subtitle: 'Fresh picks, daily essentials, and pantry staples — delivered.',
+      subtitle:
+          'Fresh picks, daily essentials, and pantry staples — delivered.',
     ),
     _BannerItem(
-      imageUrl: 'https://images.unsplash.com/photo-1610348725531-843dff563e2c?w=800&q=80',
+      imageUrl:
+          'https://images.unsplash.com/photo-1610348725531-843dff563e2c?w=800&q=80',
       eyebrow: 'Farm Fresh Produce',
       title: 'Straight from\nthe farm to\nyour table.',
-      subtitle: 'Organic vegetables and fruits, sourced daily from local farms.',
+      subtitle:
+          'Organic vegetables and fruits, sourced daily from local farms.',
     ),
     _BannerItem(
-      imageUrl: 'https://images.unsplash.com/photo-1579113800032-c38bd7635818?w=800&q=80',
+      imageUrl:
+          'https://images.unsplash.com/photo-1579113800032-c38bd7635818?w=800&q=80',
       eyebrow: 'Premium Quality',
       title: 'The finest\nspices and\ndry goods.',
       subtitle: 'Authentic flavors from across the region, at your doorstep.',
@@ -353,9 +361,7 @@ class _HeroBannerState extends State<_HeroBanner> {
                     width: isActive ? 20 : 7,
                     height: 7,
                     decoration: BoxDecoration(
-                      color: isActive
-                          ? primary
-                          : primary.withOpacity(0.35),
+                      color: isActive ? primary : primary.withOpacity(0.35),
                       borderRadius: BorderRadius.circular(4),
                     ),
                   );
@@ -411,7 +417,10 @@ class _BannerSlide extends StatelessWidget {
           // ── Text content ─────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(
-              AppSizes.xl2, AppSizes.xl2, AppSizes.xl2, 36,
+              AppSizes.xl2,
+              AppSizes.xl2,
+              AppSizes.xl2,
+              36,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -534,11 +543,7 @@ class _SectionHeader extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 4),
-                Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 11,
-                  color: primary,
-                ),
+                Icon(Icons.arrow_forward_ios_rounded, size: 11, color: primary),
               ],
             ),
           ),
@@ -549,10 +554,7 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _CategoryGrid extends StatelessWidget {
-  const _CategoryGrid({
-    required this.categories,
-    required this.onTap,
-  });
+  const _CategoryGrid({required this.categories, required this.onTap});
 
   final List<ProductCategory> categories;
   final ValueChanged<ProductCategory> onTap;
@@ -588,6 +590,8 @@ class _CategoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
+    final imageUrl = category.image.trim();
+    final hasImage = imageUrl.isNotEmpty;
 
     return GestureDetector(
       onTap: onTap,
@@ -611,15 +615,30 @@ class _CategoryCard extends StatelessWidget {
               Container(
                 width: 44,
                 height: 44,
+                clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
                   color: primary.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(AppSizes.radiusMd),
                 ),
-                child: Icon(
-                  _iconFor(category.name),
-                  color: primary,
-                  size: 22,
-                ),
+                child: hasImage
+                    ? Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Icon(
+                          _iconFor(category.name),
+                          color: primary,
+                          size: 22,
+                        ),
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Icon(
+                            _iconFor(category.name),
+                            color: primary,
+                            size: 22,
+                          );
+                        },
+                      )
+                    : Icon(_iconFor(category.name), color: primary, size: 22),
               ),
               const SizedBox(height: AppSizes.xs),
               Text(
@@ -670,7 +689,6 @@ class _CategoryCard extends StatelessWidget {
     return Icons.shopping_bag_outlined;
   }
 }
-
 
 class _HorizontalProductStrip extends StatelessWidget {
   const _HorizontalProductStrip({
@@ -734,14 +752,11 @@ class _ProductCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(AppSizes.radiusLg),
-          border: Border.all(
-            color: theme.colorScheme.outline.withOpacity(0.3),
-          ),
+          border: Border.all(color: theme.colorScheme.outline.withOpacity(0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             Expanded(
               child: Container(
                 width: double.infinity,
@@ -755,19 +770,19 @@ class _ProductCard extends StatelessWidget {
                 child: Center(
                   child: hasImage
                       ? Image.network(
-                    product.primaryImage,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => Icon(
-                      Icons.shopping_basket_outlined,
-                      size: 36,
-                      color: primary,
-                    ),
-                  )
+                          product.primaryImage,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => Icon(
+                            Icons.shopping_basket_outlined,
+                            size: 36,
+                            color: primary,
+                          ),
+                        )
                       : Icon(
-                    Icons.shopping_basket_outlined,
-                    size: 36,
-                    color: primary,
-                  ),
+                          Icons.shopping_basket_outlined,
+                          size: 36,
+                          color: primary,
+                        ),
                 ),
               ),
             ),
@@ -818,8 +833,9 @@ class _ProductCard extends StatelessWidget {
                             color: product.inStock
                                 ? primary.withOpacity(0.1)
                                 : Colors.grey.withOpacity(0.1),
-                            borderRadius:
-                            BorderRadius.circular(AppSizes.radiusSm),
+                            borderRadius: BorderRadius.circular(
+                              AppSizes.radiusSm,
+                            ),
                             border: Border.all(
                               color: product.inStock
                                   ? primary.withOpacity(0.4)
@@ -904,7 +920,7 @@ class _NewArrivalCard extends StatelessWidget {
     final primary = theme.colorScheme.primary;
     final hasImage = product.primaryImage.trim().isNotEmpty;
     final cardBg = theme.colorScheme.surfaceContainerHighest;
-    final imgBg  = theme.colorScheme.surfaceContainerHighest.withOpacity(0.6);
+    final imgBg = theme.colorScheme.surfaceContainerHighest.withOpacity(0.6);
 
     return GestureDetector(
       onTap: onTap,
@@ -932,19 +948,19 @@ class _NewArrivalCard extends StatelessWidget {
                 child: Center(
                   child: hasImage
                       ? Image.network(
-                    product.primaryImage,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => Icon(
-                      Icons.local_mall_outlined,
-                      size: 36,
-                      color: primary,
-                    ),
-                  )
+                          product.primaryImage,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => Icon(
+                            Icons.local_mall_outlined,
+                            size: 36,
+                            color: primary,
+                          ),
+                        )
                       : Icon(
-                    Icons.local_mall_outlined,
-                    size: 36,
-                    color: primary,
-                  ),
+                          Icons.local_mall_outlined,
+                          size: 36,
+                          color: primary,
+                        ),
                 ),
               ),
             ),
@@ -1018,8 +1034,9 @@ class _NewArrivalCard extends StatelessWidget {
                             color: product.inStock
                                 ? primary
                                 : Colors.grey.withOpacity(0.3),
-                            borderRadius:
-                            BorderRadius.circular(AppSizes.radiusSm),
+                            borderRadius: BorderRadius.circular(
+                              AppSizes.radiusSm,
+                            ),
                           ),
                           child: Text(
                             product.inStock ? 'ADD' : 'OUT',
@@ -1073,4 +1090,3 @@ class _EyebrowChip extends StatelessWidget {
     );
   }
 }
-

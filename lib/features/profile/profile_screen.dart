@@ -523,7 +523,6 @@ class _QuickActionTile extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-
   @override
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
@@ -534,7 +533,7 @@ class _QuickActionTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSizes.sm,
-          vertical: AppSizes.md,
+          vertical: 3,
         ),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppSizes.radiusLg),
@@ -543,23 +542,27 @@ class _QuickActionTile extends StatelessWidget {
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 48,
-              height: 48,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
                 color: primary.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(AppSizes.radiusMd),
               ),
-              child: Icon(icon, color: primary),
+              child: Icon(icon, color: primary, size: 20),
             ),
-            const SizedBox(height: AppSizes.sm),
+            const SizedBox(height: 4),
             Text(
               label,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.labelMedium,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                fontSize: 10,
+                height: 1.2,
+              ),
             ),
           ],
         ),
