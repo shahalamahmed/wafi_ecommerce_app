@@ -100,34 +100,34 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
 
       drawer: const AppDrawer(),
 
-        body: Stack(
-          children: [
-            AnimatedSwitcher(
-                duration: const Duration(milliseconds: AppSizes.animNormal),
-                child: KeyedSubtree(
-                  key: ValueKey(_currentIndex),
-                  child: activePage.body,
-                ),
-              ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: GlassBottomNav(
-                currentIndex: _currentIndex,
-                onTap: (index) => setState(() => _currentIndex = index),
-                items: pages.map((page) {
-                  final isCartTab = !isOwner && page.title == AppStrings.cart;
-                  return GlassBottomNavItem(
-                    label: page.title,
-                    icon: page.icon,
-                    badgeCount: isCartTab ? cartState.itemCount : 0,
-                  );
-                }).toList(),
-              ),
+      body: Stack(
+        children: [
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: AppSizes.animNormal),
+            child: KeyedSubtree(
+              key: ValueKey(_currentIndex),
+              child: activePage.body,
             ),
-          ],
-        ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: GlassBottomNav(
+              currentIndex: _currentIndex,
+              onTap: (index) => setState(() => _currentIndex = index),
+              items: pages.map((page) {
+                final isCartTab = !isOwner && page.title == AppStrings.cart;
+                return GlassBottomNavItem(
+                  label: page.title,
+                  icon: page.icon,
+                  badgeCount: isCartTab ? cartState.itemCount : 0,
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -139,15 +139,20 @@ class _DrawerLogoButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Builder(
       builder: (context) {
-        return IconButton(
-          onPressed: () => Scaffold.of(context).openDrawer(),
-          icon: ClipRRect(
-            borderRadius: BorderRadius.circular(AppSizes.radiusSm),
-            child: Image.asset(
-              'assets/wafi_solution_logo.png',
-              width: 28,
-              height: 28,
-              fit: BoxFit.cover,
+        return Padding(
+          padding: const EdgeInsets.only(left: 20),
+          child: IconButton(
+            onPressed: () => Scaffold.of(context).openDrawer(),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            icon: ClipRRect(
+              borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+              child: Image.asset(
+                'assets/wafi_solution_logo.png',
+                width: 40,
+                height: 40,
+                fit: BoxFit.cover,
+              ),
             ),
           ),
         );
@@ -169,8 +174,6 @@ class _ShellPage {
   final IconData icon;
   final Widget body;
 }
-
-
 
 class _OverviewPage extends StatelessWidget {
   const _OverviewPage({required this.user});
@@ -255,8 +258,6 @@ class _OverviewPage extends StatelessWidget {
     );
   }
 }
-
-
 
 class _PlaceholderPage extends StatelessWidget {
   const _PlaceholderPage({required this.title, required this.subtitle});
