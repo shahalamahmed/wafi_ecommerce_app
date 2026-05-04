@@ -11,6 +11,8 @@ class ProductList extends StatelessWidget {
     required this.categoryLookup,
     required this.onTap,
     required this.onAddToCart,
+    required this.isWishlisted,
+    required this.onToggleWishlist,
   });
 
   final List<ProductModel> products;
@@ -18,6 +20,8 @@ class ProductList extends StatelessWidget {
   final Map<String, String> categoryLookup;
   final ValueChanged<ProductModel> onTap;
   final ValueChanged<ProductModel> onAddToCart;
+  final bool Function(String productId) isWishlisted;
+  final ValueChanged<ProductModel> onToggleWishlist;
 
   @override
   Widget build(BuildContext context) {
@@ -37,6 +41,8 @@ class ProductList extends StatelessWidget {
           categoryName: categoryLabel,
           onTap: () => onTap(product),
           onAddToCart: () => onAddToCart(product),
+          isWishlisted: isWishlisted(product.id),
+          onToggleWishlist: () => onToggleWishlist(product),
         );
       },
     );

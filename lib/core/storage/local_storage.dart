@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class LocalStorage {
   static const _cartKey = 'anonymous_cart';
+  static const _wishlistKey = 'anonymous_wishlist';
 
   // Anonymous cart (guest mode)
   Future<List<Map<String, dynamic>>> getAnonymousCart() async {
@@ -21,5 +22,23 @@ class LocalStorage {
   Future<void> clearAnonymousCart() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_cartKey);
+  }
+
+  Future<List<Map<String, dynamic>>> getAnonymousWishlist() async {
+    final prefs = await SharedPreferences.getInstance();
+    final wishlistJson = prefs.getString(_wishlistKey);
+    if (wishlistJson == null) return [];
+    final List decoded = jsonDecode(wishlistJson);
+    return decoded.cast<Map<String, dynamic>>();
+  }
+
+  Future<void> saveAnonymousWishlist(List<Map<String, dynamic>> items) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_wishlistKey, jsonEncode(items));
+  }
+
+  Future<void> clearAnonymousWishlist() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_wishlistKey);
   }
 }

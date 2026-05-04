@@ -7,6 +7,7 @@ import 'package:wafi_ecommerce_app/features/products/product_details_screen.dart
 import 'package:wafi_ecommerce_app/features/products/product_model.dart';
 import 'package:wafi_ecommerce_app/features/products/product_provider.dart';
 import 'package:wafi_ecommerce_app/features/products/widgets/product_list.dart';
+import 'package:wafi_ecommerce_app/features/wishlist/wishlist_provider.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_chip.dart';
@@ -89,6 +90,8 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
     final notifier = ref.read(productProvider.notifier);
     final cartState = ref.watch(cartProvider);
     final cartNotifier = ref.read(cartProvider.notifier);
+    final wishlistState = ref.watch(wishlistProvider);
+    final wishlistNotifier = ref.read(wishlistProvider.notifier);
 
     final categoryLookup = <String, String>{
       for (final category in state.categories) category.id: category.name,
@@ -165,7 +168,7 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                                   ),
                                   const Spacer(),
                                   Text(
-                                    'Cart ${cartState.itemCount}',
+                                    'Saved ${wishlistState.itemCount} | Cart ${cartState.itemCount}',
                                     style: Theme.of(context)
                                         .textTheme
                                         .titleMedium
@@ -199,6 +202,25 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                                       SnackBar(
                                         content: Text(
                                           '${product.name} added to cart',
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  isWishlisted:
+                                      wishlistNotifier.containsProduct,
+                                  onToggleWishlist: (product) async {
+                                    final wasWishlisted = wishlistNotifier
+                                        .containsProduct(product.id);
+                                    await wishlistNotifier.toggleProduct(
+                                      product,
+                                    );
+                                    if (!context.mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          wasWishlisted
+                                              ? '${product.name} removed from wishlist'
+                                              : '${product.name} added to wishlist',
                                         ),
                                       ),
                                     );

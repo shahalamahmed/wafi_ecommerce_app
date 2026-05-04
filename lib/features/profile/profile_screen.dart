@@ -12,6 +12,9 @@ import 'package:wafi_ecommerce_app/features/auth/auth_model.dart';
 import 'package:wafi_ecommerce_app/features/auth/auth_provider.dart';
 import 'package:wafi_ecommerce_app/features/orders/order_screen.dart';
 import 'package:wafi_ecommerce_app/features/settings/settings_screen.dart';
+import 'package:wafi_ecommerce_app/features/test_order/test_order_screen.dart';
+import 'package:wafi_ecommerce_app/features/wishlist/wishlist_provider.dart';
+import 'package:wafi_ecommerce_app/features/wishlist/wishlist_screen.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_chip.dart';
@@ -80,6 +83,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final authState = ref.watch(authProvider);
     final addressState = ref.watch(addressProvider);
     final authNotifier = ref.read(authProvider.notifier);
+    final wishlistState = ref.watch(wishlistProvider);
     final user = authState.user;
     final isGuest = authState.isAnonymous || !authState.isAuthenticated;
     final primary = Theme.of(context).colorScheme.primary;
@@ -120,17 +124,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               _QuickActionTile(
                 icon: Icons.favorite_border_rounded,
                 label: 'Wishlist',
-                onTap: () => _openPlaceholder(
-                  title: 'Wishlist',
-                  subtitle:
-                      'Wishlist syncing will be added in a future update.',
-                  icon: Icons.favorite_border_rounded,
-                ),
+                badgeText: wishlistState.itemCount > 0
+                    ? '${wishlistState.itemCount}'
+                    : null,
+                onTap: () => _openPage(const WishlistPage()),
               ),
               _QuickActionTile(
                 icon: Icons.location_on_outlined,
                 label: 'Address',
                 onTap: () => _openPage(const AddressScreen()),
+              ),
+              _QuickActionTile(
+                icon: Icons.receipt_long_outlined,
+                label: 'test Order',
+                onTap: () => _openPage(const TestOrderScreen()),
               ),
               _QuickActionTile(
                 icon: Icons.local_offer_outlined,
@@ -518,11 +525,14 @@ class _QuickActionTile extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.badgeText,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final String? badgeText;
+
   @override
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
@@ -544,14 +554,44 @@ class _QuickActionTile extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: primary.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-              ),
-              child: Icon(icon, color: primary, size: 20),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: primary.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                  ),
+                  child: Icon(icon, color: primary, size: 20),
+                ),
+                if ((badgeText ?? '').isNotEmpty)
+                  Positioned(
+                    right: -8,
+                    top: -8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: primary,
+                        borderRadius: BorderRadius.circular(
+                          AppSizes.radiusFull,
+                        ),
+                      ),
+                      child: Text(
+                        badgeText!,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 9,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 4),
             Text(
@@ -559,10 +599,9 @@ class _QuickActionTile extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                fontSize: 10,
-                height: 1.2,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(fontSize: 10, height: 1.2),
             ),
           ],
         ),

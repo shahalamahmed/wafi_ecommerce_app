@@ -9,6 +9,7 @@ import 'package:wafi_ecommerce_app/features/products/product_details_screen.dart
 import 'package:wafi_ecommerce_app/features/products/product_model.dart';
 import 'package:wafi_ecommerce_app/features/products/product_provider.dart';
 import 'package:wafi_ecommerce_app/features/products/product_screen.dart';
+import 'package:wafi_ecommerce_app/features/wishlist/wishlist_provider.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
 
@@ -18,7 +19,10 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final productState = ref.watch(productProvider);
+    ref.watch(cartProvider);
     final cartNotifier = ref.read(cartProvider.notifier);
+    ref.watch(wishlistProvider);
+    final wishlistNotifier = ref.read(wishlistProvider.notifier);
 
     if (productState.isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -152,6 +156,8 @@ class HomeScreen extends ConsumerWidget {
               children: [
                 _HorizontalProductStrip(
                   products: popularItems.take(6).toList(),
+                  quantityForProduct: cartNotifier.quantityForProduct,
+                  isWishlisted: wishlistNotifier.containsProduct,
                   onTap: (p) => Navigator.of(context).push(
                     MaterialPageRoute<void>(
                       builder: (_) => ProductDetailsScreen(product: p),
@@ -162,6 +168,24 @@ class HomeScreen extends ConsumerWidget {
                     if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('${p.name} added to cart')),
+                    );
+                  },
+                  onIncrement: (p) => cartNotifier.increment(p.id),
+                  onDecrement: (p) => cartNotifier.decrement(p.id),
+                  onToggleWishlist: (p) async {
+                    final wasWishlisted = wishlistNotifier.containsProduct(
+                      p.id,
+                    );
+                    await wishlistNotifier.toggleProduct(p);
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          wasWishlisted
+                              ? '${p.name} removed from wishlist'
+                              : '${p.name} added to wishlist',
+                        ),
+                      ),
                     );
                   },
                 ),
@@ -191,6 +215,8 @@ class HomeScreen extends ConsumerWidget {
                 const SizedBox(height: AppSizes.lg),
                 _NewArrivalStrip(
                   products: newArrivals.take(6).toList(),
+                  quantityForProduct: cartNotifier.quantityForProduct,
+                  isWishlisted: wishlistNotifier.containsProduct,
                   onTap: (p) => Navigator.of(context).push(
                     MaterialPageRoute<void>(
                       builder: (_) => ProductDetailsScreen(product: p),
@@ -201,6 +227,24 @@ class HomeScreen extends ConsumerWidget {
                     if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('${p.name} added to cart')),
+                    );
+                  },
+                  onIncrement: (p) => cartNotifier.increment(p.id),
+                  onDecrement: (p) => cartNotifier.decrement(p.id),
+                  onToggleWishlist: (p) async {
+                    final wasWishlisted = wishlistNotifier.containsProduct(
+                      p.id,
+                    );
+                    await wishlistNotifier.toggleProduct(p);
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          wasWishlisted
+                              ? '${p.name} removed from wishlist'
+                              : '${p.name} added to wishlist',
+                        ),
+                      ),
                     );
                   },
                 ),
@@ -693,13 +737,23 @@ class _CategoryCard extends StatelessWidget {
 class _HorizontalProductStrip extends StatelessWidget {
   const _HorizontalProductStrip({
     required this.products,
+    required this.quantityForProduct,
+    required this.isWishlisted,
     required this.onTap,
     required this.onAddToCart,
+    required this.onIncrement,
+    required this.onDecrement,
+    required this.onToggleWishlist,
   });
 
   final List<ProductModel> products;
+  final int Function(String productId) quantityForProduct;
+  final bool Function(String productId) isWishlisted;
   final ValueChanged<ProductModel> onTap;
   final ValueChanged<ProductModel> onAddToCart;
+  final ValueChanged<ProductModel> onIncrement;
+  final ValueChanged<ProductModel> onDecrement;
+  final ValueChanged<ProductModel> onToggleWishlist;
 
   @override
   Widget build(BuildContext context) {
@@ -719,8 +773,13 @@ class _HorizontalProductStrip extends StatelessWidget {
             width: 180,
             child: _ProductCard(
               product: product,
+              quantityInCart: quantityForProduct(product.id),
+              isWishlisted: isWishlisted(product.id),
               onTap: () => onTap(product),
               onAddToCart: () => onAddToCart(product),
+              onIncrement: () => onIncrement(product),
+              onDecrement: () => onDecrement(product),
+              onToggleWishlist: () => onToggleWishlist(product),
             ),
           );
         },
@@ -732,13 +791,23 @@ class _HorizontalProductStrip extends StatelessWidget {
 class _ProductCard extends StatelessWidget {
   const _ProductCard({
     required this.product,
+    required this.quantityInCart,
+    required this.isWishlisted,
     required this.onTap,
     required this.onAddToCart,
+    required this.onIncrement,
+    required this.onDecrement,
+    required this.onToggleWishlist,
   });
 
   final ProductModel product;
+  final int quantityInCart;
+  final bool isWishlisted;
   final VoidCallback onTap;
   final VoidCallback onAddToCart;
+  final VoidCallback onIncrement;
+  final VoidCallback onDecrement;
+  final VoidCallback onToggleWishlist;
 
   @override
   Widget build(BuildContext context) {
@@ -758,32 +827,44 @@ class _ProductCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Container(
-                width: double.infinity,
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F7),
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(AppSizes.radiusLg),
+              child: Stack(
+                children: [
+                  Container(
+                    width: double.infinity,
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F7),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(AppSizes.radiusLg),
+                      ),
+                    ),
+                    child: Center(
+                      child: hasImage
+                          ? Image.network(
+                              product.primaryImage,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => Icon(
+                                Icons.shopping_basket_outlined,
+                                size: 36,
+                                color: primary,
+                              ),
+                            )
+                          : Icon(
+                              Icons.shopping_basket_outlined,
+                              size: 36,
+                              color: primary,
+                            ),
+                    ),
                   ),
-                ),
-                child: Center(
-                  child: hasImage
-                      ? Image.network(
-                          product.primaryImage,
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => Icon(
-                            Icons.shopping_basket_outlined,
-                            size: 36,
-                            color: primary,
-                          ),
-                        )
-                      : Icon(
-                          Icons.shopping_basket_outlined,
-                          size: 36,
-                          color: primary,
-                        ),
-                ),
+                  Positioned(
+                    top: AppSizes.sm,
+                    right: AppSizes.sm,
+                    child: _HomeWishlistButton(
+                      isSelected: isWishlisted,
+                      onTap: onToggleWishlist,
+                    ),
+                  ),
+                ],
               ),
             ),
 
@@ -822,35 +903,14 @@ class _ProductCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      GestureDetector(
-                        onTap: product.inStock ? onAddToCart : null,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSizes.md,
-                            vertical: AppSizes.xs,
-                          ),
-                          decoration: BoxDecoration(
-                            color: product.inStock
-                                ? primary.withOpacity(0.1)
-                                : Colors.grey.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(
-                              AppSizes.radiusSm,
-                            ),
-                            border: Border.all(
-                              color: product.inStock
-                                  ? primary.withOpacity(0.4)
-                                  : Colors.grey.withOpacity(0.3),
-                            ),
-                          ),
-                          child: Text(
-                            product.inStock ? 'ADD' : 'OUT',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: product.inStock ? primary : Colors.grey,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
+                      _HomeCartAction(
+                        quantity: quantityInCart,
+                        inStock: product.inStock,
+                        primary: primary,
+                        textStyle: theme.textTheme.labelSmall,
+                        onAdd: onAddToCart,
+                        onIncrement: onIncrement,
+                        onDecrement: onDecrement,
                       ),
                     ],
                   ),
@@ -867,13 +927,23 @@ class _ProductCard extends StatelessWidget {
 class _NewArrivalStrip extends StatelessWidget {
   const _NewArrivalStrip({
     required this.products,
+    required this.quantityForProduct,
+    required this.isWishlisted,
     required this.onTap,
     required this.onAddToCart,
+    required this.onIncrement,
+    required this.onDecrement,
+    required this.onToggleWishlist,
   });
 
   final List<ProductModel> products;
+  final int Function(String productId) quantityForProduct;
+  final bool Function(String productId) isWishlisted;
   final ValueChanged<ProductModel> onTap;
   final ValueChanged<ProductModel> onAddToCart;
+  final ValueChanged<ProductModel> onIncrement;
+  final ValueChanged<ProductModel> onDecrement;
+  final ValueChanged<ProductModel> onToggleWishlist;
 
   @override
   Widget build(BuildContext context) {
@@ -893,8 +963,13 @@ class _NewArrivalStrip extends StatelessWidget {
             width: 200,
             child: _NewArrivalCard(
               product: product,
+              quantityInCart: quantityForProduct(product.id),
+              isWishlisted: isWishlisted(product.id),
               onTap: () => onTap(product),
               onAddToCart: () => onAddToCart(product),
+              onIncrement: () => onIncrement(product),
+              onDecrement: () => onDecrement(product),
+              onToggleWishlist: () => onToggleWishlist(product),
             ),
           );
         },
@@ -906,13 +981,23 @@ class _NewArrivalStrip extends StatelessWidget {
 class _NewArrivalCard extends StatelessWidget {
   const _NewArrivalCard({
     required this.product,
+    required this.quantityInCart,
+    required this.isWishlisted,
     required this.onTap,
     required this.onAddToCart,
+    required this.onIncrement,
+    required this.onDecrement,
+    required this.onToggleWishlist,
   });
 
   final ProductModel product;
+  final int quantityInCart;
+  final bool isWishlisted;
   final VoidCallback onTap;
   final VoidCallback onAddToCart;
+  final VoidCallback onIncrement;
+  final VoidCallback onDecrement;
+  final VoidCallback onToggleWishlist;
 
   @override
   Widget build(BuildContext context) {
@@ -936,32 +1021,44 @@ class _NewArrivalCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Container(
-                width: double.infinity,
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  color: imgBg,
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(AppSizes.radiusLg),
+              child: Stack(
+                children: [
+                  Container(
+                    width: double.infinity,
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      color: imgBg,
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(AppSizes.radiusLg),
+                      ),
+                    ),
+                    child: Center(
+                      child: hasImage
+                          ? Image.network(
+                              product.primaryImage,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => Icon(
+                                Icons.local_mall_outlined,
+                                size: 36,
+                                color: primary,
+                              ),
+                            )
+                          : Icon(
+                              Icons.local_mall_outlined,
+                              size: 36,
+                              color: primary,
+                            ),
+                    ),
                   ),
-                ),
-                child: Center(
-                  child: hasImage
-                      ? Image.network(
-                          product.primaryImage,
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => Icon(
-                            Icons.local_mall_outlined,
-                            size: 36,
-                            color: primary,
-                          ),
-                        )
-                      : Icon(
-                          Icons.local_mall_outlined,
-                          size: 36,
-                          color: primary,
-                        ),
-                ),
+                  Positioned(
+                    top: AppSizes.sm,
+                    right: AppSizes.sm,
+                    child: _HomeWishlistButton(
+                      isSelected: isWishlisted,
+                      onTap: onToggleWishlist,
+                    ),
+                  ),
+                ],
               ),
             ),
 
@@ -1023,30 +1120,15 @@ class _NewArrivalCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: AppSizes.sm),
-                      GestureDetector(
-                        onTap: product.inStock ? onAddToCart : null,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSizes.md,
-                            vertical: AppSizes.xs,
-                          ),
-                          decoration: BoxDecoration(
-                            color: product.inStock
-                                ? primary
-                                : Colors.grey.withOpacity(0.3),
-                            borderRadius: BorderRadius.circular(
-                              AppSizes.radiusSm,
-                            ),
-                          ),
-                          child: Text(
-                            product.inStock ? 'ADD' : 'OUT',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
+                      _HomeCartAction(
+                        quantity: quantityInCart,
+                        inStock: product.inStock,
+                        primary: primary,
+                        filled: true,
+                        textStyle: theme.textTheme.labelSmall,
+                        onAdd: onAddToCart,
+                        onIncrement: onIncrement,
+                        onDecrement: onDecrement,
                       ),
                     ],
                   ),
@@ -1086,6 +1168,156 @@ class _EyebrowChip extends StatelessWidget {
           color: primary,
           fontWeight: FontWeight.w600,
         ),
+      ),
+    );
+  }
+}
+
+class _HomeWishlistButton extends StatelessWidget {
+  const _HomeWishlistButton({required this.isSelected, required this.onTap});
+
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white.withOpacity(0.92),
+      borderRadius: BorderRadius.circular(AppSizes.radiusFull),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppSizes.radiusFull),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSizes.xs),
+          child: Icon(
+            isSelected ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+            color: isSelected
+                ? Colors.redAccent
+                : Theme.of(context).colorScheme.primary,
+            size: AppSizes.iconSm,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeCartAction extends StatelessWidget {
+  const _HomeCartAction({
+    required this.quantity,
+    required this.inStock,
+    required this.primary,
+    required this.textStyle,
+    required this.onAdd,
+    required this.onIncrement,
+    required this.onDecrement,
+    this.filled = false,
+  });
+
+  final int quantity;
+  final bool inStock;
+  final Color primary;
+  final TextStyle? textStyle;
+  final VoidCallback onAdd;
+  final VoidCallback onIncrement;
+  final VoidCallback onDecrement;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    final disabledColor = Colors.grey;
+    final borderColor = filled
+        ? Colors.transparent
+        : inStock
+        ? primary.withOpacity(0.4)
+        : disabledColor.withOpacity(0.3);
+    final backgroundColor = filled
+        ? (inStock ? primary : disabledColor.withOpacity(0.3))
+        : (inStock ? primary.withOpacity(0.1) : disabledColor.withOpacity(0.1));
+    final foregroundColor = filled
+        ? Colors.white
+        : (inStock ? primary : disabledColor);
+
+    if (quantity <= 0) {
+      return GestureDetector(
+        onTap: inStock ? onAdd : null,
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSizes.md,
+            vertical: AppSizes.xs,
+          ),
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+            border: Border.all(color: borderColor),
+          ),
+          child: Text(
+            inStock ? 'ADD' : 'OUT',
+            style: textStyle?.copyWith(
+              color: foregroundColor,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _QtyIconButton(
+            icon: Icons.remove_rounded,
+            color: foregroundColor,
+            onTap: onDecrement,
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSizes.sm),
+            child: Text(
+              '$quantity',
+              style: textStyle?.copyWith(
+                color: foregroundColor,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          _QtyIconButton(
+            icon: Icons.add_rounded,
+            color: foregroundColor,
+            onTap: onIncrement,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QtyIconButton extends StatelessWidget {
+  const _QtyIconButton({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppSizes.radiusXs),
+      child: Padding(
+        padding: const EdgeInsets.all(2),
+        child: Icon(icon, size: AppSizes.iconSm, color: color),
       ),
     );
   }

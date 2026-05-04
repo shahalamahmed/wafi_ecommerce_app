@@ -65,6 +65,7 @@ class AuthService {
     final firebaseUser = result.user!;
     await _persistSession(firebaseUser);
     await _mergeAnonymousCart(firebaseUser.uid);
+    await _mergeAnonymousWishlist(firebaseUser.uid);
     return _fetchOrCreateUserProfile(firebaseUser);
   }
 
@@ -91,6 +92,7 @@ class AuthService {
 
     await _persistSession(firebaseUser);
     await _mergeAnonymousCart(firebaseUser.uid);
+    await _mergeAnonymousWishlist(firebaseUser.uid);
     return _fetchOrCreateUserProfile(firebaseUser);
   }
 
@@ -140,6 +142,7 @@ class AuthService {
 
     await _persistSession(firebaseUser);
     await _mergeAnonymousCart(firebaseUser.uid);
+    await _mergeAnonymousWishlist(firebaseUser.uid);
     return _fetchOrCreateUserProfile(firebaseUser);
   }
 
@@ -319,6 +322,46 @@ class AuthService {
     }, SetOptions(merge: true));
 
     await _localStorage.clearAnonymousCart();
+  }
+
+  Future<void> _mergeAnonymousWishlist(String userId) async {
+    final anonymousItems = await _localStorage.getAnonymousWishlist();
+    if (anonymousItems.isEmpty) return;
+
+    final wishlistRef = _firestore.collection('wishlists').doc(userId);
+    final wishlistDoc = await wishlistRef.get();
+
+    final existingItems =
+        (wishlistDoc.data()?['items'] as List<dynamic>? ?? <dynamic>[])
+            .map((item) => Map<String, dynamic>.from(item as Map))
+            .toList();
+
+    final mergedItems = <String, Map<String, dynamic>>{};
+
+    for (final item in existingItems) {
+      final productId = item['productId'] as String?;
+      if (productId == null || productId.isEmpty) continue;
+      mergedItems[productId] = Map<String, dynamic>.from(item);
+    }
+
+    for (final item in anonymousItems) {
+      final productId = item['productId'] as String?;
+      if (productId == null || productId.isEmpty) continue;
+      mergedItems[productId] = {
+        ...?mergedItems[productId],
+        ...item,
+        'productId': productId,
+      };
+    }
+
+    await wishlistRef.set({
+      'userId': userId,
+      'items': mergedItems.values.toList(),
+      'itemCount': mergedItems.length,
+      'lastUpdated': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    await _localStorage.clearAnonymousWishlist();
   }
 
   _DisplayNameParts _splitDisplayName(String? displayName) {

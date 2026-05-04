@@ -4,16 +4,14 @@ import 'package:wafi_ecommerce_app/core/constants/sizes.dart';
 import 'package:wafi_ecommerce_app/core/constants/strings.dart';
 import 'package:wafi_ecommerce_app/features/cart/cart_provider.dart';
 import 'package:wafi_ecommerce_app/features/products/product_model.dart';
+import 'package:wafi_ecommerce_app/features/wishlist/wishlist_provider.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_chip.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
 
 class ProductDetailsScreen extends ConsumerStatefulWidget {
-  const ProductDetailsScreen({
-    super.key,
-    required this.product,
-  });
+  const ProductDetailsScreen({super.key, required this.product});
 
   final ProductModel product;
 
@@ -30,7 +28,10 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
   Widget build(BuildContext context) {
     final cartState = ref.watch(cartProvider);
     final cartNotifier = ref.read(cartProvider.notifier);
+    final wishlistState = ref.watch(wishlistProvider);
+    final wishlistNotifier = ref.read(wishlistProvider.notifier);
     final product = widget.product;
+    final isWishlisted = wishlistNotifier.containsProduct(product.id);
 
     return Scaffold(
       appBar: WafiAppBar(
@@ -38,6 +39,35 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
         subtitle: product.shortDescription.trim().isNotEmpty
             ? product.shortDescription
             : AppStrings.productDetails,
+        actions: [
+          IconButton(
+            onPressed: () async {
+              final wasWishlisted = wishlistNotifier.containsProduct(
+                product.id,
+              );
+              await wishlistNotifier.toggleProduct(product);
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    wasWishlisted
+                        ? '${product.name} removed from wishlist'
+                        : '${product.name} added to wishlist',
+                  ),
+                ),
+              );
+            },
+            tooltip: isWishlisted
+                ? AppStrings.removeFromWishlist
+                : AppStrings.addToWishlist,
+            icon: Icon(
+              isWishlisted
+                  ? Icons.favorite_rounded
+                  : Icons.favorite_border_rounded,
+              color: isWishlisted ? Colors.redAccent : null,
+            ),
+          ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(
@@ -60,11 +90,11 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                     ),
                     child: product.primaryImage.trim().isNotEmpty
                         ? Image.network(
-                      product.primaryImage,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) =>
-                          _DetailsImageFallback(name: product.name),
-                    )
+                            product.primaryImage,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) =>
+                                _DetailsImageFallback(name: product.name),
+                          )
                         : _DetailsImageFallback(name: product.name),
                   ),
                 ),
@@ -73,11 +103,12 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(
                     product.images.isEmpty ? 1 : product.images.length,
-                        (index) => Container(
+                    (index) => Container(
                       width: 10,
                       height: 10,
-                      margin:
-                      const EdgeInsets.symmetric(horizontal: AppSizes.xs),
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: AppSizes.xs,
+                      ),
                       decoration: BoxDecoration(
                         color: index == 0
                             ? Theme.of(context).colorScheme.primary
@@ -125,17 +156,17 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                   quantity: _quantity,
                   onDecrease: _quantity > 1
                       ? () {
-                    setState(() {
-                      _quantity--;
-                    });
-                  }
+                          setState(() {
+                            _quantity--;
+                          });
+                        }
                       : null,
                   onIncrease: _quantity < 20 && _quantity < product.stock
                       ? () {
-                    setState(() {
-                      _quantity++;
-                    });
-                  }
+                          setState(() {
+                            _quantity++;
+                          });
+                        }
                       : null,
                 ),
               ),
@@ -156,8 +187,9 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
           Row(
             children: [
               GlassChip(
-                label:
-                product.inStock ? AppStrings.inStock : AppStrings.outOfStock,
+                label: product.inStock
+                    ? AppStrings.inStock
+                    : AppStrings.outOfStock,
                 variant: product.inStock
                     ? GlassChipVariant.success
                     : GlassChipVariant.error,
@@ -168,6 +200,31 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                   label: 'Only ${product.stock} left',
                   variant: GlassChipVariant.warning,
                 ),
+              const Spacer(),
+              GlassChip(
+                label: wishlistState.itemCount > 0
+                    ? 'Saved ${wishlistState.itemCount}'
+                    : AppStrings.wishlist,
+                variant: isWishlisted
+                    ? GlassChipVariant.error
+                    : GlassChipVariant.primary,
+                onTap: () async {
+                  final wasWishlisted = wishlistNotifier.containsProduct(
+                    product.id,
+                  );
+                  await wishlistNotifier.toggleProduct(product);
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        wasWishlisted
+                            ? '${product.name} removed from wishlist'
+                            : '${product.name} added to wishlist',
+                      ),
+                    ),
+                  );
+                },
+              ),
             ],
           ),
 
@@ -213,17 +270,17 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                   variant: GlassButtonVariant.success,
                   onPressed: product.inStock
                       ? () async {
-                    await cartNotifier.addProduct(
-                      product,
-                      quantity: _quantity,
-                    );
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('${product.name} added to cart'),
-                      ),
-                    );
-                  }
+                          await cartNotifier.addProduct(
+                            product,
+                            quantity: _quantity,
+                          );
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('${product.name} added to cart'),
+                            ),
+                          );
+                        }
                       : null,
                 ),
               ),
@@ -239,9 +296,9 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                 ),
                 child: Text(
                   '${AppStrings.currencySymbol}${(product.price * _quantity).toStringAsFixed(0)}',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Colors.white,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(color: Colors.white),
                 ),
               ),
             ],
@@ -361,10 +418,7 @@ class _OptionTile extends StatelessWidget {
 }
 
 class _SectionTabs extends StatelessWidget {
-  const _SectionTabs({
-    required this.activeIndex,
-    required this.onChanged,
-  });
+  const _SectionTabs({required this.activeIndex, required this.onChanged});
 
   final int activeIndex;
   final ValueChanged<int> onChanged;
@@ -386,8 +440,9 @@ class _SectionTabs extends StatelessWidget {
                       ? Theme.of(context).colorScheme.primary
                       : Theme.of(context).colorScheme.primary.withOpacity(0.08),
                   border: Border.all(
-                    color:
-                    Theme.of(context).colorScheme.primary.withOpacity(0.4),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withOpacity(0.4),
                   ),
                 ),
                 child: Text(
@@ -413,8 +468,7 @@ class _HighlightsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final points = <String>[
-      if (product.shortDescription.trim().isNotEmpty)
-        product.shortDescription,
+      if (product.shortDescription.trim().isNotEmpty) product.shortDescription,
       if (product.description.trim().isNotEmpty) product.description,
       if (product.sku.trim().isNotEmpty) 'SKU: ${product.sku}',
     ];
@@ -424,13 +478,10 @@ class _HighlightsSection extends StatelessWidget {
       children: points
           .map(
             (point) => Padding(
-          padding: const EdgeInsets.only(bottom: AppSizes.md),
-          child: Text(
-            point,
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-        ),
-      )
+              padding: const EdgeInsets.only(bottom: AppSizes.md),
+              child: Text(point, style: Theme.of(context).textTheme.bodyLarge),
+            ),
+          )
           .toList(),
     );
   }
@@ -519,9 +570,9 @@ class _CartCountBadge extends StatelessWidget {
               backgroundColor: Theme.of(context).colorScheme.primary,
               child: Text(
                 '$count',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Colors.white,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelSmall?.copyWith(color: Colors.white),
               ),
             ),
           ),

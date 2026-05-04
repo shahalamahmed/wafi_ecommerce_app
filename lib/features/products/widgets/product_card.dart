@@ -10,12 +10,16 @@ class ProductCard extends StatelessWidget {
     required this.product,
     required this.onTap,
     required this.onAddToCart,
+    required this.isWishlisted,
+    required this.onToggleWishlist,
     this.categoryName,
   });
 
   final ProductModel product;
   final VoidCallback onTap;
   final VoidCallback onAddToCart;
+  final bool isWishlisted;
+  final VoidCallback onToggleWishlist;
   final String? categoryName;
 
   @override
@@ -78,7 +82,8 @@ class ProductCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.bodySmall?.copyWith(
                               decoration: TextDecoration.lineThrough,
-                              color: theme.textTheme.bodySmall?.color?.withOpacity(0.6),
+                              color: theme.textTheme.bodySmall?.color
+                                  ?.withOpacity(0.6),
                             ),
                           ),
                         ),
@@ -98,6 +103,11 @@ class ProductCard extends StatelessWidget {
                       Text(
                         product.rating.toStringAsFixed(1),
                         style: theme.textTheme.bodySmall,
+                      ),
+                      const SizedBox(width: AppSizes.sm),
+                      _WishlistButton(
+                        isSelected: isWishlisted,
+                        onTap: onToggleWishlist,
                       ),
                       const Spacer(),
                       _AddButton(
@@ -132,10 +142,11 @@ class _ProductImage extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppSizes.radiusMd),
         child: hasImage
             ? Image.network(
-          product.primaryImage,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _ProductImageFallback(name: product.name),
-        )
+                product.primaryImage,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) =>
+                    _ProductImageFallback(name: product.name),
+              )
             : _ProductImageFallback(name: product.name),
       ),
     );
@@ -165,10 +176,7 @@ class _ProductImageFallback extends StatelessWidget {
 }
 
 class _AddButton extends StatelessWidget {
-  const _AddButton({
-    required this.inStock,
-    required this.onPressed,
-  });
+  const _AddButton({required this.inStock, required this.onPressed});
 
   final bool inStock;
   final VoidCallback? onPressed;
@@ -200,6 +208,42 @@ class _AddButton extends StatelessWidget {
           color: inStock
               ? Theme.of(context).colorScheme.primary
               : Theme.of(context).disabledColor,
+        ),
+      ),
+    );
+  }
+}
+
+class _WishlistButton extends StatelessWidget {
+  const _WishlistButton({required this.isSelected, required this.onTap});
+
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+      child: Container(
+        padding: const EdgeInsets.all(AppSizes.xs),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Colors.redAccent.withOpacity(0.12)
+              : Theme.of(context).colorScheme.primary.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+          border: Border.all(
+            color: isSelected
+                ? Colors.redAccent.withOpacity(0.35)
+                : Theme.of(context).dividerColor,
+          ),
+        ),
+        child: Icon(
+          isSelected ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+          size: AppSizes.iconSm,
+          color: isSelected
+              ? Colors.redAccent
+              : Theme.of(context).colorScheme.primary,
         ),
       ),
     );
