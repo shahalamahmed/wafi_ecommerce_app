@@ -73,14 +73,20 @@ class OrderDraft {
               'productName': item.productName,
               'quantity': item.quantity,
               'price': item.unitPrice,
+              'originalPrice': item.originalPrice,
               'subtotal': item.subtotal,
+              'discount': item.totalDiscount,
               'selectedOptionLabel': item.selectedOptionLabel,
             },
           )
           .toList(),
       'status': 'pending',
-      'paymentMethod': paymentMethod == PaymentMethod.cashOnDelivery ? 'cod' : 'online',
-      'paymentStatus': paymentMethod == PaymentMethod.cashOnDelivery ? 'pending' : 'unpaid',
+      'paymentMethod': paymentMethod == PaymentMethod.cashOnDelivery
+          ? 'cod'
+          : 'online',
+      'paymentStatus': paymentMethod == PaymentMethod.cashOnDelivery
+          ? 'pending'
+          : 'unpaid',
       'deliveryAddress': address.toMap(),
       'subtotal': subtotal,
       'tax': tax,
@@ -126,7 +132,8 @@ class OrderItemModel {
       quantity: (map['quantity'] as num?)?.toInt() ?? 0,
       price: (map['price'] as num?)?.toDouble() ?? 0,
       subtotal: (map['subtotal'] as num?)?.toDouble() ?? 0,
-      selectedOptionLabel: (map['selectedOptionLabel'] as String?)?.trim() ?? '',
+      selectedOptionLabel:
+          (map['selectedOptionLabel'] as String?)?.trim() ?? '',
     );
   }
 }
@@ -175,22 +182,22 @@ class CustomerOrder {
   final DateTime? deliveredAt;
 
   String get statusLabel => switch (status) {
-        'confirmed' => 'Confirmed',
-        'shipped' => 'Shipped',
-        'delivered' => 'Delivered',
-        'cancelled' => 'Cancelled',
-        _ => 'Pending',
-      };
+    'confirmed' => 'Confirmed',
+    'shipped' => 'Shipped',
+    'delivered' => 'Delivered',
+    'cancelled' => 'Cancelled',
+    _ => 'Pending',
+  };
 
   String get addressText => [
-        deliveryAddress['fullName'] ?? '',
-        deliveryAddress['phone'] ?? '',
-        deliveryAddress['addressLine1'] ?? '',
-        deliveryAddress['addressLine2'] ?? '',
-        deliveryAddress['city'] ?? '',
-        deliveryAddress['postalCode'] ?? '',
-        deliveryAddress['country'] ?? '',
-      ].where((part) => part.toString().trim().isNotEmpty).join(', ');
+    deliveryAddress['fullName'] ?? '',
+    deliveryAddress['phone'] ?? '',
+    deliveryAddress['addressLine1'] ?? '',
+    deliveryAddress['addressLine2'] ?? '',
+    deliveryAddress['city'] ?? '',
+    deliveryAddress['postalCode'] ?? '',
+    deliveryAddress['country'] ?? '',
+  ].where((part) => part.toString().trim().isNotEmpty).join(', ');
 
   factory CustomerOrder.fromMap(String id, Map<String, dynamic> map) {
     return CustomerOrder(
@@ -198,12 +205,17 @@ class CustomerOrder {
       orderId: (map['orderId'] as String?)?.trim() ?? id,
       userId: (map['userId'] as String?)?.trim() ?? '',
       items: (map['items'] as List<dynamic>? ?? const <dynamic>[])
-          .map((item) => OrderItemModel.fromMap(Map<String, dynamic>.from(item as Map)))
+          .map(
+            (item) =>
+                OrderItemModel.fromMap(Map<String, dynamic>.from(item as Map)),
+          )
           .toList(),
       status: (map['status'] as String?)?.trim() ?? 'pending',
       paymentMethod: (map['paymentMethod'] as String?)?.trim() ?? '',
       paymentStatus: (map['paymentStatus'] as String?)?.trim() ?? '',
-      deliveryAddress: Map<String, dynamic>.from(map['deliveryAddress'] as Map? ?? <String, dynamic>{}),
+      deliveryAddress: Map<String, dynamic>.from(
+        map['deliveryAddress'] as Map? ?? <String, dynamic>{},
+      ),
       subtotal: (map['subtotal'] as num?)?.toDouble() ?? 0,
       tax: (map['tax'] as num?)?.toDouble() ?? 0,
       deliveryCharge: (map['deliveryCharge'] as num?)?.toDouble() ?? 0,

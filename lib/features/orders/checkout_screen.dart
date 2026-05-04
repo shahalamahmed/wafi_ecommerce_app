@@ -5,9 +5,12 @@ import 'package:wafi_ecommerce_app/core/constants/sizes.dart';
 import 'package:wafi_ecommerce_app/core/constants/strings.dart';
 import 'package:wafi_ecommerce_app/core/utils/validators.dart';
 import 'package:wafi_ecommerce_app/features/auth/auth_provider.dart';
+import 'package:wafi_ecommerce_app/features/cart/cart_model.dart';
 import 'package:wafi_ecommerce_app/features/cart/cart_provider.dart';
 import 'package:wafi_ecommerce_app/features/orders/order_model.dart';
 import 'package:wafi_ecommerce_app/features/orders/order_provider.dart';
+import 'package:wafi_ecommerce_app/features/products/product_model.dart';
+import 'package:wafi_ecommerce_app/features/products/product_provider.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_input.dart';
@@ -65,8 +68,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     final cartState = ref.watch(cartProvider);
     final orderState = ref.watch(orderProvider);
     final authState = ref.watch(authProvider);
+    final productState = ref.watch(productProvider);
 
     final subtotal = cartState.subtotal;
+    final itemDiscount = _calculateItemDiscount(
+      cartState.items,
+      productState.products,
+    );
     final tax = cartState.tax;
     final total = subtotal + tax + _deliveryCharge;
 
@@ -137,7 +145,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 _FormInput(
                   controller: _notesController,
                   label: 'Order Notes',
-                  hint: 'Notes about your order, e.g. special notes for delivery.',
+                  hint:
+                      'Notes about your order, e.g. special notes for delivery.',
                   maxLines: 3,
                 ),
               ],
@@ -167,7 +176,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   isFullWidth: true,
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Coupon validation is not implemented yet.')),
+                      const SnackBar(
+                        content: Text(
+                          'Coupon validation is not implemented yet.',
+                        ),
+                      ),
                     );
                   },
                 ),
@@ -180,8 +193,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             child: Column(
               children: [
                 _SummaryRow(label: 'SubTotal', value: subtotal),
-                _SummaryRow(label: 'Item Discount', value: 0),
-                _SummaryRow(label: 'Order Discount', value: 0),
+                _SummaryRow(label: 'Item Discount', value: itemDiscount),
                 _SummaryRow(label: 'Delivery Charge', value: _deliveryCharge),
                 _SummaryRow(label: 'Tax', value: tax),
                 const Divider(height: AppSizes.xl),
@@ -231,7 +243,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           GlassButton(
             label: 'PLACE ORDER',
             isLoading: orderState.isSubmitting,
-            onPressed: cartState.items.isEmpty ? null : () => _submitOrder(authState.user?.uid ?? ''),
+            onPressed: cartState.items.isEmpty
+                ? null
+                : () => _submitOrder(authState.user?.uid ?? ''),
           ),
           const SizedBox(height: AppSizes.xl2),
         ],
@@ -252,6 +266,34 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     }
   }
 
+  double _calculateItemDiscount(
+    List<CartItem> items,
+    List<ProductModel> products,
+  ) {
+    final originalPriceLookup = <String, double>{
+      for (final product in products)
+        product.id: product.originalPrice > 0
+            ? product.originalPrice
+            : product.price,
+    };
+
+    double totalDiscount = 0;
+    for (final item in items) {
+      final storedOriginalPrice = item.originalPrice;
+      final fallbackOriginalPrice =
+          originalPriceLookup[item.productId] ?? item.unitPrice;
+      final originalPrice = storedOriginalPrice > item.unitPrice
+          ? storedOriginalPrice
+          : fallbackOriginalPrice;
+
+      if (originalPrice > item.unitPrice) {
+        totalDiscount += (originalPrice - item.unitPrice) * item.quantity;
+      }
+    }
+
+    return totalDiscount;
+  }
+
   Future<void> _submitOrder(String userId) async {
     final errors = [
       AppValidators.name(_nameController.text),
@@ -263,9 +305,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     ].whereType<String>().toList();
 
     if (errors.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errors.first)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(errors.first)));
       return;
     }
 
@@ -297,26 +339,23 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     if (!mounted) return;
 
     if (nextState.hasError) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(nextState.errorMessage!)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(nextState.errorMessage!)));
       return;
     }
 
     await ref.read(cartProvider.notifier).clear();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Order placed successfully.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Order placed successfully.')));
     Navigator.of(context).pop();
   }
 }
 
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({
-    required this.title,
-    required this.child,
-  });
+  const _SectionCard({required this.title, required this.child});
 
   final String title;
   final Widget child;
@@ -328,10 +367,7 @@ class _SectionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
+          Text(title, style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: AppSizes.lg),
           child,
         ],
@@ -369,10 +405,7 @@ class _FormInput extends StatelessWidget {
 }
 
 class _DeliveryDateTile extends StatelessWidget {
-  const _DeliveryDateTile({
-    required this.deliveryDate,
-    required this.onTap,
-  });
+  const _DeliveryDateTile({required this.deliveryDate, required this.onTap});
 
   final DateTime deliveryDate;
   final VoidCallback onTap;
@@ -385,7 +418,10 @@ class _DeliveryDateTile extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppSizes.radiusLg),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppSizes.lg, vertical: AppSizes.xl),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSizes.lg,
+          vertical: AppSizes.xl,
+        ),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
           borderRadius: BorderRadius.circular(AppSizes.radiusLg),
