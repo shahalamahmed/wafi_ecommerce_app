@@ -351,6 +351,7 @@ class _CategoryRail extends StatelessWidget {
     final items = <ProductCategory?>[null, ...categories];
 
     return ListView.separated(
+      padding: const EdgeInsets.only(bottom: 100),
       itemCount: items.length,
       separatorBuilder: (_, __) => const SizedBox(height: AppSizes.md),
       itemBuilder: (context, index) {
