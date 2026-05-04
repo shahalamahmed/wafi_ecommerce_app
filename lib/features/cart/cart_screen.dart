@@ -8,6 +8,7 @@ import 'package:wafi_ecommerce_app/features/auth/auth_screen.dart';
 import 'package:wafi_ecommerce_app/features/cart/cart_model.dart';
 import 'package:wafi_ecommerce_app/features/cart/cart_provider.dart';
 import 'package:wafi_ecommerce_app/features/orders/checkout_screen.dart';
+import 'package:wafi_ecommerce_app/features/products/product_screen.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
 
@@ -24,7 +25,18 @@ class CartScreen extends ConsumerWidget {
     }
 
     if (state.isEmpty) {
-      return _CartEmptyState(onContinue: notifier.load);
+      return _CartEmptyState(
+        onContinue: () async {
+          await Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const ProductCatalogPage(
+                title: 'All Products',
+                subtitle: 'Browse products and add items to your cart',
+              ),
+            ),
+          );
+        },
+      );
     }
 
     return Column(
@@ -83,10 +95,7 @@ class _CartRow extends StatelessWidget {
       padding: const EdgeInsets.all(AppSizes.md),
       child: Row(
         children: [
-          _CartImage(
-            imageUrl: item.imageUrl,
-            productName: item.productName,
-          ),
+          _CartImage(imageUrl: item.imageUrl, productName: item.productName),
 
           const SizedBox(width: AppSizes.md),
 
@@ -148,10 +157,7 @@ class _CartRow extends StatelessWidget {
 }
 
 class _CartImage extends StatelessWidget {
-  const _CartImage({
-    required this.imageUrl,
-    required this.productName,
-  });
+  const _CartImage({required this.imageUrl, required this.productName});
 
   final String imageUrl;
   final String productName;
@@ -172,10 +178,11 @@ class _CartImage extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: imageUrl.trim().isNotEmpty
           ? Image.network(
-        imageUrl,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _CartImageFallback(name: productName),
-      )
+              imageUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) =>
+                  _CartImageFallback(name: productName),
+            )
           : _CartImageFallback(name: productName),
     );
   }
@@ -231,10 +238,7 @@ class _QuantityStepper extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _StepperButton(
-            icon: Icons.remove_rounded,
-            onTap: onDecrement,
-          ),
+          _StepperButton(icon: Icons.remove_rounded, onTap: onDecrement),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSizes.sm),
             child: Text(
@@ -242,10 +246,7 @@ class _QuantityStepper extends StatelessWidget {
               style: Theme.of(context).textTheme.titleMedium,
             ),
           ),
-          _StepperButton(
-            icon: Icons.add_rounded,
-            onTap: onIncrement,
-          ),
+          _StepperButton(icon: Icons.add_rounded, onTap: onIncrement),
         ],
       ),
     );
@@ -253,10 +254,7 @@ class _QuantityStepper extends StatelessWidget {
 }
 
 class _StepperButton extends StatelessWidget {
-  const _StepperButton({
-    required this.icon,
-    required this.onTap,
-  });
+  const _StepperButton({required this.icon, required this.onTap});
 
   final IconData icon;
   final VoidCallback onTap;
@@ -273,11 +271,7 @@ class _StepperButton extends StatelessWidget {
           color: Theme.of(context).colorScheme.primary,
           borderRadius: BorderRadius.circular(AppSizes.radiusSm),
         ),
-        child: Icon(
-          icon,
-          size: AppSizes.iconSm,
-          color: Colors.white,
-        ),
+        child: Icon(icon, size: AppSizes.iconSm, color: Colors.white),
       ),
     );
   }
@@ -311,17 +305,20 @@ class _CartSummary extends ConsumerWidget {
           children: [
             _SummaryRow(
               label: AppStrings.subtotal,
-              value: '${AppStrings.currencySymbol}${state.subtotal.toStringAsFixed(0)}',
+              value:
+                  '${AppStrings.currencySymbol}${state.subtotal.toStringAsFixed(0)}',
             ),
             const SizedBox(height: AppSizes.xs),
             _SummaryRow(
               label: AppStrings.tax,
-              value: '${AppStrings.currencySymbol}${state.tax.toStringAsFixed(0)}',
+              value:
+                  '${AppStrings.currencySymbol}${state.tax.toStringAsFixed(0)}',
             ),
             const Divider(height: AppSizes.lg),
             _SummaryRow(
               label: AppStrings.total,
-              value: '${AppStrings.currencySymbol}${state.total.toStringAsFixed(0)}',
+              value:
+                  '${AppStrings.currencySymbol}${state.total.toStringAsFixed(0)}',
               isTotal: true,
             ),
             const SizedBox(height: AppSizes.md),
@@ -385,9 +382,7 @@ class _SummaryRow extends StatelessWidget {
 }
 
 class _CartEmptyState extends StatelessWidget {
-  const _CartEmptyState({
-    required this.onContinue,
-  });
+  const _CartEmptyState({required this.onContinue});
 
   final Future<void> Function() onContinue;
 
@@ -423,7 +418,7 @@ class _CartEmptyState extends StatelessWidget {
                 GlassButton(
                   label: AppStrings.continueShopping,
                   isFullWidth: false,
-                  onPressed: () => onContinue(),
+                  onPressed: () => ProductScreen(),
                 ),
               ],
             ),
