@@ -77,68 +77,78 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
           120,
         ),
         children: [
-          GlassCard(
-            variant: GlassCardVariant.elevated,
-            padding: EdgeInsets.zero,
-            child: Column(
-              children: [
-                AspectRatio(
+          Column(
+            children: [
+              GlassCard(
+                variant: GlassCardVariant.elevated,
+                padding: const EdgeInsets.all(AppSizes.md),
+                child: AspectRatio(
                   aspectRatio: 1,
                   child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(AppSizes.productCardRadius),
+                    borderRadius: BorderRadius.circular(
+                      AppSizes.productCardRadius - 4,
                     ),
                     child: product.primaryImage.trim().isNotEmpty
                         ? Image.network(
                             product.primaryImage,
-                            fit: BoxFit.contain,
+                            fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) =>
                                 _DetailsImageFallback(name: product.name),
                           )
                         : _DetailsImageFallback(name: product.name),
                   ),
                 ),
-                const SizedBox(height: AppSizes.sm),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(
-                    product.images.isEmpty ? 1 : product.images.length,
-                    (index) => Container(
-                      width: 10,
-                      height: 10,
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: AppSizes.xs,
-                      ),
-                      decoration: BoxDecoration(
-                        color: index == 0
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).dividerColor,
-                        shape: BoxShape.circle,
-                      ),
+              ),
+              const SizedBox(height: AppSizes.md),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(
+                  product.images.isEmpty ? 1 : product.images.length,
+                  (index) => AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    width: index == 0 ? 18 : 8,
+                    height: 8,
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    decoration: BoxDecoration(
+                      color: index == 0
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).dividerColor,
+                      borderRadius: BorderRadius.circular(999),
                     ),
                   ),
                 ),
-                const SizedBox(height: AppSizes.lg),
-              ],
-            ),
+              ),
+            ],
           ),
 
           const SizedBox(height: AppSizes.xl2),
 
-          Text(
-            '${AppStrings.currencySymbol}${product.price.toStringAsFixed(0)}',
-            style: Theme.of(context).textTheme.displaySmall,
-          ),
-
-          if (product.hasDiscount) ...[
-            const SizedBox(height: AppSizes.xs),
-            Text(
-              '${AppStrings.currencySymbol}${product.originalPrice.toStringAsFixed(0)}',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                decoration: TextDecoration.lineThrough,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${AppStrings.currencySymbol}${product.price.toStringAsFixed(0)}',
+                style: Theme.of(
+                  context,
+                ).textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w700),
               ),
-            ),
-          ],
+              if (product.hasDiscount) ...[
+                const SizedBox(width: AppSizes.sm),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text(
+                    '${AppStrings.currencySymbol}${product.originalPrice.toStringAsFixed(0)}',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      decoration: TextDecoration.lineThrough,
+                      color: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
 
           const SizedBox(height: AppSizes.lg),
 
