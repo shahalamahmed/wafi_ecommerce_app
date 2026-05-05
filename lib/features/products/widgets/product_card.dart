@@ -30,96 +30,104 @@ class ProductCard extends StatelessWidget {
       onTap: onTap,
       child: GlassCard(
         variant: GlassCardVariant.elevated,
-        padding: const EdgeInsets.all(AppSizes.md),
-        child: Row(
-          children: [
-            _ProductImage(product: product),
-            const SizedBox(width: AppSizes.md),
-
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if ((categoryName ?? '').isNotEmpty)
-                    Text(
-                      categoryName!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-
-                  const SizedBox(height: AppSizes.xs),
-
-                  Text(
-                    product.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+        padding: EdgeInsets.zero,
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _ProductImage(product: product),
+              const SizedBox(width: AppSizes.md),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: AppSizes.md,
+                    horizontal: AppSizes.xs,
                   ),
-
-                  const SizedBox(height: AppSizes.sm),
-
-                  Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '${AppStrings.currencySymbol}${product.price.toStringAsFixed(0)}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(width: AppSizes.sm),
-                      if (product.hasDiscount)
-                        Flexible(
-                          child: Text(
-                            '${AppStrings.currencySymbol}${product.originalPrice.toStringAsFixed(0)}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              decoration: TextDecoration.lineThrough,
-                              color: theme.textTheme.bodySmall?.color
-                                  ?.withOpacity(0.6),
-                            ),
+                      if ((categoryName ?? '').isNotEmpty)
+                        Text(
+                          categoryName!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: theme.colorScheme.primary,
                           ),
                         ),
-                    ],
-                  ),
 
-                  const SizedBox(height: AppSizes.md),
+                      const SizedBox(height: AppSizes.xs),
 
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.star_rounded,
-                        size: AppSizes.iconSm,
-                        color: Colors.amber.shade600,
-                      ),
-                      const SizedBox(width: AppSizes.xs),
                       Text(
-                        product.rating.toStringAsFixed(1),
-                        style: theme.textTheme.bodySmall,
+                        product.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                      const SizedBox(width: AppSizes.sm),
-                      _WishlistButton(
-                        isSelected: isWishlisted,
-                        onTap: onToggleWishlist,
+
+                      const SizedBox(height: AppSizes.sm),
+
+                      Row(
+                        children: [
+                          Text(
+                            '${AppStrings.currencySymbol}${product.price.toStringAsFixed(0)}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: AppSizes.sm),
+                          if (product.hasDiscount)
+                            Flexible(
+                              child: Text(
+                                '${AppStrings.currencySymbol}${product.originalPrice.toStringAsFixed(0)}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  decoration: TextDecoration.lineThrough,
+                                  color: theme.textTheme.bodySmall?.color
+                                      ?.withOpacity(0.6),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
-                      const Spacer(),
-                      _AddButton(
-                        inStock: product.inStock,
-                        onPressed: product.inStock ? onAddToCart : null,
+
+                      const SizedBox(height: AppSizes.md),
+
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.star_rounded,
+                            size: AppSizes.iconSm,
+                            color: Colors.amber.shade600,
+                          ),
+                          const SizedBox(width: AppSizes.xs),
+                          Text(
+                            product.rating.toStringAsFixed(1),
+                            style: theme.textTheme.bodySmall,
+                          ),
+                          const SizedBox(width: AppSizes.sm),
+                          _WishlistButton(
+                            isSelected: isWishlisted,
+                            onTap: onToggleWishlist,
+                          ),
+                          const Spacer(),
+                          _AddButton(
+                            inStock: product.inStock,
+                            onPressed: product.inStock ? onAddToCart : null,
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -137,9 +145,11 @@ class _ProductImage extends StatelessWidget {
 
     return SizedBox(
       width: 92,
-      height: 92,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(AppSizes.radiusMd),
+          bottomLeft: Radius.circular(AppSizes.radiusMd),
+        ),
         child: hasImage
             ? Image.network(
                 product.primaryImage,
