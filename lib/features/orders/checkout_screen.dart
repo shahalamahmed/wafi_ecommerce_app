@@ -9,6 +9,7 @@ import 'package:wafi_ecommerce_app/features/cart/cart_model.dart';
 import 'package:wafi_ecommerce_app/features/cart/cart_provider.dart';
 import 'package:wafi_ecommerce_app/features/orders/order_model.dart';
 import 'package:wafi_ecommerce_app/features/orders/order_provider.dart';
+import 'package:wafi_ecommerce_app/features/orders/payment_selection_screen.dart';
 import 'package:wafi_ecommerce_app/features/products/product_model.dart';
 import 'package:wafi_ecommerce_app/features/products/product_provider.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
@@ -206,25 +207,23 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             title: 'Payment Method',
             child: Column(
               children: [
-                RadioListTile<PaymentMethod>(
-                  value: PaymentMethod.cashOnDelivery,
-                  groupValue: _paymentMethod,
-                  title: const Text('Cash On Delivery'),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() => _paymentMethod = value);
-                    }
+                _PaymentMethodOption(
+                  title: 'Cash On Delivery',
+                  subtitle: 'Pay by hand when the order arrives.',
+                  isSelected: _paymentMethod == PaymentMethod.cashOnDelivery,
+                  onTap: () {
+                    setState(
+                      () => _paymentMethod = PaymentMethod.cashOnDelivery,
+                    );
                   },
                 ),
-                RadioListTile<PaymentMethod>(
-                  value: PaymentMethod.payOnline,
-                  groupValue: _paymentMethod,
-                  title: const Text('Pay Online'),
-                  subtitle: const Text('Payment gateway integration pending'),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() => _paymentMethod = value);
-                    }
+                const SizedBox(height: AppSizes.md),
+                _PaymentMethodOption(
+                  title: 'Pay Online',
+                  subtitle: 'Select your payment provider on the next screen.',
+                  isSelected: _paymentMethod == PaymentMethod.payOnline,
+                  onTap: () {
+                    setState(() => _paymentMethod = PaymentMethod.payOnline);
                   },
                 ),
               ],
@@ -245,7 +244,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             isLoading: orderState.isSubmitting,
             onPressed: cartState.items.isEmpty
                 ? null
-                : () => _submitOrder(authState.user?.uid ?? ''),
+                : () => _handlePlaceOrder(authState.user?.uid ?? ''),
           ),
           const SizedBox(height: AppSizes.xl2),
         ],
@@ -294,7 +293,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     return totalDiscount;
   }
 
-  Future<void> _submitOrder(String userId) async {
+  Future<void> _handlePlaceOrder(String userId) async {
     final errors = [
       AppValidators.name(_nameController.text),
       AppValidators.phone(_phoneController.text),
@@ -311,9 +310,19 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       return;
     }
 
+    if (userId.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please sign in before placing an order.'),
+        ),
+      );
+      return;
+    }
+
     final cartState = ref.read(cartProvider);
     final draft = OrderDraft(
       userId: userId,
+      customerEmail: ref.read(authProvider).user?.email ?? '',
       items: cartState.items,
       address: CheckoutAddress(
         fullName: _nameController.text.trim(),
@@ -328,11 +337,25 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       couponCode: _couponController.text.trim(),
       deliveryDate: _deliveryDate,
       paymentMethod: _paymentMethod,
+      paymentGateway: null,
+      onlinePaymentMethod: null,
       subtotal: cartState.subtotal,
       tax: cartState.tax,
       deliveryCharge: _deliveryCharge,
       total: cartState.subtotal + cartState.tax + _deliveryCharge,
     );
+
+    if (_paymentMethod == PaymentMethod.payOnline) {
+      final didPlaceOrder = await Navigator.of(context).push<bool>(
+        MaterialPageRoute<bool>(
+          builder: (_) => PaymentSelectionScreen(draft: draft),
+        ),
+      );
+      if (didPlaceOrder == true && mounted) {
+        Navigator.of(context).pop();
+      }
+      return;
+    }
 
     await ref.read(orderProvider.notifier).placeOrder(draft);
     final nextState = ref.read(orderProvider);
@@ -423,7 +446,7 @@ class _DeliveryDateTile extends StatelessWidget {
           vertical: AppSizes.xl,
         ),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(AppSizes.radiusLg),
         ),
         child: Row(
@@ -439,6 +462,65 @@ class _DeliveryDateTile extends StatelessWidget {
             ),
             const SizedBox(width: AppSizes.sm),
             const Icon(Icons.chevron_right_rounded),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PaymentMethodOption extends StatelessWidget {
+  const _PaymentMethodOption({
+    required this.title,
+    required this.subtitle,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: AppSizes.animFast),
+        padding: const EdgeInsets.all(AppSizes.lg),
+        decoration: BoxDecoration(
+          color: isSelected ? primary.withValues(alpha: 0.10) : null,
+          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+          border: Border.all(
+            color: isSelected
+                ? primary.withValues(alpha: 0.45)
+                : theme.dividerColor.withValues(alpha: 0.45),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isSelected
+                  ? Icons.radio_button_checked_rounded
+                  : Icons.radio_button_off_rounded,
+              color: isSelected ? primary : theme.iconTheme.color,
+            ),
+            const SizedBox(width: AppSizes.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: theme.textTheme.titleMedium),
+                  const SizedBox(height: AppSizes.xs),
+                  Text(subtitle, style: theme.textTheme.bodySmall),
+                ],
+              ),
+            ),
           ],
         ),
       ),

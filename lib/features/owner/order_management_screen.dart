@@ -161,8 +161,14 @@ class _OwnerOrderCard extends ConsumerWidget {
                 variant: GlassChipVariant.success,
               ),
               GlassChip(
-                label: order.paymentStatus.toUpperCase(),
+                label: order.paymentStatusLabel.toUpperCase(),
                 variant: GlassChipVariant.neutral,
+              ),
+              GlassChip(
+                label: order.paymentChannelLabel.isEmpty
+                    ? order.paymentMethodLabel
+                    : order.paymentChannelLabel,
+                variant: GlassChipVariant.warning,
               ),
             ],
           ),
@@ -171,6 +177,13 @@ class _OwnerOrderCard extends ConsumerWidget {
             order.addressText,
             style: Theme.of(context).textTheme.bodyMedium,
           ),
+          if (order.gatewayTransactionId.isNotEmpty) ...[
+            const SizedBox(height: AppSizes.sm),
+            Text(
+              'Txn ID: ${order.gatewayTransactionId}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
           const SizedBox(height: AppSizes.md),
           for (final item in order.items.take(3)) ...[
             Text(

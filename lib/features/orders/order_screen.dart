@@ -43,7 +43,8 @@ class OrderScreen extends ConsumerWidget {
           100,
         ),
         itemCount: state.orders.length,
-        separatorBuilder: (_, __) => const SizedBox(height: AppSizes.md),
+        separatorBuilder: (context, index) =>
+            const SizedBox(height: AppSizes.md),
         itemBuilder: (context, index) {
           final order = state.orders[index];
           return InkWell(
@@ -65,9 +66,8 @@ class OrderScreen extends ConsumerWidget {
                       Expanded(
                         child: Text(
                           order.orderId,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
                         ),
                       ),
                       _OrderStatusChip(status: order.statusLabel),
@@ -75,14 +75,21 @@ class OrderScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: AppSizes.sm),
                   Text(
-                    '${order.items.length} items • ${AppStrings.currencySymbol}${order.total.toStringAsFixed(0)}',
+                    '${order.items.length} items - ${AppStrings.currencySymbol}${order.total.toStringAsFixed(0)}',
                     style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                  const SizedBox(height: AppSizes.xs),
+                  Text(
+                    _paymentSummary(order),
+                    style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const SizedBox(height: AppSizes.xs),
                   Text(
                     order.createdAt == null
                         ? 'Recent order'
-                        : DateFormat('dd MMM yyyy, hh:mm a').format(order.createdAt!),
+                        : DateFormat(
+                            'dd MMM yyyy, hh:mm a',
+                          ).format(order.createdAt!),
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
@@ -93,13 +100,14 @@ class OrderScreen extends ConsumerWidget {
       ),
     );
   }
+
+  static String _paymentSummary(CustomerOrder order) {
+    return order.paymentSummaryLabel;
+  }
 }
 
 class OrderDetailsScreen extends StatelessWidget {
-  const OrderDetailsScreen({
-    super.key,
-    required this.order,
-  });
+  const OrderDetailsScreen({super.key, required this.order});
 
   final CustomerOrder order;
 
@@ -118,7 +126,10 @@ class OrderDetailsScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(order.orderId, style: Theme.of(context).textTheme.headlineSmall),
+                Text(
+                  order.orderId,
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
                 const SizedBox(height: AppSizes.sm),
                 _OrderStatusChip(status: order.statusLabel),
                 const SizedBox(height: AppSizes.md),
@@ -127,6 +138,18 @@ class OrderDetailsScreen extends StatelessWidget {
                     '${AppStrings.orderDate}: ${DateFormat('dd MMM yyyy, hh:mm a').format(order.createdAt!)}',
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
+                const SizedBox(height: AppSizes.sm),
+                Text(
+                  _paymentDetails(order),
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                if (order.gatewayTransactionId.isNotEmpty) ...[
+                  const SizedBox(height: AppSizes.xs),
+                  Text(
+                    'Txn ID: ${order.gatewayTransactionId}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
               ],
             ),
           ),
@@ -146,10 +169,18 @@ class OrderDetailsScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(item.productName, style: Theme.of(context).textTheme.titleMedium),
+                            Text(
+                              item.productName,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
                             if (item.selectedOptionLabel.isNotEmpty)
-                              Text(item.selectedOptionLabel, style: Theme.of(context).textTheme.bodySmall),
-                            Text('Qty ${item.quantity} × ${AppStrings.currencySymbol}${item.price.toStringAsFixed(0)}'),
+                              Text(
+                                item.selectedOptionLabel,
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            Text(
+                              'Qty ${item.quantity} x ${AppStrings.currencySymbol}${item.price.toStringAsFixed(0)}',
+                            ),
                           ],
                         ),
                       ),
@@ -170,12 +201,21 @@ class OrderDetailsScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(AppStrings.deliveryAddress, style: Theme.of(context).textTheme.titleLarge),
+                Text(
+                  AppStrings.deliveryAddress,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
                 const SizedBox(height: AppSizes.md),
-                Text(order.addressText, style: Theme.of(context).textTheme.bodyLarge),
+                Text(
+                  order.addressText,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
                 if (order.notes.isNotEmpty) ...[
                   const SizedBox(height: AppSizes.md),
-                  Text('Notes: ${order.notes}', style: Theme.of(context).textTheme.bodyMedium),
+                  Text(
+                    'Notes: ${order.notes}',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
                 ],
               ],
             ),
@@ -187,9 +227,16 @@ class OrderDetailsScreen extends StatelessWidget {
               children: [
                 _MoneyRow(label: AppStrings.subtotal, value: order.subtotal),
                 _MoneyRow(label: AppStrings.tax, value: order.tax),
-                _MoneyRow(label: 'Delivery Charge', value: order.deliveryCharge),
+                _MoneyRow(
+                  label: 'Delivery Charge',
+                  value: order.deliveryCharge,
+                ),
                 const Divider(height: AppSizes.lg),
-                _MoneyRow(label: AppStrings.total, value: order.total, isBold: true),
+                _MoneyRow(
+                  label: AppStrings.total,
+                  value: order.total,
+                  isBold: true,
+                ),
               ],
             ),
           ),
@@ -197,6 +244,10 @@ class OrderDetailsScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  static String _paymentDetails(CustomerOrder order) {
+    return 'Payment: ${order.paymentSummaryLabel} (${order.paymentStatusLabel})';
   }
 }
 
@@ -222,7 +273,10 @@ class _MoneyRow extends StatelessWidget {
       child: Row(
         children: [
           Expanded(child: Text(label, style: style)),
-          Text('${AppStrings.currencySymbol}${value.toStringAsFixed(0)}', style: style),
+          Text(
+            '${AppStrings.currencySymbol}${value.toStringAsFixed(0)}',
+            style: style,
+          ),
         ],
       ),
     );
@@ -246,17 +300,20 @@ class _OrderStatusChip extends StatelessWidget {
     };
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSizes.md, vertical: AppSizes.xs),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSizes.md,
+        vertical: AppSizes.xs,
+      ),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(AppSizes.radiusFull),
       ),
       child: Text(
         status,
         style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w700,
-            ),
+          color: color,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }

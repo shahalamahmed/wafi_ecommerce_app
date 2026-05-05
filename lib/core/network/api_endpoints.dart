@@ -21,4 +21,9 @@ class ApiEndpoints {
   // Orders
   static const String orders = '/orders';
   static String order(String id) => '/orders/$id';
+
+  // Payments
+  static const String sslCommerzInitiate = '/payments/sslcommerz/initiate';
+  static String paymentStatus(String attemptId) =>
+      '/payments/status/$attemptId';
 }

@@ -22,7 +22,7 @@ class ErrorHandler {
 
       case DioExceptionType.badResponse:
         final statusCode = error.response?.statusCode;
-        final message = error.response?.data?['message'] ?? 'Server error';
+        final message = _readMessage(error.response?.data);
 
         if (statusCode == 401) return UnauthorizedException(message: message);
         if (statusCode == 404) return NotFoundException(message: message);
@@ -31,5 +31,30 @@ class ErrorHandler {
       default:
         return AppException(message: error.message ?? 'Unknown error');
     }
+  }
+
+  static String _readMessage(dynamic data) {
+    if (data == null) return 'Server error';
+
+    if (data is Map) {
+      final message = data['message'] ?? data['error'] ?? data['details'];
+      if (message is String && message.trim().isNotEmpty) {
+        return message.trim();
+      }
+      return 'Server error';
+    }
+
+    if (data is String) {
+      final trimmed = data.trim();
+      if (trimmed.isEmpty) return 'Server error';
+
+      if (trimmed.startsWith('<')) {
+        return 'Server returned an unexpected HTML response.';
+      }
+
+      return trimmed;
+    }
+
+    return data.toString();
   }
 }
