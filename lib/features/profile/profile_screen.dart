@@ -135,11 +135,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 onTap: () => _openPage(const AddressScreen()),
               ),
               _QuickActionTile(
-                icon: Icons.receipt_long_outlined,
-                label: 'test Order',
-                onTap: () => _openPage(const TestOrderScreen()),
-              ),
-              _QuickActionTile(
                 icon: Icons.local_offer_outlined,
                 label: 'Coupon',
                 onTap: () => _openPlaceholder(
@@ -205,17 +200,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
               const SizedBox(height: AppSizes.md),
               _ProfileMenuRow(
-                icon: Icons.location_on_outlined,
-                title: AppStrings.addresses,
-                subtitle: isGuest
-                    ? 'Sign in first to save delivery locations'
-                    : addressState.items.isEmpty
-                    ? 'Add your first delivery address'
-                    : '${addressState.items.length} saved delivery locations',
-                onTap: () => _openPage(const AddressScreen()),
-              ),
-              const SizedBox(height: AppSizes.md),
-              _ProfileMenuRow(
                 icon: Icons.shield_outlined,
                 title: 'Session Status',
                 subtitle: isGuest
@@ -252,13 +236,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 icon: Icons.settings_outlined,
                 title: AppStrings.settings,
                 subtitle: 'Theme, notifications, and app preferences',
-                onTap: () => _openPage(const SettingsScreen()),
-              ),
-              const SizedBox(height: AppSizes.md),
-              _ProfileMenuRow(
-                icon: Icons.notifications_none_rounded,
-                title: AppStrings.notifications,
-                subtitle: 'Order updates and delivery alerts',
                 onTap: () => _openPage(const SettingsScreen()),
               ),
               const SizedBox(height: AppSizes.md),
