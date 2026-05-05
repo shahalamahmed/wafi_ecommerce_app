@@ -429,6 +429,18 @@ class _BannerSlide extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final titleColor = Colors.white;
+    final subtitleColor = Colors.white.withOpacity(isDark ? 0.88 : 0.92);
+    final chipBackground = Colors.white.withOpacity(isDark ? 0.12 : 0.16);
+    final chipBorder = Colors.white.withOpacity(isDark ? 0.24 : 0.32);
+    final textShadow = [
+      Shadow(
+        color: Colors.black.withOpacity(isDark ? 0.36 : 0.28),
+        blurRadius: 18,
+        offset: const Offset(0, 4),
+      ),
+    ];
 
     return Container(
       color: theme.colorScheme.surface,
@@ -446,13 +458,15 @@ class _BannerSlide extends StatelessWidget {
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                begin: Alignment.centerRight,
-                end: Alignment.centerLeft,
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
                 colors: [
+                  Colors.black.withOpacity(isDark ? 0.42 : 0.54),
+                  Colors.black.withOpacity(isDark ? 0.24 : 0.34),
+                  Colors.black.withOpacity(isDark ? 0.08 : 0.14),
                   Colors.transparent,
-                  theme.colorScheme.surface.withOpacity(0.75),
-                  theme.colorScheme.surface.withOpacity(0.95),
                 ],
+                stops: const [0.0, 0.34, 0.62, 1.0],
               ),
             ),
           ),
@@ -469,13 +483,20 @@ class _BannerSlide extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _EyebrowChip(label: banner.eyebrow),
+                _EyebrowChip(
+                  label: banner.eyebrow,
+                  textColor: titleColor,
+                  backgroundColor: chipBackground,
+                  borderColor: chipBorder,
+                ),
                 const SizedBox(height: AppSizes.md),
                 Text(
                   banner.title,
                   style: theme.textTheme.headlineLarge?.copyWith(
                     height: 1.15,
                     letterSpacing: -0.5,
+                    color: titleColor,
+                    shadows: textShadow,
                   ),
                   maxLines: 4,
                   overflow: TextOverflow.ellipsis,
@@ -484,7 +505,9 @@ class _BannerSlide extends StatelessWidget {
                 Text(
                   banner.subtitle,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: subtitleColor,
+                    height: 1.35,
+                    shadows: textShadow,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -1142,9 +1165,17 @@ class _NewArrivalCard extends StatelessWidget {
 }
 
 class _EyebrowChip extends StatelessWidget {
-  const _EyebrowChip({required this.label});
+  const _EyebrowChip({
+    required this.label,
+    this.textColor,
+    this.backgroundColor,
+    this.borderColor,
+  });
 
   final String label;
+  final Color? textColor;
+  final Color? backgroundColor;
+  final Color? borderColor;
 
   @override
   Widget build(BuildContext context) {
@@ -1157,14 +1188,14 @@ class _EyebrowChip extends StatelessWidget {
         vertical: AppSizes.xs,
       ),
       decoration: BoxDecoration(
-        color: primary.withOpacity(0.10),
+        color: backgroundColor ?? primary.withOpacity(0.10),
         borderRadius: BorderRadius.circular(AppSizes.radiusFull),
-        border: Border.all(color: primary.withOpacity(0.20)),
+        border: Border.all(color: borderColor ?? primary.withOpacity(0.20)),
       ),
       child: Text(
         label,
         style: theme.textTheme.labelMedium?.copyWith(
-          color: primary,
+          color: textColor ?? primary,
           fontWeight: FontWeight.w600,
         ),
       ),
