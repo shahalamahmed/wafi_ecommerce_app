@@ -169,29 +169,6 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                                   ),
                                   const SizedBox(height: AppSizes.md),
                                 ],
-                                Row(
-                                  children: [
-                                    Text(
-                                      '${state.visibleProducts.length} items',
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.titleMedium,
-                                    ),
-                                    const Spacer(),
-                                    Text(
-                                      'Saved ${wishlistState.itemCount} | Cart ${cartState.itemCount}',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium
-                                          ?.copyWith(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.primary,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: AppSizes.lg),
                                 Expanded(
                                   child: ProductList(
                                     products: state.visibleProducts,

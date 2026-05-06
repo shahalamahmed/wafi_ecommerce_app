@@ -108,8 +108,7 @@ class HomeScreen extends ConsumerWidget {
           _SectionWrapper(
             dark: true,
             child: _SectionHeader(
-              eyebrow: 'Collections',
-              title: 'Browse by category.',
+              title: 'Browse by category',
               actionLabel: AppStrings.seeAll,
               onActionTap: () => _openCatalog(
                 context,
@@ -124,7 +123,6 @@ class HomeScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: AppSizes.lg),
                 _CategoryGrid(
                   categories: categories,
                   onTap: (cat) => _openCatalog(
@@ -143,7 +141,6 @@ class HomeScreen extends ConsumerWidget {
           const SizedBox(height: AppSizes.lg),
           _SectionWrapper(
             child: _SectionHeader(
-              eyebrow: 'Popular Now',
               title: 'Most popular items.',
               actionLabel: AppStrings.seeAll,
               onActionTap: () => _openCatalog(
@@ -201,7 +198,6 @@ class HomeScreen extends ConsumerWidget {
           _SectionWrapper(
             dark: true,
             child: _SectionHeader(
-              eyebrow: 'New This Week',
               title: 'Fresh arrivals.',
               actionLabel: AppStrings.seeAll,
               onActionTap: () => _openCatalog(
@@ -547,13 +543,11 @@ class _SectionWrapper extends StatelessWidget {
 
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({
-    required this.eyebrow,
     required this.title,
     required this.actionLabel,
     required this.onActionTap,
   });
 
-  final String eyebrow;
   final String title;
   final String actionLabel;
   final VoidCallback onActionTap;
@@ -570,15 +564,6 @@ class _SectionHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                eyebrow.toUpperCase(),
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: primary,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.2,
-                ),
-              ),
-              const SizedBox(height: AppSizes.xs),
               Text(
                 title,
                 style: theme.textTheme.headlineMedium?.copyWith(
@@ -598,10 +583,6 @@ class _SectionHeader extends StatelessWidget {
             padding: const EdgeInsets.symmetric(
               horizontal: AppSizes.md,
               vertical: AppSizes.sm,
-            ),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppSizes.radiusFull),
-              border: Border.all(color: primary.withOpacity(0.4)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -788,29 +769,36 @@ class _HorizontalProductStrip extends StatelessWidget {
       return const GlassCard(child: Text('No products available.'));
     }
 
-    return SizedBox(
-      height: 260,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: products.length,
-        separatorBuilder: (_, __) => const SizedBox(width: AppSizes.md),
-        itemBuilder: (context, index) {
-          final product = products[index];
-          return SizedBox(
-            width: 180,
-            child: _ProductCard(
-              product: product,
-              quantityInCart: quantityForProduct(product.id),
-              isWishlisted: isWishlisted(product.id),
-              onTap: () => onTap(product),
-              onAddToCart: () => onAddToCart(product),
-              onIncrement: () => onIncrement(product),
-              onDecrement: () => onDecrement(product),
-              onToggleWishlist: () => onToggleWishlist(product),
-            ),
-          );
-        },
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const spacing = AppSizes.sm;
+        final cardWidth = (constraints.maxWidth - spacing) / 2;
+
+        return SizedBox(
+          height: 220,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: products.length,
+            separatorBuilder: (_, __) => const SizedBox(width: spacing),
+            itemBuilder: (context, index) {
+              final product = products[index];
+              return SizedBox(
+                width: cardWidth,
+                child: _ProductCard(
+                  product: product,
+                  quantityInCart: quantityForProduct(product.id),
+                  isWishlisted: isWishlisted(product.id),
+                  onTap: () => onTap(product),
+                  onAddToCart: () => onAddToCart(product),
+                  onIncrement: () => onIncrement(product),
+                  onDecrement: () => onDecrement(product),
+                  onToggleWishlist: () => onToggleWishlist(product),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }
@@ -896,7 +884,7 @@ class _ProductCard extends StatelessWidget {
             ),
 
             Padding(
-              padding: const EdgeInsets.all(AppSizes.md),
+              padding: const EdgeInsets.all(AppSizes.sm),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -915,7 +903,7 @@ class _ProductCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: AppSizes.sm),
+                  const SizedBox(height: AppSizes.xs),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -978,29 +966,36 @@ class _NewArrivalStrip extends StatelessWidget {
       return const GlassCard(child: Text('No new arrivals.'));
     }
 
-    return SizedBox(
-      height: 280,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: products.length,
-        separatorBuilder: (_, __) => const SizedBox(width: AppSizes.md),
-        itemBuilder: (context, index) {
-          final product = products[index];
-          return SizedBox(
-            width: 200,
-            child: _NewArrivalCard(
-              product: product,
-              quantityInCart: quantityForProduct(product.id),
-              isWishlisted: isWishlisted(product.id),
-              onTap: () => onTap(product),
-              onAddToCart: () => onAddToCart(product),
-              onIncrement: () => onIncrement(product),
-              onDecrement: () => onDecrement(product),
-              onToggleWishlist: () => onToggleWishlist(product),
-            ),
-          );
-        },
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const spacing = AppSizes.sm;
+        final cardWidth = (constraints.maxWidth - spacing) / 2;
+
+        return SizedBox(
+          height: 236,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: products.length,
+            separatorBuilder: (_, __) => const SizedBox(width: spacing),
+            itemBuilder: (context, index) {
+              final product = products[index];
+              return SizedBox(
+                width: cardWidth,
+                child: _NewArrivalCard(
+                  product: product,
+                  quantityInCart: quantityForProduct(product.id),
+                  isWishlisted: isWishlisted(product.id),
+                  onTap: () => onTap(product),
+                  onAddToCart: () => onAddToCart(product),
+                  onIncrement: () => onIncrement(product),
+                  onDecrement: () => onDecrement(product),
+                  onToggleWishlist: () => onToggleWishlist(product),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }
@@ -1090,7 +1085,7 @@ class _NewArrivalCard extends StatelessWidget {
             ),
 
             Padding(
-              padding: const EdgeInsets.all(AppSizes.md),
+              padding: const EdgeInsets.all(AppSizes.sm),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1132,7 +1127,7 @@ class _NewArrivalCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: AppSizes.sm),
+                  const SizedBox(height: AppSizes.xs),
                   Row(
                     children: [
                       Flexible(
@@ -1146,7 +1141,7 @@ class _NewArrivalCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const SizedBox(width: AppSizes.sm),
+                      const SizedBox(width: AppSizes.xs),
                       _HomeCartAction(
                         quantity: quantityInCart,
                         inStock: product.inStock,
