@@ -15,22 +15,22 @@ abstract class AppColors {
   static const Color glassBorderDark = Color(0x33FFFFFF);
   static const Color glassBorderLight = Color(0x14FFFFFF);
 
-  static const Color primaryDark = Color(0xFFFFA94D);
-  static const Color primaryLight = Color(0xFFF28C28);
+  static const Color primaryDark = Color(0xFF58A0C6);
+  static const Color primaryLight = Color(0xFF3F86AC);
 
-  static const Color primaryGlassDark = Color(0x33FFA94D);
-  static const Color primaryGlassLight = Color(0x1FF28C28);
+  static const Color primaryGlassDark = Color(0x3358A0C6);
+  static const Color primaryGlassLight = Color(0x1F3F86AC);
 
-  static const Color primaryBorderDark = Color(0x66FFA94D);
-  static const Color primaryBorderLight = Color(0x33F28C28);
+  static const Color primaryBorderDark = Color(0x6658A0C6);
+  static const Color primaryBorderLight = Color(0x333F86AC);
 
   static const Color onPrimary = Color(0xFFFFFFFF);
 
-  static const Color secondaryDark = Color(0xFF7A7A7A);
-  static const Color secondaryLight = Color(0xFF333333);
+  static const Color secondaryDark = Color(0xFFA5ABB3);
+  static const Color secondaryLight = Color(0xFF3F3F40);
 
-  static const Color secondaryGlassDark = Color(0x1FFFFFFF);
-  static const Color secondaryGlassLight = Color(0x14333333);
+  static const Color secondaryGlassDark = Color(0x1FA5ABB3);
+  static const Color secondaryGlassLight = Color(0x143F3F40);
 
   static const Color successDark = Color(0xFF34D399);
   static const Color successLight = Color(0xFF10B981);
@@ -60,12 +60,12 @@ abstract class AppColors {
   static const Color errorBorderLight = Color(0x40EF4444);
 
   static const Color textPrimaryDark = Color(0xFFFFFFFF);
-  static const Color textSecondaryDark = Color(0xFFCCCCCC);
+  static const Color textSecondaryDark = Color(0xFFC9CDD3);
   static const Color textTertiaryDark = Color(0x99FFFFFF);
   static const Color textDisabledDark = Color(0x52FFFFFF);
 
   static const Color textPrimaryLight = Color(0xFF1D1D1F);
-  static const Color textSecondaryLight = Color(0xFF6E6E73);
+  static const Color textSecondaryLight = Color(0xFF61646B);
   static const Color textTertiaryLight = Color(0xFF86868B);
   static const Color textDisabledLight = Color(0x807A7A7A);
 
