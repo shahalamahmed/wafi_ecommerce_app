@@ -117,73 +117,81 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         const SizedBox(height: AppSizes.lg),
         _SectionCard(
           title: 'Quick Actions',
-          child: GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 4,
-            mainAxisSpacing: AppSizes.md,
-            crossAxisSpacing: AppSizes.md,
-            childAspectRatio: 0.76,
+          child: Column(
             children: [
-              _QuickActionTile(
-                icon: Icons.receipt_long_outlined,
-                label: 'Orders',
-                onTap: () => _openPage(const _StandaloneOrdersScreen()),
+              Row(
+                children: [
+                  _QuickActionTile(
+                    icon: Icons.receipt_long_outlined,
+                    label: 'Orders',
+                    onTap: () => _openPage(const _StandaloneOrdersScreen()),
+                  ),
+                  const SizedBox(width: AppSizes.md),
+                  _QuickActionTile(
+                    icon: Icons.favorite_border_rounded,
+                    label: 'Wishlist',
+                    badgeText: wishlistState.itemCount > 0
+                        ? '${wishlistState.itemCount}'
+                        : null,
+                    onTap: () => _openPage(const WishlistPage()),
+                  ),
+                  const SizedBox(width: AppSizes.md),
+                  _QuickActionTile(
+                    icon: Icons.location_on_outlined,
+                    label: 'Address',
+                    onTap: () => _openPage(const AddressScreen()),
+                  ),
+                  const SizedBox(width: AppSizes.md),
+                  _QuickActionTile(
+                    icon: Icons.local_offer_outlined,
+                    label: 'Coupon',
+                    onTap: () => _openPlaceholder(
+                      title: 'Coupons',
+                      subtitle: 'Coupon management is not wired up yet.',
+                      icon: Icons.local_offer_outlined,
+                    ),
+                  ),
+                ].map((w) => w is SizedBox ? w : Expanded(child: w)).toList(),
               ),
-              _QuickActionTile(
-                icon: Icons.favorite_border_rounded,
-                label: 'Wishlist',
-                badgeText: wishlistState.itemCount > 0
-                    ? '${wishlistState.itemCount}'
-                    : null,
-                onTap: () => _openPage(const WishlistPage()),
-              ),
-              _QuickActionTile(
-                icon: Icons.location_on_outlined,
-                label: 'Address',
-                onTap: () => _openPage(const AddressScreen()),
-              ),
-              _QuickActionTile(
-                icon: Icons.local_offer_outlined,
-                label: 'Coupon',
-                onTap: () => _openPlaceholder(
-                  title: 'Coupons',
-                  subtitle: 'Coupon management is not wired up yet.',
-                  icon: Icons.local_offer_outlined,
-                ),
-              ),
-              _QuickActionTile(
-                icon: Icons.local_shipping_outlined,
-                label: 'Track',
-                onTap: () => _openPage(const _StandaloneOrdersScreen()),
-              ),
-              _QuickActionTile(
-                icon: Icons.support_agent_outlined,
-                label: 'Support',
-                onTap: () => _openPlaceholder(
-                  title: 'Support',
-                  subtitle: 'Support contact options will be connected soon.',
-                  icon: Icons.support_agent_outlined,
-                ),
-              ),
-              _QuickActionTile(
-                icon: Icons.credit_card_outlined,
-                label: 'Payments',
-                onTap: () => _openPlaceholder(
-                  title: 'Payments',
-                  subtitle: 'Saved payment methods are not available yet.',
-                  icon: Icons.credit_card_outlined,
-                ),
-              ),
-              _QuickActionTile(
-                icon: Icons.question_answer_outlined,
-                label: 'Faqs',
-                onTap: () => _openPlaceholder(
-                  title: 'FAQs',
-                  subtitle:
-                      'Frequently asked questions will be published here.',
-                  icon: Icons.question_answer_outlined,
-                ),
+              const SizedBox(height: AppSizes.md),
+              Row(
+                children: [
+                  _QuickActionTile(
+                    icon: Icons.local_shipping_outlined,
+                    label: 'Track',
+                    onTap: () => _openPage(const _StandaloneOrdersScreen()),
+                  ),
+                  const SizedBox(width: AppSizes.md),
+                  _QuickActionTile(
+                    icon: Icons.support_agent_outlined,
+                    label: 'Support',
+                    onTap: () => _openPlaceholder(
+                      title: 'Support',
+                      subtitle: 'Support contact options will be connected soon.',
+                      icon: Icons.support_agent_outlined,
+                    ),
+                  ),
+                  const SizedBox(width: AppSizes.md),
+                  _QuickActionTile(
+                    icon: Icons.credit_card_outlined,
+                    label: 'Payments',
+                    onTap: () => _openPlaceholder(
+                      title: 'Payments',
+                      subtitle: 'Saved payment methods are not available yet.',
+                      icon: Icons.credit_card_outlined,
+                    ),
+                  ),
+                  const SizedBox(width: AppSizes.md),
+                  _QuickActionTile(
+                    icon: Icons.question_answer_outlined,
+                    label: 'Faqs',
+                    onTap: () => _openPlaceholder(
+                      title: 'FAQs',
+                      subtitle: 'Frequently asked questions will be published here.',
+                      icon: Icons.question_answer_outlined,
+                    ),
+                  ),
+                ].map((w) => w is SizedBox ? w : Expanded(child: w)).toList(),
               ),
             ],
           ),
@@ -330,18 +338,9 @@ class _ProfileHeroCard extends StatelessWidget {
         children: [
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(AppSizes.xl2),
+            padding: const EdgeInsets.all(AppSizes.md),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppSizes.radiusLg),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  primary,
-                  primary.withValues(alpha: 0.72),
-                  theme.colorScheme.surfaceTint.withValues(alpha: 0.24),
-                ],
-              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -445,31 +444,6 @@ class _ProfileHeroCard extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: AppSizes.md),
-          Wrap(
-            spacing: AppSizes.sm,
-            runSpacing: AppSizes.sm,
-            children: [
-              GlassChip(
-                label: isGuest
-                    ? 'Guest Session'
-                    : user?.isOwner == true
-                    ? 'Shop Owner'
-                    : 'Customer',
-                variant: isGuest
-                    ? GlassChipVariant.neutral
-                    : user?.isOwner == true
-                    ? GlassChipVariant.warning
-                    : GlassChipVariant.primary,
-              ),
-              GlassChip(
-                label: isGuest
-                    ? 'Browse and explore products'
-                    : 'Tap + on avatar to update photo',
-                variant: GlassChipVariant.neutral,
-              ),
-            ],
           ),
         ],
       ),
