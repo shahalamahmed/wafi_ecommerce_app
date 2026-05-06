@@ -166,18 +166,18 @@ class _DrawerLogoButton extends StatelessWidget {
     return Builder(
       builder: (context) {
         return Padding(
-          padding: const EdgeInsets.only(left: 20),
+          padding: const EdgeInsets.only(left: 16),
           child: IconButton(
             onPressed: () => Scaffold.of(context).openDrawer(),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            icon: ClipRRect(
-              borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+            padding: const EdgeInsets.all(4),
+            constraints: const BoxConstraints.tightFor(width: 44, height: 44),
+            icon: Container(
+              width: 36,
+              height: 36,
+              alignment: Alignment.center,
               child: Image.asset(
                 'assets/wafi_solution_logo.png',
-                width: 40,
-                height: 40,
-                fit: BoxFit.cover,
+                fit: BoxFit.contain,
               ),
             ),
           ),
