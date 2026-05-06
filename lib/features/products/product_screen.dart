@@ -48,11 +48,13 @@ class ProductScreen extends ConsumerStatefulWidget {
     this.initialCategoryId,
     this.resetFiltersOnOpen = false,
     this.resetFiltersOnDispose = false,
+    this.immersiveShell = false,
   });
 
   final String? initialCategoryId;
   final bool resetFiltersOnOpen;
   final bool resetFiltersOnDispose;
+  final bool immersiveShell;
 
   @override
   ConsumerState<ProductScreen> createState() => _ProductScreenState();
@@ -100,143 +102,157 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isCompact = constraints.maxWidth < 720;
+        final topInset = widget.immersiveShell
+            ? WafiAppBar.compactOverlayTopInset(
+                context,
+                hasSubtitle: false,
+                revealAmount: AppSizes.xl5,
+              )
+            : 0.0;
 
-        return Column(
-          children: [
-            GlassInput(
-              hint: 'Search products',
-              prefixIcon: Icons.search_rounded,
-              onChanged: notifier.setSearchQuery,
-            ),
-            const SizedBox(height: AppSizes.xl2),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: notifier.load,
-                child: Builder(
-                  builder: (context) {
-                    if (state.isLoading) {
-                      return const _ProductLoadingState();
-                    }
-                    if (state.hasError) {
-                      return _ProductErrorState(
-                        message: state.errorMessage!,
-                        onRetry: notifier.load,
-                      );
-                    }
-                    if (state.visibleProducts.isEmpty) {
-                      return ListView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        children: const [
-                          _ProductEmptyState(),
-                          SizedBox(height: 100),
+        return Padding(
+          padding: EdgeInsets.only(top: topInset),
+          child: Column(
+            children: [
+              GlassInput(
+                hint: 'Search products',
+                prefixIcon: Icons.search_rounded,
+                onChanged: notifier.setSearchQuery,
+              ),
+              const SizedBox(height: AppSizes.xl2),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: notifier.load,
+                  child: Builder(
+                    builder: (context) {
+                      if (state.isLoading) {
+                        return const _ProductLoadingState();
+                      }
+                      if (state.hasError) {
+                        return _ProductErrorState(
+                          message: state.errorMessage!,
+                          onRetry: notifier.load,
+                        );
+                      }
+                      if (state.visibleProducts.isEmpty) {
+                        return ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: const [
+                            _ProductEmptyState(),
+                            SizedBox(height: 100),
+                          ],
+                        );
+                      }
+
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(
+                            width: isCompact ? 86 : 110,
+                            child: _CategoryRail(
+                              categories: state.activeCategories,
+                              selectedCategoryId: state.selectedCategoryId,
+                              onSelect: notifier.selectCategory,
+                            ),
+                          ),
+                          const SizedBox(width: AppSizes.md),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (state.selectedCategory != null) ...[
+                                  GlassChip(
+                                    label: state.selectedCategory!.name,
+                                    variant: GlassChipVariant.primary,
+                                    isSelected: true,
+                                    onTap: () => notifier.selectCategory(null),
+                                  ),
+                                  const SizedBox(height: AppSizes.md),
+                                ],
+                                Row(
+                                  children: [
+                                    Text(
+                                      '${state.visibleProducts.length} items',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleMedium,
+                                    ),
+                                    const Spacer(),
+                                    Text(
+                                      'Saved ${wishlistState.itemCount} | Cart ${cartState.itemCount}',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium
+                                          ?.copyWith(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: AppSizes.lg),
+                                Expanded(
+                                  child: ProductList(
+                                    products: state.visibleProducts,
+                                    viewMode: state.viewMode,
+                                    categoryLookup: categoryLookup,
+                                    onTap: (product) {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute<void>(
+                                          builder: (_) => ProductDetailsScreen(
+                                            product: product,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    onAddToCart: (product) async {
+                                      await cartNotifier.addProduct(product);
+                                      if (!context.mounted) return;
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            '${product.name} added to cart',
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    isWishlisted:
+                                        wishlistNotifier.containsProduct,
+                                    onToggleWishlist: (product) async {
+                                      final wasWishlisted = wishlistNotifier
+                                          .containsProduct(product.id);
+                                      await wishlistNotifier.toggleProduct(
+                                        product,
+                                      );
+                                      if (!context.mounted) return;
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            wasWishlisted
+                                                ? '${product.name} removed from wishlist'
+                                                : '${product.name} added to wishlist',
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       );
-                    }
-
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(
-                          width: isCompact ? 86 : 110,
-                          child: _CategoryRail(
-                            categories: state.activeCategories,
-                            selectedCategoryId: state.selectedCategoryId,
-                            onSelect: notifier.selectCategory,
-                          ),
-                        ),
-                        const SizedBox(width: AppSizes.md),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (state.selectedCategory != null) ...[
-                                GlassChip(
-                                  label: state.selectedCategory!.name,
-                                  variant: GlassChipVariant.primary,
-                                  isSelected: true,
-                                  onTap: () => notifier.selectCategory(null),
-                                ),
-                                const SizedBox(height: AppSizes.md),
-                              ],
-                              Row(
-                                children: [
-                                  Text(
-                                    '${state.visibleProducts.length} items',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.titleMedium,
-                                  ),
-                                  const Spacer(),
-                                  Text(
-                                    'Saved ${wishlistState.itemCount} | Cart ${cartState.itemCount}',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium
-                                        ?.copyWith(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.primary,
-                                        ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: AppSizes.lg),
-                              Expanded(
-                                child: ProductList(
-                                  products: state.visibleProducts,
-                                  viewMode: state.viewMode,
-                                  categoryLookup: categoryLookup,
-                                  onTap: (product) {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute<void>(
-                                        builder: (_) => ProductDetailsScreen(
-                                          product: product,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  onAddToCart: (product) async {
-                                    await cartNotifier.addProduct(product);
-                                    if (!context.mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          '${product.name} added to cart',
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  isWishlisted:
-                                      wishlistNotifier.containsProduct,
-                                  onToggleWishlist: (product) async {
-                                    final wasWishlisted = wishlistNotifier
-                                        .containsProduct(product.id);
-                                    await wishlistNotifier.toggleProduct(
-                                      product,
-                                    );
-                                    if (!context.mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          wasWishlisted
-                                              ? '${product.name} removed from wishlist'
-                                              : '${product.name} added to wishlist',
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    );
-                  },
+                    },
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );

@@ -11,6 +11,7 @@ import 'package:wafi_ecommerce_app/features/products/product_screen.dart';
 import 'package:wafi_ecommerce_app/features/wishlist/wishlist_provider.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -84,9 +85,13 @@ class HomeScreen extends ConsumerWidget {
       onRefresh: () => ref.read(productProvider.notifier).load(),
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(
+        padding: EdgeInsets.fromLTRB(
           AppSizes.screenPaddingH,
-          AppSizes.md,
+          WafiAppBar.compactOverlayTopInset(
+            context,
+            hasSubtitle: false,
+            revealAmount: AppSizes.xl5 + AppSizes.sm,
+          ),
           AppSizes.screenPaddingH,
           100,
         ),

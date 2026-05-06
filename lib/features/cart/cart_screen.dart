@@ -11,14 +11,24 @@ import 'package:wafi_ecommerce_app/features/orders/checkout_screen.dart';
 import 'package:wafi_ecommerce_app/features/products/product_screen.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
 
 class CartScreen extends ConsumerWidget {
-  const CartScreen({super.key});
+  const CartScreen({super.key, this.immersiveShell = false});
+
+  final bool immersiveShell;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(cartProvider);
     final notifier = ref.read(cartProvider.notifier);
+    final topInset = immersiveShell
+        ? WafiAppBar.compactOverlayTopInset(
+            context,
+            hasSubtitle: false,
+            revealAmount: AppSizes.xl5,
+          )
+        : AppSizes.lg;
 
     if (state.isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -45,9 +55,9 @@ class CartScreen extends ConsumerWidget {
           child: RefreshIndicator(
             onRefresh: notifier.load,
             child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(
+              padding: EdgeInsets.fromLTRB(
                 AppSizes.screenPaddingH,
-                AppSizes.lg,
+                topInset,
                 AppSizes.screenPaddingH,
                 100,
               ),

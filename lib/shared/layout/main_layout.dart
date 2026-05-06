@@ -36,24 +36,32 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
           title: AppStrings.dashboard,
           subtitle: 'Operations workspace',
           icon: Icons.dashboard_outlined,
+          scrollUnderAppBar: false,
+          topInset: null,
           body: _OverviewPage(user: user),
         ),
         const _ShellPage(
           title: AppStrings.products,
           subtitle: 'Category and product catalog controls',
           icon: Icons.inventory_2_outlined,
+          scrollUnderAppBar: false,
+          topInset: null,
           body: OwnerCatalogScreen(),
         ),
         const _ShellPage(
           title: AppStrings.manageOrders,
           subtitle: 'Order processing workspace',
           icon: Icons.receipt_long_outlined,
+          scrollUnderAppBar: false,
+          topInset: null,
           body: OrderManagementScreen(),
         ),
         const _ShellPage(
           title: 'Analytics',
           subtitle: 'Sales and fulfillment overview',
           icon: Icons.bar_chart_rounded,
+          scrollUnderAppBar: false,
+          topInset: null,
           body: _PlaceholderPage(
             title: 'Analytics Workspace',
             subtitle: 'Sales charts and fulfillment data will connect here.',
@@ -65,33 +73,43 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
     return const [
       _ShellPage(
         title: AppStrings.home,
-        subtitle: 'Fresh grocery picks, categories, and daily essentials',
+        subtitle: null,
         icon: Icons.home_outlined,
+        scrollUnderAppBar: true,
+        topInset: 0,
         body: HomeScreen(),
       ),
       _ShellPage(
         title: AppStrings.categories,
-        subtitle: 'Browse all grocery collections',
+        subtitle: null,
         icon: Icons.grid_view_rounded,
-        body: ProductScreen(),
+        scrollUnderAppBar: true,
+        topInset: 0,
+        body: ProductScreen(immersiveShell: true),
       ),
       _ShellPage(
-        title: AppStrings.cart,
-        subtitle: 'Review selected products before checkout',
-        icon: Icons.shopping_bag_outlined,
-        body: CartScreen(),
+        title: 'Offers',
+        subtitle: null,
+        icon: Icons.local_offer_outlined,
+        scrollUnderAppBar: true,
+        topInset: 0,
+        body: _OffersTabPage(),
       ),
       _ShellPage(
         title: AppStrings.myOrders,
-        subtitle: 'Track your placed orders and history',
+        subtitle: null,
         icon: Icons.receipt_long_outlined,
-        body: OrderScreen(),
+        scrollUnderAppBar: true,
+        topInset: 0,
+        body: OrderScreen(immersiveShell: true),
       ),
       _ShellPage(
         title: AppStrings.profile,
-        subtitle: 'Account shortcuts, settings, and support',
+        subtitle: null,
         icon: Icons.person_outline_rounded,
-        body: ProfileScreen(),
+        scrollUnderAppBar: true,
+        topInset: 0,
+        body: ProfileScreen(immersiveShell: true),
       ),
     ];
   }
@@ -119,20 +137,45 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
+      extendBodyBehindAppBar: true,
       appBar: WafiAppBar(
         title: activePage.title,
         subtitle: activePage.subtitle,
         leading: const _DrawerLogoButton(),
         showNotificationAction: !isOwner,
+        showCartAction: !isOwner,
+        cartBadgeCount: cartState.itemCount,
+        onCartTap: !isOwner
+            ? () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const _StandaloneCartScreen(),
+                ),
+              )
+            : null,
+        scrollUnderBody: activePage.scrollUnderAppBar,
+        compactTitle: !isOwner,
       ),
       drawer: const AppDrawer(),
       body: Stack(
         children: [
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: AppSizes.animNormal),
-            child: KeyedSubtree(
-              key: ValueKey(safeIndex),
-              child: activePage.body,
+          Positioned.fill(
+            child: Padding(
+              padding: EdgeInsets.only(
+                top:
+                    activePage.topInset ??
+                    WafiAppBar.overlayTopInset(
+                      context,
+                      hasSubtitle:
+                          activePage.subtitle?.trim().isNotEmpty ?? false,
+                    ),
+              ),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: AppSizes.animNormal),
+                child: KeyedSubtree(
+                  key: ValueKey(safeIndex),
+                  child: activePage.body,
+                ),
+              ),
             ),
           ),
           Positioned(
@@ -143,12 +186,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
               currentIndex: safeIndex,
               onTap: (index) => setState(() => _currentIndex = index),
               items: pages.map((page) {
-                final isCartTab = !isOwner && page.title == AppStrings.cart;
-                return GlassBottomNavItem(
-                  label: page.title,
-                  icon: page.icon,
-                  badgeCount: isCartTab ? cartState.itemCount : 0,
-                );
+                return GlassBottomNavItem(label: page.title, icon: page.icon);
               }).toList(),
             ),
           ),
@@ -192,13 +230,131 @@ class _ShellPage {
     required this.title,
     required this.subtitle,
     required this.icon,
+    required this.scrollUnderAppBar,
+    required this.topInset,
     required this.body,
   });
 
   final String title;
-  final String subtitle;
+  final String? subtitle;
   final IconData icon;
+  final bool scrollUnderAppBar;
+  final double? topInset;
   final Widget body;
+}
+
+class _StandaloneCartScreen extends StatelessWidget {
+  const _StandaloneCartScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      appBar: WafiAppBar(
+        title: AppStrings.cart,
+        subtitle: 'Review selected products before checkout',
+      ),
+      body: CartScreen(),
+    );
+  }
+}
+
+class _OffersTabPage extends StatelessWidget {
+  const _OffersTabPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: EdgeInsets.fromLTRB(
+        AppSizes.screenPaddingH,
+        WafiAppBar.compactOverlayTopInset(
+          context,
+          hasSubtitle: false,
+          revealAmount: AppSizes.xl5,
+        ),
+        AppSizes.screenPaddingH,
+        120,
+      ),
+      children: const [
+        _OffersHeroCard(),
+        SizedBox(height: AppSizes.lg),
+        _OffersInfoCard(),
+      ],
+    );
+  }
+}
+
+class _OffersHeroCard extends StatelessWidget {
+  const _OffersHeroCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+
+    return GlassCard(
+      variant: GlassCardVariant.elevated,
+      child: Container(
+        padding: const EdgeInsets.all(AppSizes.xl2),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              primary.withValues(alpha: 0.90),
+              primary.withValues(alpha: 0.72),
+              primary.withValues(alpha: 0.24),
+            ],
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Offers & Coupons',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: AppSizes.sm),
+            Text(
+              'Promo codes, seasonal deals, and cashback campaigns will appear here.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.white.withValues(alpha: 0.92),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _OffersInfoCard extends StatelessWidget {
+  const _OffersInfoCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassCard(
+      variant: GlassCardVariant.elevated,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Coming Soon',
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: AppSizes.md),
+          Text(
+            'Coupon validation, bundle offers, and campaign banners are not connected yet. This tab is ready for those integrations.',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _OverviewPage extends StatelessWidget {

@@ -12,16 +12,18 @@ import 'package:wafi_ecommerce_app/features/auth/auth_model.dart';
 import 'package:wafi_ecommerce_app/features/auth/auth_provider.dart';
 import 'package:wafi_ecommerce_app/features/orders/order_screen.dart';
 import 'package:wafi_ecommerce_app/features/settings/settings_screen.dart';
-import 'package:wafi_ecommerce_app/features/test_order/test_order_screen.dart';
 import 'package:wafi_ecommerce_app/features/wishlist/wishlist_provider.dart';
 import 'package:wafi_ecommerce_app/features/wishlist/wishlist_screen.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_chip.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/profile_avatar.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
-  const ProfileScreen({super.key});
+  const ProfileScreen({super.key, this.immersiveShell = false});
+
+  final bool immersiveShell;
 
   @override
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
@@ -81,17 +83,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-    final addressState = ref.watch(addressProvider);
+    ref.watch(addressProvider);
     final authNotifier = ref.read(authProvider.notifier);
     final wishlistState = ref.watch(wishlistProvider);
     final user = authState.user;
     final isGuest = authState.isAnonymous || !authState.isAuthenticated;
     final primary = Theme.of(context).colorScheme.primary;
+    final topInset = widget.immersiveShell
+        ? WafiAppBar.compactOverlayTopInset(
+            context,
+            hasSubtitle: false,
+            revealAmount: AppSizes.xl5,
+          )
+        : AppSizes.md;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(
+      padding: EdgeInsets.fromLTRB(
         AppSizes.screenPaddingH,
-        AppSizes.md,
+        topInset,
         AppSizes.screenPaddingH,
         120,
       ),

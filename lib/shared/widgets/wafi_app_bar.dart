@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:wafi_ecommerce_app/core/constants/sizes.dart';
@@ -14,6 +15,11 @@ class WafiAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.showNotificationAction = false,
     this.leading,
     this.automaticallyImplyLeading = true,
+    this.scrollUnderBody = false,
+    this.compactTitle = false,
+    this.showCartAction = false,
+    this.cartBadgeCount = 0,
+    this.onCartTap,
   });
 
   final String title;
@@ -22,64 +28,100 @@ class WafiAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showNotificationAction;
   final Widget? leading;
   final bool automaticallyImplyLeading;
+  final bool scrollUnderBody;
+  final bool compactTitle;
+  final bool showCartAction;
+  final int cartBadgeCount;
+  final VoidCallback? onCartTap;
+
+  static double toolbarHeightFor({required bool hasSubtitle}) {
+    return hasSubtitle ? 92 : 68;
+  }
+
+  static double overlayTopInset(
+    BuildContext context, {
+    required bool hasSubtitle,
+    double extraSpacing = AppSizes.md,
+  }) {
+    return MediaQuery.paddingOf(context).top +
+        toolbarHeightFor(hasSubtitle: hasSubtitle) +
+        extraSpacing;
+  }
+
+  static double immersiveTopInset(
+    BuildContext context, {
+    required bool hasSubtitle,
+    double revealAmount = AppSizes.xl3,
+  }) {
+    return math.max(
+      AppSizes.lg,
+      overlayTopInset(context, hasSubtitle: hasSubtitle) - revealAmount,
+    );
+  }
+
+  static double compactOverlayTopInset(
+    BuildContext context, {
+    required bool hasSubtitle,
+    double revealAmount = AppSizes.xl5,
+  }) {
+    return math.max(
+      AppSizes.md,
+      overlayTopInset(context, hasSubtitle: hasSubtitle) - revealAmount,
+    );
+  }
 
   @override
-  Size get preferredSize =>
-      Size.fromHeight((subtitle?.trim().isNotEmpty ?? false) ? 92 : 68);
+  Size get preferredSize => Size.fromHeight(
+    toolbarHeightFor(hasSubtitle: subtitle?.trim().isNotEmpty ?? false),
+  );
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final hasSubtitle = subtitle?.trim().isNotEmpty ?? false;
-    final glass = Theme.of(context).extension<GlassTheme>()!;
+    final toolbarHeight = toolbarHeightFor(hasSubtitle: hasSubtitle);
 
     return AppBar(
-      toolbarHeight: hasSubtitle ? 92 : 68,
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      shadowColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      toolbarHeight: toolbarHeight,
+      centerTitle: compactTitle && !hasSubtitle,
+      leadingWidth: compactTitle ? 68 : null,
       leading: leading,
       automaticallyImplyLeading: automaticallyImplyLeading,
       titleSpacing: AppSizes.lg,
-      title: ClipRRect(
-        borderRadius: BorderRadius.circular(AppSizes.radiusXl),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: AppSizes.blurMd,
-            sigmaY: AppSizes.blurMd,
-          ),
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSizes.lg,
-              vertical: AppSizes.sm,
-            ),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppSizes.radiusXl),
-              border: Border.all(color: glass.borderColor, width: 1),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: isDark
-                    ? [glass.elevatedColor, glass.cardColor]
-                    : [glass.highlightColor, glass.cardColor],
-              ),
-            ),
-            child: hasSubtitle
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(title),
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle!,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                  )
-                : Text(title),
-          ),
-        ),
-      ),
+      title: hasSubtitle
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(title),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            )
+          : compactTitle
+          ? _CompactTitleChip(title: title)
+          : Text(title),
       actions: [
         if (actions != null) ...actions!,
+        if (showCartAction)
+          Padding(
+            padding: const EdgeInsets.only(right: AppSizes.sm),
+            child: _GlassActionButton(
+              icon: Icons.shopping_cart_outlined,
+              badgeCount: cartBadgeCount,
+              onTap: onCartTap,
+            ),
+          ),
         if (showNotificationAction)
           Padding(
             padding: const EdgeInsets.only(right: AppSizes.lg),
@@ -90,47 +132,149 @@ class WafiAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
+class _CompactTitleChip extends StatelessWidget {
+  const _CompactTitleChip({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final glass = theme.extension<GlassTheme>()!;
+    final baseColor = isDark
+        ? const Color(0xFF0A0A0A)
+        : const Color(0xFFFDFDFF);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppSizes.radiusFull),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(
+          sigmaX: AppSizes.blurMd,
+          sigmaY: AppSizes.blurMd,
+        ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSizes.xl,
+            vertical: AppSizes.sm,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppSizes.radiusFull),
+            border: Border.all(color: glass.borderColor, width: 1),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                baseColor.withValues(alpha: isDark ? 0.72 : 0.82),
+                baseColor.withValues(alpha: isDark ? 0.58 : 0.66),
+              ],
+            ),
+          ),
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _NotificationActionButton extends StatelessWidget {
   const _NotificationActionButton();
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final glass = Theme.of(context).extension<GlassTheme>()!;
-
-    return InkWell(
+    return _GlassActionButton(
+      icon: Icons.notifications_none_rounded,
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute<void>(builder: (_) => const NotificationsScreen()),
       ),
+    );
+  }
+}
+
+class _GlassActionButton extends StatelessWidget {
+  const _GlassActionButton({
+    required this.icon,
+    required this.onTap,
+    this.badgeCount = 0,
+  });
+
+  final IconData icon;
+  final VoidCallback? onTap;
+  final int badgeCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final glass = theme.extension<GlassTheme>()!;
+    final baseColor = isDark
+        ? const Color(0xFF0A0A0A)
+        : const Color(0xFFFDFDFF);
+
+    return InkWell(
+      onTap: onTap,
       borderRadius: BorderRadius.circular(AppSizes.radiusFull),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppSizes.radiusFull),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: AppSizes.blurMd,
-            sigmaY: AppSizes.blurMd,
-          ),
-          child: Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: glass.borderColor, width: 1),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: isDark
-                    ? [glass.cardColor, glass.elevatedColor]
-                    : [glass.highlightColor, glass.elevatedColor],
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppSizes.radiusFull),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(
+                sigmaX: AppSizes.blurMd,
+                sigmaY: AppSizes.blurMd,
+              ),
+              child: Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: glass.borderColor, width: 1),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      baseColor.withValues(alpha: isDark ? 0.72 : 0.82),
+                      baseColor.withValues(alpha: isDark ? 0.58 : 0.66),
+                    ],
+                  ),
+                ),
+                child: Icon(
+                  icon,
+                  color: theme.colorScheme.primary,
+                  size: AppSizes.iconMd,
+                ),
               ),
             ),
-            child: Icon(
-              Icons.notifications_none_rounded,
-              color: Theme.of(context).colorScheme.primary,
-              size: AppSizes.iconMd,
-            ),
           ),
-        ),
+          if (badgeCount > 0)
+            Positioned(
+              right: -4,
+              top: -4,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  borderRadius: BorderRadius.circular(AppSizes.radiusFull),
+                ),
+                child: Text(
+                  '$badgeCount',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
