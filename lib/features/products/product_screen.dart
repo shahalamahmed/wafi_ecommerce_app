@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wafi_ecommerce_app/core/constants/sizes.dart';
 import 'package:wafi_ecommerce_app/core/constants/strings.dart';
+import 'package:wafi_ecommerce_app/core/theme/app_theme.dart';
 import 'package:wafi_ecommerce_app/features/cart/cart_provider.dart';
 import 'package:wafi_ecommerce_app/features/products/product_details_screen.dart';
 import 'package:wafi_ecommerce_app/features/products/product_model.dart';
@@ -29,14 +30,13 @@ class ProductCatalogPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: WafiAppBar(title: title, subtitle: subtitle),
-      body: Padding(
-        padding: const EdgeInsets.all(AppSizes.screenPaddingH),
-        child: ProductScreen(
-          initialCategoryId: initialCategoryId,
-          resetFiltersOnOpen: true,
-          resetFiltersOnDispose: true,
-        ),
+      body: ProductScreen(
+        initialCategoryId: initialCategoryId,
+        resetFiltersOnOpen: true,
+        resetFiltersOnDispose: true,
+        immersiveShell: true,
       ),
     );
   }
@@ -90,9 +90,9 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(productProvider);
     final notifier = ref.read(productProvider.notifier);
-    final cartState = ref.watch(cartProvider);
+    ref.watch(cartProvider);
     final cartNotifier = ref.read(cartProvider.notifier);
-    final wishlistState = ref.watch(wishlistProvider);
+    ref.watch(wishlistProvider);
     final wishlistNotifier = ref.read(wishlistProvider.notifier);
 
     final categoryLookup = <String, String>{
@@ -109,127 +109,150 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                 revealAmount: AppSizes.xl5,
               )
             : 0.0;
+        const searchSpacing = AppSizes.md;
+        final searchHeight = AppSizes.inputHeight + searchSpacing;
+        const horizontalPadding = 0.0;
+        final contentTopPadding = topInset + searchHeight;
 
-        return Padding(
-          padding: EdgeInsets.only(top: topInset),
-          child: Column(
-            children: [
-              GlassInput(
-                hint: 'Search products',
-                prefixIcon: Icons.search_rounded,
-                onChanged: notifier.setSearchQuery,
-              ),
-              const SizedBox(height: AppSizes.xl2),
-              Expanded(
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  horizontalPadding,
+                  0,
+                  horizontalPadding,
+                  0,
+                ),
                 child: RefreshIndicator(
                   onRefresh: notifier.load,
                   child: Builder(
                     builder: (context) {
                       if (state.isLoading) {
-                        return const _ProductLoadingState();
+                        return _ProductLoadingState(
+                          topPadding: contentTopPadding,
+                        );
                       }
                       if (state.hasError) {
                         return _ProductErrorState(
                           message: state.errorMessage!,
                           onRetry: notifier.load,
+                          topPadding: contentTopPadding,
                         );
                       }
                       if (state.visibleProducts.isEmpty) {
                         return ListView(
                           physics: const AlwaysScrollableScrollPhysics(),
-                          children: const [
-                            _ProductEmptyState(),
-                            SizedBox(height: 100),
-                          ],
+                          padding: EdgeInsets.fromLTRB(
+                            0,
+                            contentTopPadding,
+                            0,
+                            100,
+                          ),
+                          children: const [_ProductEmptyState()],
                         );
                       }
 
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(
-                            width: isCompact ? 86 : 110,
-                            child: _CategoryRail(
-                              categories: state.activeCategories,
-                              selectedCategoryId: state.selectedCategoryId,
-                              onSelect: notifier.selectCategory,
+                      return Padding(
+                        padding: EdgeInsets.only(top: contentTopPadding),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: isCompact ? 72 : 86,
+                              child: _CategoryRail(
+                                categories: state.activeCategories,
+                                selectedCategoryId: state.selectedCategoryId,
+                                onSelect: notifier.selectCategory,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: AppSizes.md),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (state.selectedCategory != null) ...[
-                                  GlassChip(
-                                    label: state.selectedCategory!.name,
-                                    variant: GlassChipVariant.primary,
-                                    isSelected: true,
-                                    onTap: () => notifier.selectCategory(null),
+                            const SizedBox(width: AppSizes.sm),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (state.selectedCategory != null) ...[
+                                    Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: GlassChip(
+                                        label: state.selectedCategory!.name,
+                                        variant: GlassChipVariant.primary,
+                                        isSelected: true,
+                                        onTap: () =>
+                                            notifier.selectCategory(null),
+                                      ),
+                                    ),
+                                    const SizedBox(height: AppSizes.sm),
+                                  ],
+                                  Expanded(
+                                    child: ProductList(
+                                      products: state.visibleProducts,
+                                      viewMode: state.viewMode,
+                                      categoryLookup: categoryLookup,
+                                      onTap: (product) {
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute<void>(
+                                            builder: (_) =>
+                                                ProductDetailsScreen(
+                                                  product: product,
+                                                ),
+                                          ),
+                                        );
+                                      },
+                                      onAddToCart: (product) async {
+                                        await cartNotifier.addProduct(product);
+                                        if (!context.mounted) return;
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              '${product.name} added to cart',
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      isWishlisted:
+                                          wishlistNotifier.containsProduct,
+                                      onToggleWishlist: (product) async {
+                                        final wasWishlisted = wishlistNotifier
+                                            .containsProduct(product.id);
+                                        await wishlistNotifier.toggleProduct(
+                                          product,
+                                        );
+                                        if (!context.mounted) return;
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              wasWishlisted
+                                                  ? '${product.name} removed from wishlist'
+                                                  : '${product.name} added to wishlist',
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
                                   ),
-                                  const SizedBox(height: AppSizes.md),
                                 ],
-                                Expanded(
-                                  child: ProductList(
-                                    products: state.visibleProducts,
-                                    viewMode: state.viewMode,
-                                    categoryLookup: categoryLookup,
-                                    onTap: (product) {
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute<void>(
-                                          builder: (_) => ProductDetailsScreen(
-                                            product: product,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                    onAddToCart: (product) async {
-                                      await cartNotifier.addProduct(product);
-                                      if (!context.mounted) return;
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            '${product.name} added to cart',
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                    isWishlisted:
-                                        wishlistNotifier.containsProduct,
-                                    onToggleWishlist: (product) async {
-                                      final wasWishlisted = wishlistNotifier
-                                          .containsProduct(product.id);
-                                      await wishlistNotifier.toggleProduct(
-                                        product,
-                                      );
-                                      if (!context.mounted) return;
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            wasWishlisted
-                                                ? '${product.name} removed from wishlist'
-                                                : '${product.name} added to wishlist',
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       );
                     },
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+            Positioned(
+              top: topInset,
+              left: horizontalPadding,
+              right: horizontalPadding,
+              child: _PinnedSearchField(onChanged: notifier.setSearchQuery),
+            ),
+          ],
         );
       },
     );
@@ -237,33 +260,41 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
 }
 
 class _ProductLoadingState extends StatelessWidget {
-  const _ProductLoadingState();
+  const _ProductLoadingState({required this.topPadding});
+
+  final double topPadding;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
+      padding: EdgeInsets.fromLTRB(0, topPadding, 0, 100),
       children: const [
         Padding(
-          padding: EdgeInsets.all(AppSizes.xl3),
+          padding: EdgeInsets.all(AppSizes.xl2),
           child: Center(child: CircularProgressIndicator()),
         ),
-        SizedBox(height: 100),
       ],
     );
   }
 }
 
 class _ProductErrorState extends StatelessWidget {
-  const _ProductErrorState({required this.message, required this.onRetry});
+  const _ProductErrorState({
+    required this.message,
+    required this.onRetry,
+    required this.topPadding,
+  });
 
   final String message;
   final Future<void> Function() onRetry;
+  final double topPadding;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
+      padding: EdgeInsets.fromLTRB(0, topPadding, 0, 100),
       children: [
         GlassCard(
           variant: GlassCardVariant.elevated,
@@ -295,7 +326,6 @@ class _ProductErrorState extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 100),
       ],
     );
   }
@@ -342,11 +372,12 @@ class _CategoryRail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = <ProductCategory?>[null, ...categories];
+    final theme = Theme.of(context);
 
     return ListView.separated(
       padding: const EdgeInsets.only(bottom: 100),
       itemCount: items.length,
-      separatorBuilder: (_, __) => const SizedBox(height: AppSizes.md),
+      separatorBuilder: (context, index) => const SizedBox(height: AppSizes.sm),
       itemBuilder: (context, index) {
         final category = items[index];
         final isSelected = category == null
@@ -354,47 +385,52 @@ class _CategoryRail extends StatelessWidget {
             : selectedCategoryId == category.id;
         final imageUrl = category?.image.trim() ?? '';
         final hasImage = imageUrl.isNotEmpty;
-        final primary = Theme.of(context).colorScheme.primary;
+        final primary = theme.colorScheme.primary;
 
         return InkWell(
           onTap: () => onSelect(category?.id),
-          borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
           child: Container(
-            height: 120,
+            height: 84,
             padding: const EdgeInsets.symmetric(
-              horizontal: AppSizes.xs,
-              vertical: AppSizes.sm,
+              horizontal: 6,
+              vertical: AppSizes.xs,
             ),
             decoration: BoxDecoration(
               color: isSelected
-                  ? Theme.of(context).colorScheme.primary.withOpacity(0.12)
-                  : Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                  ? primary.withValues(alpha: 0.14)
+                  : theme.colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.45,
+                    ),
+              borderRadius: BorderRadius.circular(AppSizes.radiusLg),
               border: Border.all(
                 color: isSelected
-                    ? Theme.of(context).colorScheme.primary.withOpacity(0.4)
-                    : Theme.of(context).dividerColor,
+                    ? primary.withValues(alpha: 0.38)
+                    : theme.colorScheme.outline.withValues(alpha: 0.12),
               ),
             ),
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 CircleAvatar(
-                  radius: 20,
-                  backgroundColor: primary.withOpacity(0.08),
+                  radius: 16,
+                  backgroundColor: primary.withValues(alpha: 0.10),
                   child: category == null
-                      ? Icon(_iconFor(category?.name), color: primary)
+                      ? Icon(_iconFor(category?.name), color: primary, size: 16)
                       : ClipOval(
                           child: SizedBox(
-                            width: 40,
-                            height: 40,
+                            width: 32,
+                            height: 32,
                             child: hasImage
                                 ? Image.network(
                                     imageUrl,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => Icon(
-                                      _iconFor(category.name),
-                                      color: primary,
-                                    ),
+                                    errorBuilder:
+                                        (context, error, stackTrace) => Icon(
+                                          _iconFor(category.name),
+                                          color: primary,
+                                          size: 16,
+                                        ),
                                     loadingBuilder:
                                         (context, child, loadingProgress) {
                                           if (loadingProgress == null) {
@@ -403,20 +439,28 @@ class _CategoryRail extends StatelessWidget {
                                           return Icon(
                                             _iconFor(category.name),
                                             color: primary,
+                                            size: 16,
                                           );
                                         },
                                   )
-                                : Icon(_iconFor(category.name), color: primary),
+                                : Icon(
+                                    _iconFor(category.name),
+                                    color: primary,
+                                    size: 16,
+                                  ),
                           ),
                         ),
                 ),
-                const SizedBox(height: AppSizes.sm),
+                const SizedBox(height: 6),
                 Text(
                   category?.name ?? 'All Products',
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.labelSmall,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontSize: 10,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -438,5 +482,32 @@ class _CategoryRail extends StatelessWidget {
     if (value.contains('spice')) return Icons.ramen_dining_outlined;
     if (value.contains('oil')) return Icons.local_drink_outlined;
     return Icons.shopping_bag_outlined;
+  }
+}
+
+class _PinnedSearchField extends StatelessWidget {
+  const _PinnedSearchField({required this.onChanged});
+
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final glass = theme.extension<GlassTheme>()!;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppSizes.inputRadius),
+        border: Border.all(color: glass.borderColor.withValues(alpha: 0.24)),
+      ),
+      child: GlassInput(
+        hint: 'Search products',
+        prefixIcon: Icons.search_rounded,
+        onChanged: onChanged,
+        backgroundColor: Colors.transparent,
+        unfocusedBorderColor: Colors.transparent,
+        blurSigma: AppSizes.blurMd,
+      ),
+    );
   }
 }

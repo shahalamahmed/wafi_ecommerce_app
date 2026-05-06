@@ -16,41 +16,47 @@ class GlassInput extends StatefulWidget {
     this.prefixIcon,
     this.suffixIcon,
     this.onSuffixTap,
-    this.obscureText   = false,
-    this.keyboardType  = TextInputType.text,
+    this.obscureText = false,
+    this.keyboardType = TextInputType.text,
     this.textInputAction,
     this.onChanged,
     this.onSubmitted,
     this.validator,
-    this.maxLines      = 1,
+    this.maxLines = 1,
     this.maxLength,
-    this.enabled       = true,
+    this.enabled = true,
     this.inputFormatters,
-    this.autofocus     = false,
-    this.autocorrect   = true,
+    this.autofocus = false,
+    this.autocorrect = true,
+    this.backgroundColor,
+    this.unfocusedBorderColor,
+    this.blurSigma,
   });
 
-  final TextEditingController?    controller;
-  final FocusNode?                focusNode;
-  final String?                   label;
-  final String?                   hint;
-  final String?                   helperText;
-  final String?                   errorText;
-  final IconData?                 prefixIcon;
-  final IconData?                 suffixIcon;
-  final VoidCallback?             onSuffixTap;
-  final bool                      obscureText;
-  final TextInputType             keyboardType;
-  final TextInputAction?          textInputAction;
-  final ValueChanged<String>?     onChanged;
-  final ValueChanged<String>?     onSubmitted;
+  final TextEditingController? controller;
+  final FocusNode? focusNode;
+  final String? label;
+  final String? hint;
+  final String? helperText;
+  final String? errorText;
+  final IconData? prefixIcon;
+  final IconData? suffixIcon;
+  final VoidCallback? onSuffixTap;
+  final bool obscureText;
+  final TextInputType keyboardType;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onSubmitted;
   final FormFieldValidator<String>? validator;
-  final int                       maxLines;
-  final int?                      maxLength;
-  final bool                      enabled;
+  final int maxLines;
+  final int? maxLength;
+  final bool enabled;
   final List<TextInputFormatter>? inputFormatters;
-  final bool                      autofocus;
-  final bool                      autocorrect;
+  final bool autofocus;
+  final bool autocorrect;
+  final Color? backgroundColor;
+  final Color? unfocusedBorderColor;
+  final double? blurSigma;
 
   @override
   State<GlassInput> createState() => _GlassInputState();
@@ -80,23 +86,23 @@ class _GlassInputState extends State<GlassInput> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final glass   = theme.extension<GlassTheme>()!;
-    final isDark  = theme.brightness == Brightness.dark;
+    final glass = theme.extension<GlassTheme>()!;
+    final isDark = theme.brightness == Brightness.dark;
     final hasError = widget.errorText != null;
 
     final borderColor = hasError
         ? Theme.of(context).colorScheme.error
         : _isFocused
         ? Theme.of(context).colorScheme.primary
-        : glass.borderColor;
+        : (widget.unfocusedBorderColor ?? glass.borderColor);
 
     final textColor = isDark ? Colors.white : Colors.black;
     final hintColor = isDark
-        ? Colors.white.withOpacity(.3)
-        : Colors.black.withOpacity(.3);
+        ? Colors.white.withValues(alpha: .3)
+        : Colors.black.withValues(alpha: .3);
     final iconColor = isDark
-        ? Colors.white.withOpacity(.4)
-        : Colors.black.withOpacity(.4);
+        ? Colors.white.withValues(alpha: .4)
+        : Colors.black.withValues(alpha: .4);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -108,8 +114,8 @@ class _GlassInputState extends State<GlassInput> {
             widget.label!,
             style: theme.textTheme.labelLarge?.copyWith(
               color: isDark
-                  ? Colors.white.withOpacity(.6)
-                  : Colors.black.withOpacity(.6),
+                  ? Colors.white.withValues(alpha: .6)
+                  : Colors.black.withValues(alpha: .6),
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -119,9 +125,9 @@ class _GlassInputState extends State<GlassInput> {
         // ─── Input field ───────────────────────────────────
         AnimatedContainer(
           duration: const Duration(milliseconds: AppSizes.animNormal),
-          height:   widget.maxLines == 1 ? AppSizes.inputHeight : null,
+          height: widget.maxLines == 1 ? AppSizes.inputHeight : null,
           decoration: BoxDecoration(
-            color:        glass.cardColor,
+            color: widget.backgroundColor ?? glass.cardColor,
             borderRadius: BorderRadius.circular(AppSizes.inputRadius),
             border: Border.all(
               color: borderColor,
@@ -132,50 +138,58 @@ class _GlassInputState extends State<GlassInput> {
             borderRadius: BorderRadius.circular(AppSizes.inputRadius),
             child: BackdropFilter(
               filter: ImageFilter.blur(
-                sigmaX: AppSizes.blurSm,
-                sigmaY: AppSizes.blurSm,
+                sigmaX: widget.blurSigma ?? AppSizes.blurSm,
+                sigmaY: widget.blurSigma ?? AppSizes.blurSm,
               ),
               child: TextField(
-                controller:      widget.controller,
-                focusNode:       _focus,
-                obscureText:     widget.obscureText,
-                keyboardType:    widget.keyboardType,
+                controller: widget.controller,
+                focusNode: _focus,
+                obscureText: widget.obscureText,
+                keyboardType: widget.keyboardType,
                 textInputAction: widget.textInputAction,
-                onChanged:       widget.onChanged,
-                onSubmitted:     widget.onSubmitted,
-                maxLines:        widget.obscureText ? 1 : widget.maxLines,
-                maxLength:       widget.maxLength,
-                enabled:         widget.enabled,
-                autofocus:       widget.autofocus,
-                autocorrect:     widget.autocorrect,
+                onChanged: widget.onChanged,
+                onSubmitted: widget.onSubmitted,
+                maxLines: widget.obscureText ? 1 : widget.maxLines,
+                maxLength: widget.maxLength,
+                enabled: widget.enabled,
+                autofocus: widget.autofocus,
+                autocorrect: widget.autocorrect,
                 inputFormatters: widget.inputFormatters,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color:      textColor,
+                  color: textColor,
                   fontWeight: FontWeight.w400,
                 ),
                 decoration: InputDecoration(
-                  hintText:  widget.hint,
+                  hintText: widget.hint,
                   hintStyle: theme.textTheme.bodyMedium?.copyWith(
                     color: hintColor,
                   ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: AppSizes.inputPaddingH,
-                    vertical:   AppSizes.md,
+                    vertical: AppSizes.md,
                   ),
                   prefixIcon: widget.prefixIcon != null
-                      ? Icon(widget.prefixIcon, color: iconColor, size: AppSizes.iconSm)
+                      ? Icon(
+                          widget.prefixIcon,
+                          color: iconColor,
+                          size: AppSizes.iconSm,
+                        )
                       : null,
                   suffixIcon: widget.suffixIcon != null
                       ? GestureDetector(
-                    onTap: widget.onSuffixTap,
-                    child: Icon(widget.suffixIcon, color: iconColor, size: AppSizes.iconSm),
-                  )
+                          onTap: widget.onSuffixTap,
+                          child: Icon(
+                            widget.suffixIcon,
+                            color: iconColor,
+                            size: AppSizes.iconSm,
+                          ),
+                        )
                       : null,
-                  border:             InputBorder.none,
-                  enabledBorder:      InputBorder.none,
-                  focusedBorder:      InputBorder.none,
-                  disabledBorder:     InputBorder.none,
-                  errorBorder:        InputBorder.none,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  disabledBorder: InputBorder.none,
+                  errorBorder: InputBorder.none,
                   focusedErrorBorder: InputBorder.none,
                   counterText: '',
                 ),
@@ -190,9 +204,7 @@ class _GlassInputState extends State<GlassInput> {
           Text(
             widget.errorText ?? widget.helperText!,
             style: theme.textTheme.labelLarge?.copyWith(
-              color:    hasError
-                  ? Theme.of(context).colorScheme.error
-                  : hintColor,
+              color: hasError ? Theme.of(context).colorScheme.error : hintColor,
             ),
           ),
         ],

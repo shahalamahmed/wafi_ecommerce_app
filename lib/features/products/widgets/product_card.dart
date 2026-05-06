@@ -31,17 +31,20 @@ class ProductCard extends StatelessWidget {
       child: GlassCard(
         variant: GlassCardVariant.elevated,
         padding: EdgeInsets.zero,
-        child: IntrinsicHeight(
+        child: SizedBox(
+          height: 108,
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _ProductImage(product: product),
-              const SizedBox(width: AppSizes.md),
+              const SizedBox(width: AppSizes.sm),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: AppSizes.md,
-                    horizontal: AppSizes.xs,
+                  padding: const EdgeInsets.fromLTRB(
+                    0,
+                    AppSizes.sm,
+                    AppSizes.xs,
+                    AppSizes.sm,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -51,35 +54,34 @@ class ProductCard extends StatelessWidget {
                           categoryName!,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.labelMedium?.copyWith(
+                          style: theme.textTheme.labelSmall?.copyWith(
                             color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-
-                      const SizedBox(height: AppSizes.xs),
-
+                      const SizedBox(height: 2),
                       Text(
                         product.name,
-                        maxLines: 2,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleMedium?.copyWith(
+                        style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-
-                      const SizedBox(height: AppSizes.sm),
-
+                      const SizedBox(height: 6),
                       Row(
                         children: [
-                          Text(
-                            '${AppStrings.currencySymbol}${product.price.toStringAsFixed(0)}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
+                          Flexible(
+                            child: Text(
+                              '${AppStrings.currencySymbol}${product.price.toStringAsFixed(0)}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
-                          const SizedBox(width: AppSizes.sm),
+                          const SizedBox(width: AppSizes.xs),
                           if (product.hasDiscount)
                             Flexible(
                               child: Text(
@@ -87,30 +89,31 @@ class ProductCard extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: theme.textTheme.bodySmall?.copyWith(
+                                  fontSize: 10,
                                   decoration: TextDecoration.lineThrough,
                                   color: theme.textTheme.bodySmall?.color
-                                      ?.withOpacity(0.6),
+                                      ?.withValues(alpha: 0.6),
                                 ),
                               ),
                             ),
                         ],
                       ),
-
-                      const SizedBox(height: AppSizes.md),
-
+                      const Spacer(),
                       Row(
                         children: [
                           Icon(
                             Icons.star_rounded,
-                            size: AppSizes.iconSm,
+                            size: 14,
                             color: Colors.amber.shade600,
                           ),
-                          const SizedBox(width: AppSizes.xs),
+                          const SizedBox(width: 3),
                           Text(
                             product.rating.toStringAsFixed(1),
-                            style: theme.textTheme.bodySmall,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontSize: 11,
+                            ),
                           ),
-                          const SizedBox(width: AppSizes.sm),
+                          const SizedBox(width: AppSizes.xs),
                           _WishlistButton(
                             isSelected: isWishlisted,
                             onTap: onToggleWishlist,
@@ -144,7 +147,7 @@ class _ProductImage extends StatelessWidget {
     final hasImage = product.primaryImage.trim().isNotEmpty;
 
     return SizedBox(
-      width: 92,
+      width: 76,
       child: ClipRRect(
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(AppSizes.radiusMd),
@@ -154,7 +157,7 @@ class _ProductImage extends StatelessWidget {
             ? Image.network(
                 product.primaryImage,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) =>
+                errorBuilder: (context, error, stackTrace) =>
                     _ProductImageFallback(name: product.name),
               )
             : _ProductImageFallback(name: product.name),
@@ -171,7 +174,7 @@ class _ProductImageFallback extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
       alignment: Alignment.center,
       padding: const EdgeInsets.all(AppSizes.sm),
       child: Text(
@@ -198,17 +201,17 @@ class _AddButton extends StatelessWidget {
       borderRadius: BorderRadius.circular(AppSizes.radiusMd),
       child: Container(
         padding: const EdgeInsets.symmetric(
-          horizontal: AppSizes.sm,
-          vertical: AppSizes.xs,
+          horizontal: AppSizes.xs,
+          vertical: 5,
         ),
         decoration: BoxDecoration(
           color: inStock
-              ? Theme.of(context).colorScheme.primary.withOpacity(0.16)
-              : Theme.of(context).disabledColor.withOpacity(0.12),
+              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.16)
+              : Theme.of(context).disabledColor.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(AppSizes.radiusMd),
           border: Border.all(
             color: inStock
-                ? Theme.of(context).colorScheme.primary.withOpacity(0.45)
+                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.45)
                 : Theme.of(context).dividerColor,
           ),
         ),
@@ -236,15 +239,15 @@ class _WishlistButton extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppSizes.radiusMd),
       child: Container(
-        padding: const EdgeInsets.all(AppSizes.xs),
+        padding: const EdgeInsets.all(5),
         decoration: BoxDecoration(
           color: isSelected
-              ? Colors.redAccent.withOpacity(0.12)
-              : Theme.of(context).colorScheme.primary.withOpacity(0.08),
+              ? Colors.redAccent.withValues(alpha: 0.12)
+              : Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(AppSizes.radiusMd),
           border: Border.all(
             color: isSelected
-                ? Colors.redAccent.withOpacity(0.35)
+                ? Colors.redAccent.withValues(alpha: 0.35)
                 : Theme.of(context).dividerColor,
           ),
         ),

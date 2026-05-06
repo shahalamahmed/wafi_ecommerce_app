@@ -29,7 +29,7 @@ class ProductList extends StatelessWidget {
       itemCount: products.length,
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.only(bottom: 100),
-      separatorBuilder: (_, __) => const SizedBox(height: AppSizes.md),
+      separatorBuilder: (context, index) => const SizedBox(height: AppSizes.sm),
       itemBuilder: (context, index) {
         final product = products[index];
         final categoryLabel =
