@@ -66,6 +66,7 @@ class _LoginFormState extends State<LoginForm> {
         GlassInput(
           controller: _emailController,
           label: AppStrings.email,
+          isRequired: true,
           hint: AppStrings.emailHint,
           prefixIcon: Icons.alternate_email_rounded,
           keyboardType: TextInputType.emailAddress,
@@ -81,6 +82,7 @@ class _LoginFormState extends State<LoginForm> {
         GlassInput(
           controller: _passwordController,
           label: AppStrings.password,
+          isRequired: true,
           hint: AppStrings.passwordHint,
           prefixIcon: Icons.lock_outline_rounded,
           suffixIcon: _obscurePassword
@@ -195,9 +197,11 @@ class _RegistrationFormState extends State<RegistrationForm> {
       ),
     };
 
-    setState(() => _errors
-      ..clear()
-      ..addAll(nextErrors));
+    setState(
+      () => _errors
+        ..clear()
+        ..addAll(nextErrors),
+    );
 
     if (nextErrors.values.any((error) => error != null)) return;
 
@@ -223,6 +227,7 @@ class _RegistrationFormState extends State<RegistrationForm> {
               child: GlassInput(
                 controller: _firstNameController,
                 label: AppStrings.firstName,
+                isRequired: true,
                 prefixIcon: Icons.person_outline_rounded,
                 textInputAction: TextInputAction.next,
                 errorText: _errors['firstName'],
@@ -234,6 +239,7 @@ class _RegistrationFormState extends State<RegistrationForm> {
               child: GlassInput(
                 controller: _lastNameController,
                 label: AppStrings.lastName,
+                isRequired: true,
                 prefixIcon: Icons.badge_outlined,
                 textInputAction: TextInputAction.next,
                 errorText: _errors['lastName'],
@@ -246,6 +252,7 @@ class _RegistrationFormState extends State<RegistrationForm> {
         GlassInput(
           controller: _phoneController,
           label: AppStrings.phone,
+          isRequired: true,
           hint: AppStrings.phoneHint,
           prefixIcon: Icons.phone_outlined,
           keyboardType: TextInputType.phone,
@@ -257,6 +264,7 @@ class _RegistrationFormState extends State<RegistrationForm> {
         GlassInput(
           controller: _emailController,
           label: AppStrings.email,
+          isRequired: true,
           hint: AppStrings.emailHint,
           prefixIcon: Icons.alternate_email_rounded,
           keyboardType: TextInputType.emailAddress,
@@ -268,6 +276,7 @@ class _RegistrationFormState extends State<RegistrationForm> {
         GlassInput(
           controller: _passwordController,
           label: AppStrings.password,
+          isRequired: true,
           hint: AppStrings.passwordHint,
           prefixIcon: Icons.lock_outline_rounded,
           suffixIcon: _obscurePassword
@@ -285,6 +294,7 @@ class _RegistrationFormState extends State<RegistrationForm> {
         GlassInput(
           controller: _confirmPasswordController,
           label: AppStrings.confirmPass,
+          isRequired: true,
           hint: AppStrings.passwordHint,
           prefixIcon: Icons.verified_user_outlined,
           suffixIcon: _obscureConfirmPassword

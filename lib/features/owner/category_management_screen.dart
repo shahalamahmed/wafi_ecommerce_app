@@ -7,6 +7,7 @@ import 'package:wafi_ecommerce_app/core/constants/file_upload.dart';
 import 'package:wafi_ecommerce_app/core/constants/sizes.dart';
 import 'package:wafi_ecommerce_app/core/constants/strings.dart';
 import 'package:wafi_ecommerce_app/core/theme/app_theme.dart';
+import 'package:wafi_ecommerce_app/core/utils/validators.dart';
 import 'package:wafi_ecommerce_app/features/owner/owner_management_provider.dart';
 import 'package:wafi_ecommerce_app/features/owner/owner_management_service.dart';
 import 'package:wafi_ecommerce_app/features/products/product_model.dart';
@@ -321,22 +322,21 @@ class _CategoryManagementCard extends StatelessWidget {
 }
 
 class _CategoryEditorSheet extends ConsumerStatefulWidget {
-  const _CategoryEditorSheet({
-    required this.categories,
-    this.category,
-  });
+  const _CategoryEditorSheet({required this.categories, this.category});
 
   final List<ProductCategory> categories;
   final ProductCategory? category;
 
   @override
-  ConsumerState<_CategoryEditorSheet> createState() => _CategoryEditorSheetState();
+  ConsumerState<_CategoryEditorSheet> createState() =>
+      _CategoryEditorSheetState();
 }
 
 class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _displayOrderController = TextEditingController();
+  final Map<String, String?> _errors = {};
 
   String? _selectedParentId;
   bool _isActive = true;
@@ -405,7 +405,9 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -413,7 +415,10 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
     final state = ref.watch(ownerCategoryManagementProvider);
     final theme = Theme.of(context);
     final isBusy = state.isSaving || _isUploadingImage;
-    final availableParents = _availableParents(widget.categories, widget.category);
+    final availableParents = _availableParents(
+      widget.categories,
+      widget.category,
+    );
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -434,7 +439,10 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
             GlassInput(
               controller: _nameController,
               label: 'Category Name',
+              isRequired: true,
               hint: 'Accessories',
+              errorText: _errors['name'],
+              onChanged: (value) => _clearFieldError('name', value),
             ),
             const SizedBox(height: AppSizes.md),
             GlassInput(
@@ -475,6 +483,7 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
                         ),
                       ),
                     ],
+                    errorText: null,
                     onChanged: (value) {
                       setState(() {
                         _selectedParentId = value;
@@ -487,8 +496,12 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
                   child: GlassInput(
                     controller: _displayOrderController,
                     label: 'Display Order',
+                    isRequired: true,
                     keyboardType: TextInputType.number,
                     hint: '0',
+                    errorText: _errors['displayOrder'],
+                    onChanged: (value) =>
+                        _clearFieldError('displayOrder', value),
                   ),
                 ),
               ],
@@ -508,7 +521,9 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
                   'Inactive categories stay hidden from customers.',
                   style: theme.textTheme.bodySmall,
                 ),
-                onChanged: isBusy ? null : (value) => setState(() => _isActive = value),
+                onChanged: isBusy
+                    ? null
+                    : (value) => setState(() => _isActive = value),
               ),
             ),
             const SizedBox(height: AppSizes.lg),
@@ -518,7 +533,9 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
                   child: GlassButton(
                     label: AppStrings.cancel,
                     variant: GlassButtonVariant.ghost,
-                    onPressed: isBusy ? null : () => Navigator.of(context).pop(),
+                    onPressed: isBusy
+                        ? null
+                        : () => Navigator.of(context).pop(),
                   ),
                 ),
                 const SizedBox(width: AppSizes.md),
@@ -542,20 +559,25 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
     ProductCategory? currentCategory,
   ) {
     if (currentCategory == null) {
-      return [...categories]..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+      return [...categories]
+        ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
     }
 
     final blockedIds = _descendantIds(currentCategory.id, categories)
       ..add(currentCategory.id);
 
-    final available = categories
-        .where((category) => !blockedIds.contains(category.id))
-        .toList()
-      ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+    final available =
+        categories
+            .where((category) => !blockedIds.contains(category.id))
+            .toList()
+          ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
     return available;
   }
 
-  Set<String> _descendantIds(String parentId, List<ProductCategory> categories) {
+  Set<String> _descendantIds(
+    String parentId,
+    List<ProductCategory> categories,
+  ) {
     final descendants = <String>{};
     final pending = <String>[parentId];
 
@@ -577,10 +599,22 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
     final description = _descriptionController.text.trim();
     final displayOrder = int.tryParse(_displayOrderController.text.trim());
 
-    if (name.isEmpty || displayOrder == null) {
-      _showSnack('Please complete all required fields.');
-      return;
-    }
+    final nextErrors = <String, String?>{
+      'name': AppValidators.required(name),
+      'displayOrder': _displayOrderController.text.trim().isEmpty
+          ? AppStrings.validRequired
+          : displayOrder == null
+          ? 'Enter a valid display order.'
+          : null,
+    };
+
+    setState(() {
+      _errors
+        ..clear()
+        ..addAll(nextErrors);
+    });
+
+    if (nextErrors.values.any((error) => error != null)) return;
 
     var image = _existingImageUrl ?? '';
 
@@ -592,10 +626,9 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
       try {
         final uploadedImages = await ref
             .read(ownerManagementServiceProvider)
-            .uploadProductImages(
-              [_selectedImagePath!],
-              folderId: _uploadFolderId,
-            );
+            .uploadProductImages([
+              _selectedImagePath!,
+            ], folderId: _uploadFolderId);
         image = uploadedImages.isEmpty ? '' : uploadedImages.first;
         _existingImageUrl = image.isEmpty ? null : image;
         _selectedImagePath = null;
@@ -619,7 +652,7 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
       description: description,
       image: image,
       parentId: _selectedParentId,
-      displayOrder: displayOrder,
+      displayOrder: displayOrder!,
       isActive: _isActive,
     );
 
@@ -634,6 +667,11 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
     final nextState = ref.read(ownerCategoryManagementProvider);
     if (nextState.hasError) return;
     Navigator.of(context).pop();
+  }
+
+  void _clearFieldError(String fieldKey, String value) {
+    if (value.trim().isEmpty || _errors[fieldKey] == null) return;
+    setState(() => _errors[fieldKey] = null);
   }
 }
 
@@ -665,10 +703,7 @@ class _CategoryImageField extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            AppStrings.uploadImages,
-            style: theme.textTheme.labelLarge,
-          ),
+          Text(AppStrings.uploadImages, style: theme.textTheme.labelLarge),
           const SizedBox(height: AppSizes.xs),
           Text(
             'Pick an image file from device storage. The uploaded image will be saved to Cloudinary.',
@@ -816,12 +851,16 @@ class _CategoryDropdownField<T> extends StatelessWidget {
     required this.label,
     required this.value,
     required this.items,
+    this.isRequired = false,
+    this.errorText,
     required this.onChanged,
   });
 
   final String label;
   final T? value;
   final List<DropdownMenuItem<T>> items;
+  final bool isRequired;
+  final String? errorText;
   final ValueChanged<T?> onChanged;
 
   @override
@@ -829,23 +868,42 @@ class _CategoryDropdownField<T> extends StatelessWidget {
     final theme = Theme.of(context);
     final glass = theme.extension<GlassTheme>()!;
 
+    final hasError = errorText != null;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: theme.textTheme.labelLarge?.copyWith(
-            color: theme.textTheme.bodySmall?.color,
-            fontWeight: FontWeight.w500,
+        RichText(
+          text: TextSpan(
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: theme.textTheme.bodySmall?.color,
+              fontWeight: FontWeight.w500,
+            ),
+            children: [
+              TextSpan(text: label),
+              if (isRequired)
+                TextSpan(
+                  text: ' *',
+                  style: TextStyle(
+                    color: theme.colorScheme.error,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+            ],
           ),
         ),
         const SizedBox(height: AppSizes.xs),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: AppSizes.inputPaddingH),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSizes.inputPaddingH,
+          ),
           decoration: BoxDecoration(
             color: glass.cardColor,
             borderRadius: BorderRadius.circular(AppSizes.inputRadius),
-            border: Border.all(color: glass.borderColor, width: 1),
+            border: Border.all(
+              color: hasError ? theme.colorScheme.error : glass.borderColor,
+              width: 1,
+            ),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<T>(
@@ -869,6 +927,15 @@ class _CategoryDropdownField<T> extends StatelessWidget {
             ),
           ),
         ),
+        if (errorText != null) ...[
+          const SizedBox(height: AppSizes.xs),
+          Text(
+            errorText!,
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: theme.colorScheme.error,
+            ),
+          ),
+        ],
       ],
     );
   }

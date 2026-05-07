@@ -33,6 +33,8 @@ class _PaymentSelectionScreenState
   OnlinePaymentMethod? _selectedMethod;
   bool _isProcessing = false;
   String? _errorMessage;
+  String? _methodError;
+  final Map<String, String?> _fieldErrors = {};
 
   @override
   void dispose() {
@@ -85,6 +87,8 @@ class _PaymentSelectionScreenState
                       setState(() {
                         _selectedMethod = method;
                         _errorMessage = null;
+                        _methodError = null;
+                        _fieldErrors.clear();
                       });
                     },
                   ),
@@ -116,17 +120,22 @@ class _PaymentSelectionScreenState
                   _PaymentField(
                     controller: _accountController,
                     label: isCard ? 'Card Number' : '${method.label} Number',
-                    hint: isCard
-                        ? '1234 5678 9012 3456'
-                        : '01XXXXXXXXX',
+                    isRequired: true,
+                    hint: isCard ? '1234 5678 9012 3456' : '01XXXXXXXXX',
                     keyboardType: TextInputType.number,
+                    errorText: _fieldErrors['account'],
+                    onChanged: (value) => _clearFieldError('account', value),
                   ),
                   const SizedBox(height: AppSizes.md),
                   if (isCard) ...[
                     _PaymentField(
                       controller: _cardHolderController,
                       label: 'Cardholder Name',
+                      isRequired: true,
                       hint: 'Name on card',
+                      errorText: _fieldErrors['cardHolder'],
+                      onChanged: (value) =>
+                          _clearFieldError('cardHolder', value),
                     ),
                     const SizedBox(height: AppSizes.md),
                     Row(
@@ -135,8 +144,12 @@ class _PaymentSelectionScreenState
                           child: _PaymentField(
                             controller: _expiryController,
                             label: 'Expiry',
+                            isRequired: true,
                             hint: 'MM/YY',
                             keyboardType: TextInputType.datetime,
+                            errorText: _fieldErrors['expiry'],
+                            onChanged: (value) =>
+                                _clearFieldError('expiry', value),
                           ),
                         ),
                         const SizedBox(width: AppSizes.md),
@@ -144,8 +157,12 @@ class _PaymentSelectionScreenState
                           child: _PaymentField(
                             controller: _pinController,
                             label: 'CVV',
+                            isRequired: true,
                             hint: '123',
                             keyboardType: TextInputType.number,
+                            errorText: _fieldErrors['pin'],
+                            onChanged: (value) =>
+                                _clearFieldError('pin', value),
                           ),
                         ),
                       ],
@@ -154,8 +171,11 @@ class _PaymentSelectionScreenState
                     _PaymentField(
                       controller: _otpController,
                       label: 'OTP Code',
+                      isRequired: true,
                       hint: '6 digit OTP',
                       keyboardType: TextInputType.number,
+                      errorText: _fieldErrors['otp'],
+                      onChanged: (value) => _clearFieldError('otp', value),
                     ),
                     const SizedBox(height: AppSizes.md),
                     _PaymentField(
@@ -163,15 +183,27 @@ class _PaymentSelectionScreenState
                       label: method == OnlinePaymentMethod.rocket
                           ? 'Rocket PIN'
                           : '${method.label} PIN',
+                      isRequired: true,
                       hint: '5 digit PIN',
                       keyboardType: TextInputType.number,
                       obscureText: true,
+                      errorText: _fieldErrors['pin'],
+                      onChanged: (value) => _clearFieldError('pin', value),
                     ),
                   ],
                 ],
               ],
             ),
           ),
+          if ((_methodError?.isNotEmpty ?? false)) ...[
+            const SizedBox(height: AppSizes.md),
+            Text(
+              _methodError!,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.error,
+              ),
+            ),
+          ],
           const SizedBox(height: AppSizes.lg),
           GlassCard(
             variant: GlassCardVariant.elevated,
@@ -241,15 +273,22 @@ class _PaymentSelectionScreenState
   Future<void> _submitDemoPayment() async {
     final method = _selectedMethod;
     if (method == null) {
-      setState(() => _errorMessage = 'Select a payment method to continue.');
+      setState(() {
+        _methodError = 'Select a payment method to continue.';
+        _fieldErrors.clear();
+      });
       return;
     }
 
-    final validationError = _validateFields(method);
-    if (validationError != null) {
-      setState(() => _errorMessage = validationError);
-      return;
-    }
+    final nextErrors = _validateFields(method);
+    setState(() {
+      _methodError = null;
+      _fieldErrors
+        ..clear()
+        ..addAll(nextErrors);
+    });
+
+    if (nextErrors.values.any((error) => error != null)) return;
 
     setState(() {
       _isProcessing = true;
@@ -270,9 +309,9 @@ class _PaymentSelectionScreenState
         _DemoPaymentOutcome.success => '',
       };
       setState(() => _errorMessage = message);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
       return;
     }
 
@@ -294,9 +333,9 @@ class _PaymentSelectionScreenState
         _isProcessing = false;
         _errorMessage = orderState.errorMessage;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(orderState.errorMessage!)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(orderState.errorMessage!)));
       return;
     }
 
@@ -314,32 +353,50 @@ class _PaymentSelectionScreenState
     Navigator.of(context).pop(true);
   }
 
-  String? _validateFields(OnlinePaymentMethod method) {
+  Map<String, String?> _validateFields(OnlinePaymentMethod method) {
     final account = _normalizeNumber(_accountController.text);
     if (method == OnlinePaymentMethod.card) {
-      if (account.length < 12) return 'Enter a valid card number.';
-      if (_cardHolderController.text.trim().length < 3) {
-        return 'Enter the cardholder name.';
-      }
-      if (!_isValidExpiry(_expiryController.text)) {
-        return 'Enter a valid expiry date in MM/YY format.';
-      }
-      if (_normalizeNumber(_pinController.text).length < 3) {
-        return 'Enter a valid CVV.';
-      }
-      return null;
+      return {
+        'account': account.isEmpty
+            ? AppStrings.validRequired
+            : account.length < 12
+            ? 'Enter a valid card number.'
+            : null,
+        'cardHolder': _cardHolderController.text.trim().isEmpty
+            ? AppStrings.validRequired
+            : _cardHolderController.text.trim().length < 3
+            ? 'Enter the cardholder name.'
+            : null,
+        'expiry': _expiryController.text.trim().isEmpty
+            ? AppStrings.validRequired
+            : !_isValidExpiry(_expiryController.text)
+            ? 'Enter a valid expiry date in MM/YY format.'
+            : null,
+        'pin': _normalizeNumber(_pinController.text).isEmpty
+            ? AppStrings.validRequired
+            : _normalizeNumber(_pinController.text).length < 3
+            ? 'Enter a valid CVV.'
+            : null,
+      };
     }
 
-    if (account.length < 11) {
-      return 'Enter a valid ${method.label} number.';
-    }
-    if (_normalizeNumber(_otpController.text).length != 6) {
-      return 'OTP must be 6 digits.';
-    }
-    if (_normalizeNumber(_pinController.text).length < 4) {
-      return 'PIN must be at least 4 digits.';
-    }
-    return null;
+    return {
+      'account': account.isEmpty
+          ? AppStrings.validRequired
+          : account.length < 11
+          ? 'Enter a valid ${method.label} number.'
+          : null,
+      'otp': _normalizeNumber(_otpController.text).isEmpty
+          ? AppStrings.validRequired
+          : _normalizeNumber(_otpController.text).length != 6
+          ? 'OTP must be 6 digits.'
+          : null,
+      'pin': _normalizeNumber(_pinController.text).isEmpty
+          ? AppStrings.validRequired
+          : _normalizeNumber(_pinController.text).length < 4
+          ? 'PIN must be at least 4 digits.'
+          : null,
+    };
   }
 
   _DemoPaymentOutcome _resolveOutcome(OnlinePaymentMethod method) {
@@ -363,6 +420,11 @@ class _PaymentSelectionScreenState
     final raw = value.trim();
     final match = RegExp(r'^(0[1-9]|1[0-2])\/([0-9]{2})$').firstMatch(raw);
     return match != null;
+  }
+
+  void _clearFieldError(String fieldKey, String value) {
+    if (value.trim().isEmpty || _fieldErrors[fieldKey] == null) return;
+    setState(() => _fieldErrors[fieldKey] = null);
   }
 
   String _buildTransactionId(OnlinePaymentMethod method) {
@@ -479,6 +541,9 @@ class _PaymentField extends StatelessWidget {
     required this.controller,
     required this.label,
     required this.hint,
+    this.isRequired = false,
+    this.errorText,
+    this.onChanged,
     this.keyboardType = TextInputType.text,
     this.obscureText = false,
   });
@@ -486,6 +551,9 @@ class _PaymentField extends StatelessWidget {
   final TextEditingController controller;
   final String label;
   final String hint;
+  final bool isRequired;
+  final String? errorText;
+  final ValueChanged<String>? onChanged;
   final TextInputType keyboardType;
   final bool obscureText;
 
@@ -494,10 +562,12 @@ class _PaymentField extends StatelessWidget {
     return GlassInput(
       controller: controller,
       label: label,
+      isRequired: isRequired,
       hint: hint,
+      errorText: errorText,
       keyboardType: keyboardType,
       obscureText: obscureText,
-      onChanged: (_) {},
+      onChanged: onChanged,
     );
   }
 }

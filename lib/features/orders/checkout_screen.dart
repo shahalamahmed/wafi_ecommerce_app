@@ -34,6 +34,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   final _countryController = TextEditingController(text: 'Bangladesh');
   final _notesController = TextEditingController();
   final _couponController = TextEditingController();
+  final Map<String, String?> _errors = {};
 
   PaymentMethod _paymentMethod = PaymentMethod.cashOnDelivery;
   DateTime _deliveryDate = DateTime.now().add(const Duration(days: 1));
@@ -94,20 +95,29 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 _FormInput(
                   controller: _nameController,
                   label: 'Full Name',
+                  isRequired: true,
                   hint: 'Enter full name',
+                  errorText: _errors['name'],
+                  onChanged: (value) => _clearFieldError('name', value),
                 ),
                 const SizedBox(height: AppSizes.md),
                 _FormInput(
                   controller: _phoneController,
                   label: AppStrings.phone,
+                  isRequired: true,
                   hint: '01XXXXXXXXX',
                   keyboardType: TextInputType.phone,
+                  errorText: _errors['phone'],
+                  onChanged: (value) => _clearFieldError('phone', value),
                 ),
                 const SizedBox(height: AppSizes.md),
                 _FormInput(
                   controller: _addressLine1Controller,
                   label: AppStrings.addressLine1,
+                  isRequired: true,
                   hint: 'House, road, area',
+                  errorText: _errors['addressLine1'],
+                  onChanged: (value) => _clearFieldError('addressLine1', value),
                 ),
                 const SizedBox(height: AppSizes.md),
                 _FormInput(
@@ -122,7 +132,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       child: _FormInput(
                         controller: _cityController,
                         label: AppStrings.city,
+                        isRequired: true,
                         hint: 'City',
+                        errorText: _errors['city'],
+                        onChanged: (value) => _clearFieldError('city', value),
                       ),
                     ),
                     const SizedBox(width: AppSizes.md),
@@ -130,8 +143,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       child: _FormInput(
                         controller: _postalController,
                         label: AppStrings.postalCode,
+                        isRequired: true,
                         hint: 'Postal code',
                         keyboardType: TextInputType.number,
+                        errorText: _errors['postalCode'],
+                        onChanged: (value) =>
+                            _clearFieldError('postalCode', value),
                       ),
                     ),
                   ],
@@ -140,7 +157,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 _FormInput(
                   controller: _countryController,
                   label: AppStrings.country,
+                  isRequired: true,
                   hint: 'Country',
+                  errorText: _errors['country'],
+                  onChanged: (value) => _clearFieldError('country', value),
                 ),
                 const SizedBox(height: AppSizes.md),
                 _FormInput(
@@ -294,21 +314,22 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   Future<void> _handlePlaceOrder(String userId) async {
-    final errors = [
-      AppValidators.name(_nameController.text),
-      AppValidators.phone(_phoneController.text),
-      AppValidators.required(_addressLine1Controller.text),
-      AppValidators.required(_cityController.text),
-      AppValidators.required(_postalController.text),
-      AppValidators.required(_countryController.text),
-    ].whereType<String>().toList();
+    final nextErrors = <String, String?>{
+      'name': AppValidators.name(_nameController.text),
+      'phone': AppValidators.phone(_phoneController.text),
+      'addressLine1': AppValidators.required(_addressLine1Controller.text),
+      'city': AppValidators.required(_cityController.text),
+      'postalCode': AppValidators.required(_postalController.text),
+      'country': AppValidators.required(_countryController.text),
+    };
 
-    if (errors.isNotEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(errors.first)));
-      return;
-    }
+    setState(() {
+      _errors
+        ..clear()
+        ..addAll(nextErrors);
+    });
+
+    if (nextErrors.values.any((error) => error != null)) return;
 
     if (userId.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -375,6 +396,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     ).showSnackBar(const SnackBar(content: Text('Order placed successfully.')));
     Navigator.of(context).pop();
   }
+
+  void _clearFieldError(String fieldKey, String value) {
+    if (value.trim().isEmpty || _errors[fieldKey] == null) return;
+    setState(() => _errors[fieldKey] = null);
+  }
 }
 
 class _SectionCard extends StatelessWidget {
@@ -404,6 +430,9 @@ class _FormInput extends StatelessWidget {
     required this.controller,
     required this.label,
     required this.hint,
+    this.isRequired = false,
+    this.errorText,
+    this.onChanged,
     this.keyboardType = TextInputType.text,
     this.maxLines = 1,
   });
@@ -411,6 +440,9 @@ class _FormInput extends StatelessWidget {
   final TextEditingController controller;
   final String label;
   final String hint;
+  final bool isRequired;
+  final String? errorText;
+  final ValueChanged<String>? onChanged;
   final TextInputType keyboardType;
   final int maxLines;
 
@@ -419,10 +451,12 @@ class _FormInput extends StatelessWidget {
     return GlassInput(
       controller: controller,
       label: label,
+      isRequired: isRequired,
       hint: hint,
+      errorText: errorText,
       keyboardType: keyboardType,
       maxLines: maxLines,
-      onChanged: (_) {},
+      onChanged: onChanged,
     );
   }
 }

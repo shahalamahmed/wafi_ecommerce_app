@@ -10,6 +10,7 @@ class GlassInput extends StatefulWidget {
     this.controller,
     this.focusNode,
     this.label,
+    this.isRequired = false,
     this.hint,
     this.helperText,
     this.errorText,
@@ -36,6 +37,7 @@ class GlassInput extends StatefulWidget {
   final TextEditingController? controller;
   final FocusNode? focusNode;
   final String? label;
+  final bool isRequired;
   final String? hint;
   final String? helperText;
   final String? errorText;
@@ -110,13 +112,25 @@ class _GlassInputState extends State<GlassInput> {
       children: [
         // ─── Label ─────────────────────────────────────────
         if (widget.label != null) ...[
-          Text(
-            widget.label!,
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: isDark
-                  ? Colors.white.withValues(alpha: .6)
-                  : Colors.black.withValues(alpha: .6),
-              fontWeight: FontWeight.w500,
+          RichText(
+            text: TextSpan(
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: isDark
+                    ? Colors.white.withValues(alpha: .6)
+                    : Colors.black.withValues(alpha: .6),
+                fontWeight: FontWeight.w500,
+              ),
+              children: [
+                TextSpan(text: widget.label!),
+                if (widget.isRequired)
+                  TextSpan(
+                    text: ' *',
+                    style: TextStyle(
+                      color: theme.colorScheme.error,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+              ],
             ),
           ),
           const SizedBox(height: AppSizes.xs),

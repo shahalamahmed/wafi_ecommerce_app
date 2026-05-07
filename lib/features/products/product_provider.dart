@@ -24,10 +24,7 @@ class ProductNotifier extends StateNotifier<ProductState> {
         clearError: true,
       );
     } catch (error) {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: error.toString(),
-      );
+      state = state.copyWith(isLoading: false, errorMessage: error.toString());
     }
   }
 
@@ -41,6 +38,9 @@ class ProductNotifier extends StateNotifier<ProductState> {
       clearSelectedSubCategory: true,
       searchQuery: '',
       inStockOnly: false,
+      offersOnly: false,
+      lowStockOnly: false,
+      sortOption: ProductSortOption.newest,
     );
   }
 
@@ -72,6 +72,18 @@ class ProductNotifier extends StateNotifier<ProductState> {
     state = state.copyWith(inStockOnly: !state.inStockOnly);
   }
 
+  void toggleOffersOnly() {
+    state = state.copyWith(offersOnly: !state.offersOnly);
+  }
+
+  void toggleLowStockOnly() {
+    state = state.copyWith(lowStockOnly: !state.lowStockOnly);
+  }
+
+  void setSortOption(ProductSortOption sortOption) {
+    state = state.copyWith(sortOption: sortOption);
+  }
+
   void setViewMode(ProductViewMode viewMode) {
     state = state.copyWith(viewMode: viewMode);
   }
@@ -81,6 +93,8 @@ final productServiceProvider = Provider<ProductService>((ref) {
   return ProductService();
 });
 
-final productProvider = StateNotifierProvider<ProductNotifier, ProductState>((ref) {
+final productProvider = StateNotifierProvider<ProductNotifier, ProductState>((
+  ref,
+) {
   return ProductNotifier(ref.read(productServiceProvider));
 });

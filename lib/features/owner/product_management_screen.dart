@@ -7,6 +7,7 @@ import 'package:wafi_ecommerce_app/core/constants/file_upload.dart';
 import 'package:wafi_ecommerce_app/core/constants/sizes.dart';
 import 'package:wafi_ecommerce_app/core/constants/strings.dart';
 import 'package:wafi_ecommerce_app/core/theme/app_theme.dart';
+import 'package:wafi_ecommerce_app/core/utils/validators.dart';
 import 'package:wafi_ecommerce_app/features/owner/owner_management_provider.dart';
 import 'package:wafi_ecommerce_app/features/owner/owner_management_service.dart';
 import 'package:wafi_ecommerce_app/features/products/product_model.dart';
@@ -388,7 +389,7 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
   final _thresholdController = TextEditingController();
   final _shortDescriptionController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
+  final Map<String, String?> _errors = {};
 
   String? _selectedCategoryId;
   String? _selectedSubCategoryId;
@@ -479,7 +480,9 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -499,7 +502,6 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
     return SafeArea(
       child: SingleChildScrollView(
         child: Form(
-          key: _formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -522,13 +524,19 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
               GlassInput(
                 controller: _nameController,
                 label: AppStrings.productName,
+                isRequired: true,
                 hint: 'Premium Honey',
+                errorText: _errors['name'],
+                onChanged: (value) => _clearFieldError('name', value),
               ),
               const SizedBox(height: AppSizes.md),
               GlassInput(
                 controller: _skuController,
                 label: AppStrings.sku,
+                isRequired: true,
                 hint: 'WAFI-HONEY-01',
+                errorText: _errors['sku'],
+                onChanged: (value) => _clearFieldError('sku', value),
               ),
               const SizedBox(height: AppSizes.md),
               Row(
@@ -537,8 +545,11 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
                     child: GlassInput(
                       controller: _priceController,
                       label: AppStrings.price,
+                      isRequired: true,
                       keyboardType: TextInputType.number,
                       hint: '800',
+                      errorText: _errors['price'],
+                      onChanged: (value) => _clearFieldError('price', value),
                     ),
                   ),
                   const SizedBox(width: AppSizes.md),
@@ -559,8 +570,11 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
                     child: GlassInput(
                       controller: _stockController,
                       label: AppStrings.stockQty,
+                      isRequired: true,
                       keyboardType: TextInputType.number,
                       hint: '20',
+                      errorText: _errors['stock'],
+                      onChanged: (value) => _clearFieldError('stock', value),
                     ),
                   ),
                   const SizedBox(width: AppSizes.md),
@@ -568,8 +582,12 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
                     child: GlassInput(
                       controller: _thresholdController,
                       label: AppStrings.lowStockAlert,
+                      isRequired: true,
                       keyboardType: TextInputType.number,
                       hint: '5',
+                      errorText: _errors['threshold'],
+                      onChanged: (value) =>
+                          _clearFieldError('threshold', value),
                     ),
                   ),
                 ],
@@ -577,7 +595,9 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
               const SizedBox(height: AppSizes.md),
               _DropdownField<String>(
                 label: AppStrings.category,
+                isRequired: true,
                 value: _selectedCategoryId,
+                errorText: _errors['categoryId'],
                 items: categories
                     .map(
                       (item) => DropdownMenuItem<String>(
@@ -590,6 +610,9 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
                   setState(() {
                     _selectedCategoryId = value;
                     _selectedSubCategoryId = null;
+                    if (value != null && _errors['categoryId'] != null) {
+                      _errors['categoryId'] = null;
+                    }
                   });
                 },
               ),
@@ -615,15 +638,22 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
               GlassInput(
                 controller: _shortDescriptionController,
                 label: AppStrings.shortDesc,
+                isRequired: true,
                 hint: 'Short inventory-facing summary',
                 maxLines: 2,
+                errorText: _errors['shortDescription'],
+                onChanged: (value) =>
+                    _clearFieldError('shortDescription', value),
               ),
               const SizedBox(height: AppSizes.md),
               GlassInput(
                 controller: _descriptionController,
                 label: AppStrings.fullDesc,
+                isRequired: true,
                 hint: 'Detailed catalog description',
                 maxLines: 4,
+                errorText: _errors['description'],
+                onChanged: (value) => _clearFieldError('description', value),
               ),
               const SizedBox(height: AppSizes.md),
               _ProductImagesField(
@@ -659,7 +689,9 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
                     child: GlassButton(
                       label: AppStrings.cancel,
                       variant: GlassButtonVariant.ghost,
-                      onPressed: isBusy ? null : () => Navigator.of(context).pop(),
+                      onPressed: isBusy
+                          ? null
+                          : () => Navigator.of(context).pop(),
                     ),
                   ),
                   const SizedBox(width: AppSizes.md),
@@ -691,30 +723,47 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
     final stock = int.tryParse(_stockController.text.trim());
     final threshold = int.tryParse(_thresholdController.text.trim());
 
-    if (name.isEmpty ||
-        sku.isEmpty ||
-        shortDescription.isEmpty ||
-        description.isEmpty ||
-        _selectedCategoryId == null ||
-        price == null ||
-        price <= 0 ||
-        stock == null ||
-        stock < 0 ||
-        threshold == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please complete all required fields.')),
-      );
-      return;
-    }
-    if (threshold < 0) {
+    final nextErrors = <String, String?>{
+      'name': AppValidators.required(name),
+      'sku': AppValidators.required(sku),
+      'shortDescription': AppValidators.required(shortDescription),
+      'description': AppValidators.required(description),
+      'categoryId': _selectedCategoryId == null
+          ? AppStrings.validRequired
+          : null,
+      'price': _priceController.text.trim().isEmpty
+          ? AppStrings.validRequired
+          : price == null || price <= 0
+          ? 'Enter a valid price.'
+          : null,
+      'stock': _stockController.text.trim().isEmpty
+          ? AppStrings.validRequired
+          : stock == null || stock < 0
+          ? 'Enter a valid stock quantity.'
+          : null,
+      'threshold': _thresholdController.text.trim().isEmpty
+          ? AppStrings.validRequired
+          : threshold == null
+          ? 'Enter a valid low stock alert value.'
+          : null,
+    };
+
+    setState(() {
+      _errors
+        ..clear()
+        ..addAll(nextErrors);
+    });
+
+    if (nextErrors.values.any((error) => error != null)) return;
+
+    if (threshold! < 0) {
       _showSnack('Low stock alert cannot be negative.');
       return;
     }
-    final originalPrice =
-        originalPriceInput == null || originalPriceInput <= 0
-        ? price
+    final originalPrice = originalPriceInput == null || originalPriceInput <= 0
+        ? price!
         : originalPriceInput;
-    if (originalPrice < price) {
+    if (originalPrice < price!) {
       _showSnack('Original price must be greater than or equal to price.');
       return;
     }
@@ -759,7 +808,7 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
       originalPrice: originalPrice,
       categoryId: _selectedCategoryId!,
       subCategoryId: _selectedSubCategoryId,
-      stock: stock,
+      stock: stock!,
       lowStockThreshold: threshold,
       images: imageList,
       isActive: _isActive,
@@ -778,6 +827,11 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
       return;
     }
     Navigator.of(context).pop();
+  }
+
+  void _clearFieldError(String fieldKey, String value) {
+    if (value.trim().isEmpty || _errors[fieldKey] == null) return;
+    setState(() => _errors[fieldKey] = null);
   }
 }
 
@@ -801,22 +855,19 @@ class _ProductImagesField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final hasImages = existingImages.isNotEmpty || selectedImagePaths.isNotEmpty;
+    final hasImages =
+        existingImages.isNotEmpty || selectedImagePaths.isNotEmpty;
 
     return _EditorSection(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            AppStrings.uploadImages,
-            style: theme.textTheme.labelLarge,
-          ),
+          Text(AppStrings.uploadImages, style: theme.textTheme.labelLarge),
           const SizedBox(height: AppSizes.xs),
           Text(
             'Pick one or more files from device storage. Uploaded images will be saved to Cloudinary.',
             style: theme.textTheme.bodySmall,
-          )
-          ,
+          ),
           const SizedBox(height: AppSizes.md),
           GlassButton(
             label: isUploading ? 'Uploading images...' : 'Choose Images',
@@ -880,7 +931,9 @@ class _ProductImagePreview extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-        border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.2)),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.2),
+        ),
       ),
       child: Column(
         children: [
@@ -961,12 +1014,16 @@ class _DropdownField<T> extends StatelessWidget {
     required this.label,
     required this.value,
     required this.items,
+    this.isRequired = false,
+    this.errorText,
     required this.onChanged,
   });
 
   final String label;
   final T? value;
   final List<DropdownMenuItem<T>> items;
+  final bool isRequired;
+  final String? errorText;
   final ValueChanged<T?> onChanged;
 
   @override
@@ -974,23 +1031,42 @@ class _DropdownField<T> extends StatelessWidget {
     final theme = Theme.of(context);
     final glass = theme.extension<GlassTheme>()!;
 
+    final hasError = errorText != null;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: theme.textTheme.labelLarge?.copyWith(
-            color: theme.textTheme.bodySmall?.color,
-            fontWeight: FontWeight.w500,
+        RichText(
+          text: TextSpan(
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: theme.textTheme.bodySmall?.color,
+              fontWeight: FontWeight.w500,
+            ),
+            children: [
+              TextSpan(text: label),
+              if (isRequired)
+                TextSpan(
+                  text: ' *',
+                  style: TextStyle(
+                    color: theme.colorScheme.error,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+            ],
           ),
         ),
         const SizedBox(height: AppSizes.xs),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: AppSizes.inputPaddingH),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSizes.inputPaddingH,
+          ),
           decoration: BoxDecoration(
             color: glass.cardColor,
             borderRadius: BorderRadius.circular(AppSizes.inputRadius),
-            border: Border.all(color: glass.borderColor, width: 1),
+            border: Border.all(
+              color: hasError ? theme.colorScheme.error : glass.borderColor,
+              width: 1,
+            ),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<T>(
@@ -1014,6 +1090,15 @@ class _DropdownField<T> extends StatelessWidget {
             ),
           ),
         ),
+        if (errorText != null) ...[
+          const SizedBox(height: AppSizes.xs),
+          Text(
+            errorText!,
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: theme.colorScheme.error,
+            ),
+          ),
+        ],
       ],
     );
   }

@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum ProductViewMode { grid, list }
 
+enum ProductSortOption { newest, priceLowToHigh, priceHighToLow, topRated }
+
 class ProductCategory {
   const ProductCategory({
     required this.id,
@@ -128,18 +130,24 @@ class ProductState {
     this.searchQuery = '',
     this.errorMessage,
     this.inStockOnly = false,
+    this.offersOnly = false,
+    this.lowStockOnly = false,
+    this.sortOption = ProductSortOption.newest,
   });
 
   const ProductState.initial()
-      : products = const [],
-        categories = const [],
-        isLoading = true,
-        viewMode = ProductViewMode.grid,
-        selectedCategoryId = null,
-        selectedSubCategoryId = null,
-        searchQuery = '',
-        errorMessage = null,
-        inStockOnly = false;
+    : products = const [],
+      categories = const [],
+      isLoading = true,
+      viewMode = ProductViewMode.grid,
+      selectedCategoryId = null,
+      selectedSubCategoryId = null,
+      searchQuery = '',
+      errorMessage = null,
+      inStockOnly = false,
+      offersOnly = false,
+      lowStockOnly = false,
+      sortOption = ProductSortOption.newest;
 
   final List<ProductModel> products;
   final List<ProductCategory> categories;
@@ -150,18 +158,26 @@ class ProductState {
   final String searchQuery;
   final String? errorMessage;
   final bool inStockOnly;
+  final bool offersOnly;
+  final bool lowStockOnly;
+  final ProductSortOption sortOption;
 
   bool get hasError => errorMessage != null && errorMessage!.trim().isNotEmpty;
+  int get activeFilterCount =>
+      (inStockOnly ? 1 : 0) +
+      (offersOnly ? 1 : 0) +
+      (lowStockOnly ? 1 : 0) +
+      (sortOption == ProductSortOption.newest ? 0 : 1);
 
-  List<ProductCategory> get activeCategories => categories
-      .where((category) => category.isActive)
-      .toList()
-    ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+  List<ProductCategory> get activeCategories =>
+      categories.where((category) => category.isActive).toList()
+        ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
 
-  List<ProductCategory> get topLevelCategories => categories
-      .where((category) => category.isActive && category.isTopLevel)
-      .toList()
-    ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+  List<ProductCategory> get topLevelCategories =>
+      categories
+          .where((category) => category.isActive && category.isTopLevel)
+          .toList()
+        ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
 
   ProductCategory? get selectedCategory {
     final categoryId = selectedCategoryId;
@@ -182,20 +198,23 @@ class ProductState {
 
     final filtered = categories.where((category) {
       return category.isActive && category.parentId == selectedCategoryId;
-    }).toList()
-      ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+    }).toList()..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
     return filtered;
   }
 
   List<ProductModel> get visibleProducts {
-    Iterable<ProductModel> filtered = products.where((product) => product.isActive);
+    Iterable<ProductModel> filtered = products.where(
+      (product) => product.isActive,
+    );
 
     if (selectedCategoryId != null && selectedCategoryId!.isNotEmpty) {
       final category = selectedCategory;
       final categoryId = selectedCategoryId!;
 
       if (category == null) {
-        filtered = filtered.where((product) => product.categoryId == categoryId);
+        filtered = filtered.where(
+          (product) => product.categoryId == categoryId,
+        );
       } else if (category.isTopLevel) {
         final descendantIds = _descendantCategoryIds(categoryId);
         filtered = filtered.where((product) {
@@ -213,11 +232,21 @@ class ProductState {
     }
 
     if (selectedSubCategoryId != null && selectedSubCategoryId!.isNotEmpty) {
-      filtered = filtered.where((product) => product.subCategoryId == selectedSubCategoryId);
+      filtered = filtered.where(
+        (product) => product.subCategoryId == selectedSubCategoryId,
+      );
     }
 
     if (inStockOnly) {
       filtered = filtered.where((product) => product.inStock);
+    }
+
+    if (offersOnly) {
+      filtered = filtered.where((product) => product.hasDiscount);
+    }
+
+    if (lowStockOnly) {
+      filtered = filtered.where((product) => product.isLowStock);
     }
 
     final query = searchQuery.trim().toLowerCase();
@@ -231,9 +260,26 @@ class ProductState {
 
     final result = filtered.toList()
       ..sort((a, b) {
-        final updatedA = a.updatedAt ?? a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-        final updatedB = b.updatedAt ?? b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-        return updatedB.compareTo(updatedA);
+        switch (sortOption) {
+          case ProductSortOption.priceLowToHigh:
+            return a.price.compareTo(b.price);
+          case ProductSortOption.priceHighToLow:
+            return b.price.compareTo(a.price);
+          case ProductSortOption.topRated:
+            final ratingCompare = b.rating.compareTo(a.rating);
+            if (ratingCompare != 0) return ratingCompare;
+            return b.reviewCount.compareTo(a.reviewCount);
+          case ProductSortOption.newest:
+            final updatedA =
+                a.updatedAt ??
+                a.createdAt ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+            final updatedB =
+                b.updatedAt ??
+                b.createdAt ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+            return updatedB.compareTo(updatedA);
+        }
       });
     return result;
   }
@@ -268,6 +314,9 @@ class ProductState {
     String? errorMessage,
     bool clearError = false,
     bool? inStockOnly,
+    bool? offersOnly,
+    bool? lowStockOnly,
+    ProductSortOption? sortOption,
   }) {
     return ProductState(
       products: products ?? this.products,
@@ -283,6 +332,9 @@ class ProductState {
       searchQuery: searchQuery ?? this.searchQuery,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
       inStockOnly: inStockOnly ?? this.inStockOnly,
+      offersOnly: offersOnly ?? this.offersOnly,
+      lowStockOnly: lowStockOnly ?? this.lowStockOnly,
+      sortOption: sortOption ?? this.sortOption,
     );
   }
 }

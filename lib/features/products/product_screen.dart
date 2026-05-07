@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wafi_ecommerce_app/core/constants/sizes.dart';
@@ -250,12 +252,181 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
               top: topInset,
               left: horizontalPadding,
               right: horizontalPadding,
-              child: _PinnedSearchField(onChanged: notifier.setSearchQuery),
+              child: _PinnedSearchRow(
+                searchQuery: state.searchQuery,
+                activeFilterCount: state.activeFilterCount,
+                onChanged: notifier.setSearchQuery,
+                onOpenFilters: () => _openFilterSheet(context),
+              ),
             ),
           ],
         );
       },
     );
+  }
+
+  Future<void> _openFilterSheet(BuildContext context) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.15),
+      builder: (context) {
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Consumer(
+            builder: (context, ref, _) {
+              final state = ref.watch(productProvider);
+              final notifier = ref.read(productProvider.notifier);
+              final theme = Theme.of(context);
+              final glass = theme.extension<GlassTheme>()!;
+
+              return Padding(
+                padding: EdgeInsets.fromLTRB(
+                  AppSizes.md,
+                  AppSizes.md,
+                  AppSizes.md,
+                  MediaQuery.of(context).viewInsets.bottom + AppSizes.md,
+                ),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: glass.elevatedColor,
+                    borderRadius: BorderRadius.circular(AppSizes.radiusXxl),
+                    border: Border.all(
+                      color: glass.borderColor.withValues(alpha: 0.8),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: glass.shadowColor.withValues(alpha: 0.18),
+                        blurRadius: 28,
+                        offset: const Offset(0, 18),
+                      ),
+                    ],
+                  ),
+                  child: SafeArea(
+                    top: false,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSizes.xl,
+                        AppSizes.xl,
+                        AppSizes.xl,
+                        AppSizes.xl,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Filter Products',
+                                      style: theme.textTheme.headlineSmall,
+                                    ),
+                                    const SizedBox(height: AppSizes.xs),
+                                    Text(
+                                      'Refine the catalog by stock, and price order.',
+                                      style: theme.textTheme.bodySmall,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                icon: const Icon(Icons.close_rounded),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppSizes.lg),
+                          _FilterSection(
+                            title: 'Quick Filters',
+                            child: Wrap(
+                              spacing: AppSizes.sm,
+                              runSpacing: AppSizes.sm,
+                              children: [
+                                _FilterChipButton(
+                                  label: 'In Stock',
+                                  icon: Icons.inventory_2_outlined,
+                                  selected: state.inStockOnly,
+                                  onTap: notifier.toggleInStockOnly,
+                                ),
+                                _FilterChipButton(
+                                  label: 'Low Stock',
+                                  icon: Icons.warning_amber_rounded,
+                                  selected: state.lowStockOnly,
+                                  onTap: notifier.toggleLowStockOnly,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: AppSizes.lg),
+                          _FilterSection(
+                            title: 'Sort By',
+                            child: Column(
+                              children: [
+                                for (final option in ProductSortOption.values
+                                    .where((o) => o != ProductSortOption.topRated))
+                                  _SortOptionTile(
+                                    label: _sortLabel(option),
+                                    subtitle: _sortSubtitle(option),
+                                    selected: state.sortOption == option,
+                                    onTap: () => notifier.setSortOption(option),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: AppSizes.lg),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: GlassButton(
+                                  label: 'Reset',
+                                  variant: GlassButtonVariant.ghost,
+                                  onPressed: notifier.resetFilters,
+                                ),
+                              ),
+                              const SizedBox(width: AppSizes.md),
+                              Expanded(
+                                child: GlassButton(
+                                  label: 'Done',
+                                  suffixIcon: Icons.arrow_forward_rounded,
+                                  onPressed: () => Navigator.of(context).pop(),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  String _sortLabel(ProductSortOption option) {
+    return switch (option) {
+      ProductSortOption.newest => 'Newest First',
+      ProductSortOption.priceLowToHigh => 'Price: Low to High',
+      ProductSortOption.priceHighToLow => 'Price: High to Low',
+      _ => '',
+    };
+  }
+
+  String _sortSubtitle(ProductSortOption option) {
+    return switch (option) {
+      ProductSortOption.newest => 'Show recently updated items first.',
+      ProductSortOption.priceLowToHigh => 'Surface the most affordable products first.',
+      ProductSortOption.priceHighToLow => 'Bring premium and higher-ticket items to the top.',
+      _ => '',
+    };
   }
 }
 
@@ -485,28 +656,288 @@ class _CategoryRail extends StatelessWidget {
   }
 }
 
-class _PinnedSearchField extends StatelessWidget {
-  const _PinnedSearchField({required this.onChanged});
+class _PinnedSearchRow extends StatelessWidget {
+  const _PinnedSearchRow({
+    required this.searchQuery,
+    required this.activeFilterCount,
+    required this.onChanged,
+    required this.onOpenFilters,
+  });
 
+  final String searchQuery;
+  final int activeFilterCount;
   final ValueChanged<String> onChanged;
+  final VoidCallback onOpenFilters;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final glass = theme.extension<GlassTheme>()!;
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
+    return Row(
+      children: [
+        Expanded(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppSizes.inputRadius),
+              border: Border.all(
+                color: glass.borderColor.withValues(alpha: 0.24),
+              ),
+            ),
+            child: GlassInput(
+              hint: 'Search products',
+              prefixIcon: Icons.search_rounded,
+              onChanged: onChanged,
+              backgroundColor: Colors.transparent,
+              unfocusedBorderColor: Colors.transparent,
+              blurSigma: AppSizes.blurMd,
+            ),
+          ),
+        ),
+        const SizedBox(width: AppSizes.sm),
+        _FilterActionButton(
+          hasActiveFilters: activeFilterCount > 0,
+          activeFilterCount: activeFilterCount,
+          onTap: onOpenFilters,
+        ),
+      ],
+    );
+  }
+}
+
+class _FilterActionButton extends StatelessWidget {
+  const _FilterActionButton({
+    required this.hasActiveFilters,
+    required this.activeFilterCount,
+    required this.onTap,
+  });
+
+  final bool hasActiveFilters;
+  final int activeFilterCount;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final glass = theme.extension<GlassTheme>()!;
+    final primary = theme.colorScheme.primary;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(AppSizes.inputRadius),
-        border: Border.all(color: glass.borderColor.withValues(alpha: 0.24)),
+        child: Ink(
+          height: AppSizes.inputHeight,
+          padding: const EdgeInsets.symmetric(horizontal: AppSizes.md),
+          decoration: BoxDecoration(
+            color: glass.cardColor.withValues(alpha: 0.65),
+            borderRadius: BorderRadius.circular(AppSizes.inputRadius),
+            border: Border.all(
+              color: hasActiveFilters
+                  ? primary.withValues(alpha: 0.42)
+                  : glass.borderColor.withValues(alpha: 0.24),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Icon(
+                    Icons.tune_rounded,
+                    color: hasActiveFilters
+                        ? primary
+                        : theme.iconTheme.color?.withValues(alpha: 0.82),
+                  ),
+                  if (hasActiveFilters)
+                    Positioned(
+                      right: -8,
+                      top: -8,
+                      child: Container(
+                        width: 18,
+                        height: 18,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: primary,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          '$activeFilterCount',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 9,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(width: AppSizes.sm),
+
+            ],
+          ),
+        ),
       ),
-      child: GlassInput(
-        hint: 'Search products',
-        prefixIcon: Icons.search_rounded,
-        onChanged: onChanged,
-        backgroundColor: Colors.transparent,
-        unfocusedBorderColor: Colors.transparent,
-        blurSigma: AppSizes.blurMd,
+    );
+  }
+}
+
+class _FilterSection extends StatelessWidget {
+  const _FilterSection({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final glass = theme.extension<GlassTheme>()!;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.md),
+      decoration: BoxDecoration(
+        color: glass.cardColor,
+        borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+        border: Border.all(color: glass.borderColor.withValues(alpha: 0.7)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: theme.textTheme.titleMedium),
+          const SizedBox(height: AppSizes.md),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _FilterChipButton extends StatelessWidget {
+  const _FilterChipButton({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppSizes.radiusFull),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: AppSizes.animFast),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSizes.md,
+          vertical: AppSizes.sm,
+        ),
+        decoration: BoxDecoration(
+          color: selected
+              ? primary.withValues(alpha: 0.16)
+              : theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.28,
+                ),
+          borderRadius: BorderRadius.circular(AppSizes.radiusFull),
+          border: Border.all(
+            color: selected
+                ? primary.withValues(alpha: 0.42)
+                : theme.colorScheme.outline.withValues(alpha: 0.16),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18, color: selected ? primary : null),
+            const SizedBox(width: AppSizes.sm),
+            Text(
+              label,
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: selected ? primary : null,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SortOptionTile extends StatelessWidget {
+  const _SortOptionTile({
+    required this.label,
+    required this.subtitle,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final String subtitle;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSizes.sm),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: AppSizes.animFast),
+          padding: const EdgeInsets.all(AppSizes.md),
+          decoration: BoxDecoration(
+            color: selected
+                ? primary.withValues(alpha: 0.12)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+            border: Border.all(
+              color: selected
+                  ? primary.withValues(alpha: 0.40)
+                  : theme.dividerColor.withValues(alpha: 0.28),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                selected
+                    ? Icons.radio_button_checked_rounded
+                    : Icons.radio_button_off_rounded,
+                color: selected ? primary : theme.iconTheme.color,
+              ),
+              const SizedBox(width: AppSizes.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: AppSizes.xs),
+                    Text(subtitle, style: theme.textTheme.bodySmall),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
