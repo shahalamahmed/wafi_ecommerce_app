@@ -149,6 +149,13 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
               ],
             ],
           ),
+          if (product.hasDiscount) ...[
+            const SizedBox(height: AppSizes.sm),
+            GlassChip(
+              label: 'Save ${product.discountPercent}% today',
+              variant: GlassChipVariant.error,
+            ),
+          ],
 
           const SizedBox(height: AppSizes.lg),
 

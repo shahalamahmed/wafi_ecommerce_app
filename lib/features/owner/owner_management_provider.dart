@@ -1,5 +1,6 @@
 import 'package:wafi_ecommerce_app/features/auth/auth_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wafi_ecommerce_app/features/offers/offer_provider.dart';
 import 'package:wafi_ecommerce_app/features/orders/order_model.dart';
 import 'package:wafi_ecommerce_app/features/products/product_model.dart';
 import 'package:wafi_ecommerce_app/features/products/product_provider.dart';
@@ -76,12 +77,13 @@ class OwnerProductManagementState {
 
 class OwnerProductManagementNotifier
     extends StateNotifier<OwnerProductManagementState> {
-  OwnerProductManagementNotifier(this._service)
+  OwnerProductManagementNotifier(this._service, this._ref)
     : super(const OwnerProductManagementState()) {
     load();
   }
 
   final OwnerManagementService _service;
+  final Ref _ref;
 
   Future<void> load() async {
     state = state.copyWith(
@@ -115,7 +117,7 @@ class OwnerProductManagementNotifier
     );
     try {
       await _service.createProduct(draft);
-      await load();
+      await _refreshCatalogConsumers();
       state = state.copyWith(
         isSaving: false,
         successMessage: 'Product created successfully.',
@@ -133,7 +135,7 @@ class OwnerProductManagementNotifier
     );
     try {
       await _service.updateProduct(productId, draft);
-      await load();
+      await _refreshCatalogConsumers();
       state = state.copyWith(
         isSaving: false,
         successMessage: 'Product updated successfully.',
@@ -151,7 +153,7 @@ class OwnerProductManagementNotifier
     );
     try {
       await _service.deleteProduct(productId);
-      await load();
+      await _refreshCatalogConsumers();
       state = state.copyWith(
         isSaving: false,
         successMessage: 'Product removed successfully.',
@@ -159,6 +161,12 @@ class OwnerProductManagementNotifier
     } catch (error) {
       state = state.copyWith(isSaving: false, errorMessage: error.toString());
     }
+  }
+
+  Future<void> _refreshCatalogConsumers() async {
+    await load();
+    await _ref.read(productProvider.notifier).load();
+    await _ref.read(offerProvider.notifier).load();
   }
 }
 
@@ -555,6 +563,7 @@ final ownerProductManagementProvider =
     >((ref) {
       return OwnerProductManagementNotifier(
         ref.read(ownerManagementServiceProvider),
+        ref,
       );
     });
 

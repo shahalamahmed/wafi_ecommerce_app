@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:wafi_ecommerce_app/core/media/cloudinary_media_service.dart';
 import 'package:wafi_ecommerce_app/features/auth/auth_model.dart';
+import 'package:wafi_ecommerce_app/features/offers/offer_model.dart';
 import 'package:wafi_ecommerce_app/features/orders/order_model.dart';
 import 'package:wafi_ecommerce_app/features/products/product_model.dart';
 
@@ -18,6 +19,8 @@ class OwnerManagementService {
       _firestore.collection('products');
   CollectionReference<Map<String, dynamic>> get _categories =>
       _firestore.collection('categories');
+  CollectionReference<Map<String, dynamic>> get _offers =>
+      _firestore.collection('offers');
   CollectionReference<Map<String, dynamic>> get _orders =>
       _firestore.collection('orders');
   CollectionReference<Map<String, dynamic>> get _users =>
@@ -98,15 +101,91 @@ class OwnerManagementService {
   }
 
   Future<void> createProduct(OwnerProductDraft draft) async {
-    await _products.add(draft.toMap());
+    final productRef = _products.doc();
+    final batch = _firestore.batch();
+
+    batch.set(productRef, draft.toMap());
+    _syncOfferInBatch(
+      batch,
+      productId: productRef.id,
+      draft: draft,
+      includeCreatedAt: true,
+    );
+
+    await batch.commit();
   }
 
   Future<void> updateProduct(String productId, OwnerProductDraft draft) async {
-    await _products.doc(productId).update(draft.toMap(includeCreatedAt: false));
+    final batch = _firestore.batch();
+
+    batch.update(_products.doc(productId), draft.toMap(includeCreatedAt: false));
+    _syncOfferInBatch(
+      batch,
+      productId: productId,
+      draft: draft,
+      includeCreatedAt: false,
+    );
+
+    await batch.commit();
   }
 
   Future<void> deleteProduct(String productId) async {
-    await _products.doc(productId).delete();
+    final batch = _firestore.batch();
+    batch.delete(_products.doc(productId));
+    batch.set(
+      _offers.doc(productId),
+      {
+        'productId': productId,
+        'isActive': false,
+        'updatedAt': FieldValue.serverTimestamp(),
+      },
+      SetOptions(merge: true),
+    );
+    await batch.commit();
+  }
+
+  Future<void> upsertOfferFromProduct(
+    String productId,
+    OwnerProductDraft draft, {
+    bool includeCreatedAt = false,
+  }) async {
+    if (!draft.hasDiscount) {
+      await deactivateOffer(productId);
+      return;
+    }
+
+    await _offers.doc(productId).set(
+      _offerMap(
+        productId: productId,
+        draft: draft,
+        includeCreatedAt: includeCreatedAt,
+      ),
+      SetOptions(merge: true),
+    );
+  }
+
+  Future<void> deactivateOffer(String productId) async {
+    await _offers.doc(productId).set({
+      'productId': productId,
+      'isActive': false,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  Future<List<OfferModel>> fetchOffers() async {
+    final snapshot = await _offers.get();
+    final offers = snapshot.docs
+        .map((doc) => OfferModel.fromMap(doc.id, doc.data()))
+        .toList()
+      ..sort((a, b) {
+        final aDate =
+            a.updatedAt ?? a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final bDate =
+            b.updatedAt ?? b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return bDate.compareTo(aDate);
+      });
+
+    return offers;
   }
 
   Future<List<String>> uploadProductImages(
@@ -182,6 +261,68 @@ class OwnerManagementService {
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
+
+  void _syncOfferInBatch(
+    WriteBatch batch, {
+    required String productId,
+    required OwnerProductDraft draft,
+    required bool includeCreatedAt,
+  }) {
+    final offerRef = _offers.doc(productId);
+
+    if (!draft.hasDiscount) {
+      batch.set(
+        offerRef,
+        {
+          'productId': productId,
+          'productName': draft.name,
+          'productImage': draft.primaryImage,
+          'categoryId': draft.categoryId,
+          'subCategoryId': draft.subCategoryId,
+          'originalPrice': draft.originalPrice,
+          'offerPrice': draft.price,
+          'discountAmount': 0,
+          'discountPercent': 0,
+          'isActive': false,
+          if (includeCreatedAt) 'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+      return;
+    }
+
+    batch.set(
+      offerRef,
+      _offerMap(
+        productId: productId,
+        draft: draft,
+        includeCreatedAt: includeCreatedAt,
+      ),
+      SetOptions(merge: true),
+    );
+  }
+
+  Map<String, dynamic> _offerMap({
+    required String productId,
+    required OwnerProductDraft draft,
+    required bool includeCreatedAt,
+  }) {
+    return {
+      'productId': productId,
+      'productName': draft.name,
+      'productImage': draft.primaryImage,
+      'categoryId': draft.categoryId,
+      'subCategoryId': draft.subCategoryId,
+      'originalPrice': draft.originalPrice,
+      'offerPrice': draft.price,
+      'discountAmount': draft.discountAmount,
+      'discountPercent': draft.discountPercent,
+      'isActive': draft.hasDiscount,
+      if (includeCreatedAt) 'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+  }
 }
 
 class OwnerProductDraft {
@@ -213,6 +354,17 @@ class OwnerProductDraft {
   final List<String> images;
   final bool isActive;
 
+  bool get hasDiscount => originalPrice > price;
+  double get normalizedOriginalPrice => hasDiscount ? originalPrice : price;
+  double get discountAmount =>
+      hasDiscount ? normalizedOriginalPrice - price : 0;
+  int get discountPercent {
+    if (!hasDiscount || normalizedOriginalPrice <= 0) return 0;
+    return (((normalizedOriginalPrice - price) / normalizedOriginalPrice) * 100)
+        .round();
+  }
+  String get primaryImage => images.isEmpty ? '' : images.first;
+
   Map<String, dynamic> toMap({bool includeCreatedAt = true}) {
     return {
       'name': name,
@@ -220,7 +372,7 @@ class OwnerProductDraft {
       'shortDescription': shortDescription,
       'sku': sku,
       'price': price,
-      'originalPrice': originalPrice,
+      'originalPrice': normalizedOriginalPrice,
       'category': categoryId,
       'subCategory': subCategoryId,
       'stock': stock,

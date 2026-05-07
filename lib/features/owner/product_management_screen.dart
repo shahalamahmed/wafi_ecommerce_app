@@ -94,6 +94,11 @@ class ProductManagementScreen extends ConsumerWidget {
                           '${state.products.where((item) => !item.isActive).length} inactive',
                       variant: GlassChipVariant.neutral,
                     ),
+                    GlassChip(
+                      label:
+                          '${state.products.where((item) => item.hasDiscount).length} on offer',
+                      variant: GlassChipVariant.success,
+                    ),
                   ],
                 ),
               ],
@@ -298,6 +303,11 @@ class _ProductManagementCard extends StatelessWidget {
                     ? GlassChipVariant.warning
                     : GlassChipVariant.success,
               ),
+              if (product.hasDiscount)
+                GlassChip(
+                  label: 'On Offer ${product.discountPercent}% OFF',
+                  variant: GlassChipVariant.error,
+                ),
             ],
           ),
           const SizedBox(height: AppSizes.md),
@@ -312,9 +322,27 @@ class _ProductManagementCard extends StatelessWidget {
             '${AppStrings.currencySymbol}${product.price.toStringAsFixed(0)}',
             style: Theme.of(context).textTheme.titleLarge,
           ),
+          if (product.hasDiscount) ...[
+            const SizedBox(height: AppSizes.xs),
+            Text(
+              'Was ${AppStrings.currencySymbol}${product.originalPrice.toStringAsFixed(0)}',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                decoration: TextDecoration.lineThrough,
+              ),
+            ),
+          ],
           const SizedBox(height: AppSizes.md),
           Row(
             children: [
+              Expanded(
+                child: GlassButton(
+                  label: product.hasDiscount ? 'Edit Offer' : 'Add Offer',
+                  prefixIcon: Icons.local_offer_outlined,
+                  variant: GlassButtonVariant.success,
+                  onPressed: onEdit,
+                ),
+              ),
+              const SizedBox(width: AppSizes.sm),
               Expanded(
                 child: GlassButton(
                   label: AppStrings.editProduct,
@@ -657,7 +685,9 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
     final shortDescription = _shortDescriptionController.text.trim();
     final description = _descriptionController.text.trim();
     final price = double.tryParse(_priceController.text.trim());
-    final originalPrice = double.tryParse(_originalPriceController.text.trim());
+    final originalPriceInput = double.tryParse(
+      _originalPriceController.text.trim(),
+    );
     final stock = int.tryParse(_stockController.text.trim());
     final threshold = int.tryParse(_thresholdController.text.trim());
 
@@ -667,11 +697,25 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
         description.isEmpty ||
         _selectedCategoryId == null ||
         price == null ||
+        price <= 0 ||
         stock == null ||
+        stock < 0 ||
         threshold == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please complete all required fields.')),
       );
+      return;
+    }
+    if (threshold < 0) {
+      _showSnack('Low stock alert cannot be negative.');
+      return;
+    }
+    final originalPrice =
+        originalPriceInput == null || originalPriceInput <= 0
+        ? price
+        : originalPriceInput;
+    if (originalPrice < price) {
+      _showSnack('Original price must be greater than or equal to price.');
       return;
     }
     final imageList = [..._existingImages];
@@ -712,7 +756,7 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
       shortDescription: shortDescription,
       sku: sku,
       price: price,
-      originalPrice: originalPrice ?? price,
+      originalPrice: originalPrice,
       categoryId: _selectedCategoryId!,
       subCategoryId: _selectedSubCategoryId,
       stock: stock,

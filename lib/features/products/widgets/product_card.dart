@@ -32,7 +32,7 @@ class ProductCard extends StatelessWidget {
         variant: GlassCardVariant.elevated,
         padding: EdgeInsets.zero,
         child: SizedBox(
-          height: 108,
+          height: 124,
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -59,7 +59,7 @@ class ProductCard extends StatelessWidget {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 1),
                       Text(
                         product.name,
                         maxLines: 1,
@@ -68,7 +68,29 @@ class ProductCard extends StatelessWidget {
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      if (product.hasDiscount) ...[
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSizes.xs,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.error.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(
+                              AppSizes.radiusFull,
+                            ),
+                          ),
+                          child: Text(
+                            '${product.discountPercent}% OFF',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.error,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 4),
                       Row(
                         children: [
                           Flexible(
@@ -98,7 +120,7 @@ class ProductCard extends StatelessWidget {
                             ),
                         ],
                       ),
-                      const Spacer(),
+                      const SizedBox(height: 4),
                       Row(
                         children: [
                           Icon(
@@ -202,7 +224,7 @@ class _AddButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSizes.xs,
-          vertical: 5,
+          vertical: 4,
         ),
         decoration: BoxDecoration(
           color: inStock
@@ -217,7 +239,7 @@ class _AddButton extends StatelessWidget {
         ),
         child: Icon(
           inStock ? Icons.add_shopping_cart_rounded : Icons.block_rounded,
-          size: AppSizes.iconSm,
+          size: 16,
           color: inStock
               ? Theme.of(context).colorScheme.primary
               : Theme.of(context).disabledColor,
@@ -235,28 +257,23 @@ class _WishlistButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(AppSizes.radiusMd),
       child: Container(
-        padding: const EdgeInsets.all(5),
+        padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: isSelected
-              ? Colors.redAccent.withValues(alpha: 0.12)
-              : Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+          shape: BoxShape.circle,
           border: Border.all(
             color: isSelected
                 ? Colors.redAccent.withValues(alpha: 0.35)
-                : Theme.of(context).dividerColor,
+                : Colors.grey.withValues(alpha: 0.25),
+            width: 1,
           ),
         ),
         child: Icon(
           isSelected ? Icons.favorite_rounded : Icons.favorite_border_rounded,
           size: AppSizes.iconSm,
-          color: isSelected
-              ? Colors.redAccent
-              : Theme.of(context).colorScheme.primary,
+          color: isSelected ? Colors.redAccent : Colors.grey.shade400,
         ),
       ),
     );

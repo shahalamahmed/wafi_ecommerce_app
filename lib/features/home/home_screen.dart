@@ -284,6 +284,7 @@ class _BannerItem {
     required this.title,
     required this.subtitle,
   });
+
   final String imageUrl;
   final String eyebrow;
   final String title;
@@ -294,6 +295,7 @@ class _BannerItem {
 
 class _HeroBanner extends StatefulWidget {
   const _HeroBanner({required this.onShopTap});
+
   final VoidCallback onShopTap;
 
   @override
@@ -888,6 +890,16 @@ class _ProductCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (product.hasDiscount) ...[
+                    _HomeOfferBadge(
+                      label: '${product.discountPercent}% OFF',
+                      textColor: theme.colorScheme.error,
+                      backgroundColor: theme.colorScheme.error.withValues(
+                        alpha: 0.10,
+                      ),
+                    ),
+                    const SizedBox(height: AppSizes.xs),
+                  ],
                   Text(
                     product.name,
                     style: theme.textTheme.titleSmall,
@@ -905,19 +917,35 @@ class _ProductCard extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSizes.xs),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Flexible(
-                        child: Text(
-                          '${AppStrings.currencySymbol}${product.price.toStringAsFixed(0)}',
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            color: primary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${AppStrings.currencySymbol}${product.price.toStringAsFixed(0)}',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                color: primary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (product.hasDiscount)
+                              Text(
+                                '${AppStrings.currencySymbol}${product.originalPrice.toStringAsFixed(0)}',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  decoration: TextDecoration.lineThrough,
+                                  color: theme.textTheme.bodySmall?.color
+                                      ?.withValues(alpha: 0.55),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                          ],
                         ),
                       ),
+                      const SizedBox(width: AppSizes.xs),
                       _HomeCartAction(
                         quantity: quantityInCart,
                         inStock: product.inStock,
@@ -933,6 +961,39 @@ class _ProductCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeOfferBadge extends StatelessWidget {
+  const _HomeOfferBadge({
+    required this.label,
+    required this.textColor,
+    required this.backgroundColor,
+  });
+
+  final String label;
+  final Color textColor;
+  final Color backgroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSizes.sm,
+        vertical: 2,
+      ),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(AppSizes.radiusFull),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: textColor,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
@@ -1095,13 +1156,17 @@ class _NewArrivalCard extends StatelessWidget {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: primary.withOpacity(0.12),
+                      color: product.hasDiscount
+                          ? theme.colorScheme.error.withValues(alpha: 0.12)
+                          : primary.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(AppSizes.radiusFull),
                     ),
                     child: Text(
-                      'NEW',
+                      product.hasDiscount ? '${product.discountPercent}% OFF' : 'NEW',
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: primary,
+                        color: product.hasDiscount
+                            ? theme.colorScheme.error
+                            : primary,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.8,
                       ),
@@ -1130,15 +1195,32 @@ class _NewArrivalCard extends StatelessWidget {
                   const SizedBox(height: AppSizes.xs),
                   Row(
                     children: [
-                      Flexible(
-                        child: Text(
-                          '${AppStrings.currencySymbol}${product.price.toStringAsFixed(0)}',
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            color: primary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${AppStrings.currencySymbol}${product.price.toStringAsFixed(0)}',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                color: primary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (product.hasDiscount)
+                              Text(
+                                '${AppStrings.currencySymbol}${product.originalPrice.toStringAsFixed(0)}',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  decoration: TextDecoration.lineThrough,
+                                  color: theme.colorScheme.onSurface.withOpacity(
+                                    0.6,
+                                  ),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                          ],
                         ),
                       ),
                       const SizedBox(width: AppSizes.xs),
@@ -1212,20 +1294,16 @@ class _HomeWishlistButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white.withOpacity(0.92),
       borderRadius: BorderRadius.circular(AppSizes.radiusFull),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppSizes.radiusFull),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSizes.xs),
-          child: Icon(
-            isSelected ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-            color: isSelected
-                ? Colors.redAccent
-                : Theme.of(context).colorScheme.primary,
-            size: AppSizes.iconSm,
-          ),
+        child: Icon(
+          isSelected ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+          color: isSelected
+              ? Colors.redAccent
+              : Theme.of(context).colorScheme.primary,
+          size: AppSizes.iconSm,
         ),
       ),
     );

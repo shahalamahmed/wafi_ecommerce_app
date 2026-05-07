@@ -7,6 +7,7 @@ import 'package:wafi_ecommerce_app/features/auth/auth_provider.dart';
 import 'package:wafi_ecommerce_app/features/cart/cart_provider.dart';
 import 'package:wafi_ecommerce_app/features/cart/cart_screen.dart';
 import 'package:wafi_ecommerce_app/features/home/home_screen.dart';
+import 'package:wafi_ecommerce_app/features/offers/offers_screen.dart';
 import 'package:wafi_ecommerce_app/features/owner/order_management_screen.dart';
 import 'package:wafi_ecommerce_app/features/owner/owner_catalog_screen.dart';
 import 'package:wafi_ecommerce_app/features/orders/order_screen.dart';
@@ -93,7 +94,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
         icon: Icons.local_offer_outlined,
         scrollUnderAppBar: true,
         topInset: 0,
-        body: _OffersTabPage(),
+        body: OffersScreen(immersiveShell: true),
       ),
       _ShellPage(
         title: AppStrings.myOrders,
@@ -254,105 +255,6 @@ class _StandaloneCartScreen extends StatelessWidget {
         subtitle: 'Review selected products before checkout',
       ),
       body: CartScreen(),
-    );
-  }
-}
-
-class _OffersTabPage extends StatelessWidget {
-  const _OffersTabPage();
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: EdgeInsets.fromLTRB(
-        AppSizes.screenPaddingH,
-        WafiAppBar.compactOverlayTopInset(
-          context,
-          hasSubtitle: false,
-          revealAmount: AppSizes.xl5,
-        ),
-        AppSizes.screenPaddingH,
-        120,
-      ),
-      children: const [
-        _OffersHeroCard(),
-        SizedBox(height: AppSizes.lg),
-        _OffersInfoCard(),
-      ],
-    );
-  }
-}
-
-class _OffersHeroCard extends StatelessWidget {
-  const _OffersHeroCard();
-
-  @override
-  Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
-
-    return GlassCard(
-      variant: GlassCardVariant.elevated,
-      child: Container(
-        padding: const EdgeInsets.all(AppSizes.xl2),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              primary.withValues(alpha: 0.90),
-              primary.withValues(alpha: 0.72),
-              primary.withValues(alpha: 0.24),
-            ],
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Offers & Coupons',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: AppSizes.sm),
-            Text(
-              'Promo codes, seasonal deals, and cashback campaigns will appear here.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.white.withValues(alpha: 0.92),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _OffersInfoCard extends StatelessWidget {
-  const _OffersInfoCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassCard(
-      variant: GlassCardVariant.elevated,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Coming Soon',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: AppSizes.md),
-          Text(
-            'Coupon validation, bundle offers, and campaign banners are not connected yet. This tab is ready for those integrations.',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        ],
-      ),
     );
   }
 }
