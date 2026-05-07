@@ -338,7 +338,7 @@ class _QuantitySelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 56,
+      height: 44,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppSizes.radiusSm),
         border: Border.all(color: Theme.of(context).dividerColor),
@@ -405,7 +405,7 @@ class _OptionTile extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppSizes.radiusSm),
       child: Container(
-        height: 56,
+        height: 44,
         alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(horizontal: AppSizes.md),
         decoration: BoxDecoration(
@@ -449,7 +449,7 @@ class _SectionTabs extends StatelessWidget {
             child: InkWell(
               onTap: () => onChanged(index),
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: AppSizes.lg),
+                padding: const EdgeInsets.symmetric(vertical: AppSizes.md),
                 decoration: BoxDecoration(
                   color: index == activeIndex
                       ? Theme.of(context).colorScheme.primary

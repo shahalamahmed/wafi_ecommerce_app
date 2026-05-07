@@ -370,9 +370,9 @@ class _HeroBannerState extends State<_HeroBanner> {
     final primary = theme.colorScheme.primary;
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(AppSizes.radiusXxl),
+      borderRadius: BorderRadius.circular(AppSizes.radiusLg),
       child: SizedBox(
-        height: 280,
+        height: 240,
         child: Stack(
           children: [
             // ── PageView ──────────────────────────────────────────────────
