@@ -68,28 +68,6 @@ class ProductCard extends StatelessWidget {
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      if (product.hasDiscount) ...[
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSizes.xs,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.error.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(
-                              AppSizes.radiusFull,
-                            ),
-                          ),
-                          child: Text(
-                            '${product.discountPercent}% OFF',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.error,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ],
                       const SizedBox(height: 4),
                       Row(
                         children: [
@@ -167,22 +145,71 @@ class _ProductImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasImage = product.primaryImage.trim().isNotEmpty;
+    final theme = Theme.of(context);
 
     return SizedBox(
       width: 76,
-      child: ClipRRect(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(AppSizes.radiusMd),
-          bottomLeft: Radius.circular(AppSizes.radiusMd),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(AppSizes.radiusMd),
+                bottomLeft: Radius.circular(AppSizes.radiusMd),
+              ),
+              child: hasImage
+                  ? Image.network(
+                      product.primaryImage,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          _ProductImageFallback(name: product.name),
+                    )
+                  : _ProductImageFallback(name: product.name),
+            ),
+          ),
+          if (product.hasDiscount)
+            Positioned(
+              top: AppSizes.xs,
+              left: AppSizes.xs,
+              child: _ImageOfferBadge(
+                label: '${product.discountPercent}% OFF',
+                backgroundColor: theme.colorScheme.error,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ImageOfferBadge extends StatelessWidget {
+  const _ImageOfferBadge({required this.label, required this.backgroundColor});
+
+  final String label;
+  final Color backgroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSizes.sm, vertical: 3),
+      decoration: BoxDecoration(
+        color: backgroundColor.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(AppSizes.radiusFull),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.14),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.3,
         ),
-        child: hasImage
-            ? Image.network(
-                product.primaryImage,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                    _ProductImageFallback(name: product.name),
-              )
-            : _ProductImageFallback(name: product.name),
       ),
     );
   }
@@ -257,23 +284,21 @@ class _WishlistButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final iconColor = isSelected
+        ? Colors.redAccent
+        : theme.brightness == Brightness.dark
+        ? Colors.white.withValues(alpha: 0.82)
+        : theme.colorScheme.primary.withValues(alpha: 0.82);
+
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: isSelected
-                ? Colors.redAccent.withValues(alpha: 0.35)
-                : Colors.grey.withValues(alpha: 0.25),
-            width: 1,
-          ),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.all(2),
         child: Icon(
           isSelected ? Icons.favorite_rounded : Icons.favorite_border_rounded,
           size: AppSizes.iconSm,
-          color: isSelected ? Colors.redAccent : Colors.grey.shade400,
+          color: iconColor,
         ),
       ),
     );

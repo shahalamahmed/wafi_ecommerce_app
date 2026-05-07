@@ -881,6 +881,15 @@ class _ProductCard extends StatelessWidget {
                       onTap: onToggleWishlist,
                     ),
                   ),
+                  if (product.hasDiscount)
+                    Positioned(
+                      top: AppSizes.sm,
+                      left: AppSizes.sm,
+                      child: _HomeImageOfferBadge(
+                        label: '${product.discountPercent}% OFF',
+                        backgroundColor: theme.colorScheme.error,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -890,16 +899,6 @@ class _ProductCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (product.hasDiscount) ...[
-                    _HomeOfferBadge(
-                      label: '${product.discountPercent}% OFF',
-                      textColor: theme.colorScheme.error,
-                      backgroundColor: theme.colorScheme.error.withValues(
-                        alpha: 0.10,
-                      ),
-                    ),
-                    const SizedBox(height: AppSizes.xs),
-                  ],
                   Text(
                     product.name,
                     style: theme.textTheme.titleSmall,
@@ -967,33 +966,36 @@ class _ProductCard extends StatelessWidget {
   }
 }
 
-class _HomeOfferBadge extends StatelessWidget {
-  const _HomeOfferBadge({
+class _HomeImageOfferBadge extends StatelessWidget {
+  const _HomeImageOfferBadge({
     required this.label,
-    required this.textColor,
     required this.backgroundColor,
   });
 
   final String label;
-  final Color textColor;
   final Color backgroundColor;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSizes.sm,
-        vertical: 2,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: AppSizes.sm, vertical: 3),
       decoration: BoxDecoration(
-        color: backgroundColor,
+        color: backgroundColor.withValues(alpha: 0.92),
         borderRadius: BorderRadius.circular(AppSizes.radiusFull),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.14),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: textColor,
+          color: Colors.white,
           fontWeight: FontWeight.w700,
+          letterSpacing: 0.3,
         ),
       ),
     );
@@ -1141,6 +1143,18 @@ class _NewArrivalCard extends StatelessWidget {
                       onTap: onToggleWishlist,
                     ),
                   ),
+                  Positioned(
+                    top: AppSizes.sm,
+                    left: AppSizes.sm,
+                    child: _HomeImageOfferBadge(
+                      label: product.hasDiscount
+                          ? '${product.discountPercent}% OFF'
+                          : 'NEW',
+                      backgroundColor: product.hasDiscount
+                          ? theme.colorScheme.error
+                          : primary,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1150,29 +1164,6 @@ class _NewArrivalCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSizes.sm,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: product.hasDiscount
-                          ? theme.colorScheme.error.withValues(alpha: 0.12)
-                          : primary.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(AppSizes.radiusFull),
-                    ),
-                    child: Text(
-                      product.hasDiscount ? '${product.discountPercent}% OFF' : 'NEW',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: product.hasDiscount
-                            ? theme.colorScheme.error
-                            : primary,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSizes.xs),
                   Text(
                     product.name,
                     style: theme.textTheme.titleSmall?.copyWith(
@@ -1213,9 +1204,8 @@ class _NewArrivalCard extends StatelessWidget {
                                 '${AppStrings.currencySymbol}${product.originalPrice.toStringAsFixed(0)}',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   decoration: TextDecoration.lineThrough,
-                                  color: theme.colorScheme.onSurface.withOpacity(
-                                    0.6,
-                                  ),
+                                  color: theme.colorScheme.onSurface
+                                      .withOpacity(0.6),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -1293,17 +1283,26 @@ class _HomeWishlistButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final iconColor = isSelected
+        ? Colors.redAccent
+        : theme.brightness == Brightness.dark
+        ? Colors.white.withValues(alpha: 0.82)
+        : theme.colorScheme.primary.withValues(alpha: 0.82);
+
     return Material(
+      color: Colors.transparent,
       borderRadius: BorderRadius.circular(AppSizes.radiusFull),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppSizes.radiusFull),
-        child: Icon(
-          isSelected ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-          color: isSelected
-              ? Colors.redAccent
-              : Theme.of(context).colorScheme.primary,
-          size: AppSizes.iconSm,
+        child: Padding(
+          padding: const EdgeInsets.all(2),
+          child: Icon(
+            isSelected ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+            color: iconColor,
+            size: AppSizes.iconSm,
+          ),
         ),
       ),
     );

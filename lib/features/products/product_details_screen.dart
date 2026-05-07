@@ -81,20 +81,18 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
             children: [
               GlassCard(
                 variant: GlassCardVariant.elevated,
-                padding: const EdgeInsets.all(AppSizes.md),
+                padding: EdgeInsets.zero,  // ← padding শূন্য
                 child: AspectRatio(
                   aspectRatio: 1,
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(
-                      AppSizes.productCardRadius - 4,
-                    ),
+                    borderRadius: BorderRadius.circular(AppSizes.productCardRadius),  // ← -4 বাদ
                     child: product.primaryImage.trim().isNotEmpty
                         ? Image.network(
-                            product.primaryImage,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
-                                _DetailsImageFallback(name: product.name),
-                          )
+                      product.primaryImage,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) =>
+                          _DetailsImageFallback(name: product.name),
+                    )
                         : _DetailsImageFallback(name: product.name),
                   ),
                 ),

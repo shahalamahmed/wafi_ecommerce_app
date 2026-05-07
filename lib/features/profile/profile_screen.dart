@@ -16,7 +16,6 @@ import 'package:wafi_ecommerce_app/features/wishlist/wishlist_provider.dart';
 import 'package:wafi_ecommerce_app/features/wishlist/wishlist_screen.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
-import 'package:wafi_ecommerce_app/shared/widgets/glass_chip.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/profile_avatar.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
 
@@ -167,7 +166,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     label: 'Support',
                     onTap: () => _openPlaceholder(
                       title: 'Support',
-                      subtitle: 'Support contact options will be connected soon.',
+                      subtitle:
+                          'Support contact options will be connected soon.',
                       icon: Icons.support_agent_outlined,
                     ),
                   ),
@@ -187,7 +187,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     label: 'Faqs',
                     onTap: () => _openPlaceholder(
                       title: 'FAQs',
-                      subtitle: 'Frequently asked questions will be published here.',
+                      subtitle:
+                          'Frequently asked questions will be published here.',
                       icon: Icons.question_answer_outlined,
                     ),
                   ),
@@ -330,6 +331,11 @@ class _ProfileHeroCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
+    final isDark = theme.brightness == Brightness.dark;
+    final heroTextColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final heroSubtleTextColor = isDark
+        ? Colors.white.withValues(alpha: 0.90)
+        : const Color(0xFF334155);
 
     return GlassCard(
       variant: GlassCardVariant.elevated,
@@ -348,7 +354,7 @@ class _ProfileHeroCard extends StatelessWidget {
                 Text(
                   isGuest ? 'Hello there!' : 'Welcome back!',
                   style: theme.textTheme.titleLarge?.copyWith(
-                    color: Colors.white,
+                    color: heroTextColor,
                   ),
                 ),
                 const SizedBox(height: AppSizes.md),
@@ -356,7 +362,7 @@ class _ProfileHeroCard extends StatelessWidget {
                   Text(
                     'Sign in to get the best experience',
                     style: theme.textTheme.headlineLarge?.copyWith(
-                      color: Colors.white,
+                      color: heroTextColor,
                       height: 1.08,
                     ),
                   )
@@ -415,7 +421,7 @@ class _ProfileHeroCard extends StatelessWidget {
                                   ? user!.displayName
                                   : 'Wafi User',
                               style: theme.textTheme.titleLarge?.copyWith(
-                                color: Colors.white,
+                                color: heroTextColor,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -425,7 +431,7 @@ class _ProfileHeroCard extends StatelessWidget {
                                   ? user!.email
                                   : 'No email available',
                               style: theme.textTheme.bodyMedium?.copyWith(
-                                color: Colors.white.withValues(alpha: 0.90),
+                                color: heroSubtleTextColor,
                               ),
                             ),
                           ],
