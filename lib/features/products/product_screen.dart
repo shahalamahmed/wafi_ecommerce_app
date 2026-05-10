@@ -63,6 +63,8 @@ class ProductScreen extends ConsumerStatefulWidget {
 }
 
 class _ProductScreenState extends ConsumerState<ProductScreen> {
+  bool _didApplyInitialCategory = false;
+
   @override
   void initState() {
     super.initState();
@@ -72,10 +74,6 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
 
       if (widget.resetFiltersOnOpen) {
         notifier.resetFilters();
-      }
-
-      if ((widget.initialCategoryId ?? '').isNotEmpty) {
-        notifier.selectCategory(widget.initialCategoryId);
       }
     });
   }
@@ -100,6 +98,29 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
     final categoryLookup = <String, String>{
       for (final category in state.categories) category.id: category.name,
     };
+    final shouldPreferInitialCategory =
+        !_didApplyInitialCategory &&
+        (widget.initialCategoryId?.trim().isNotEmpty ?? false);
+    final resolvedSelection = _resolveSelection(
+      state,
+      preferredCategoryId: widget.initialCategoryId,
+      preferInitialCategory: shouldPreferInitialCategory,
+    );
+    final selectedParentCategory = resolvedSelection.parent;
+    final visibleSubCategories = selectedParentCategory == null
+        ? const <ProductCategory>[]
+        : (state.categories
+              .where(
+                (category) =>
+                    category.isActive &&
+                    category.parentId == selectedParentCategory.id,
+              )
+              .toList()
+          ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder)));
+    final showSubCategoryBar =
+        selectedParentCategory != null && visibleSubCategories.isNotEmpty;
+
+    _applyInitialCategorySelectionIfNeeded(state);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -163,8 +184,8 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                             SizedBox(
                               width: isCompact ? 72 : 86,
                               child: _CategoryRail(
-                                categories: state.activeCategories,
-                                selectedCategoryId: state.selectedCategoryId,
+                                categories: state.topLevelCategories,
+                                selectedCategoryId: selectedParentCategory?.id,
                                 onSelect: notifier.selectCategory,
                               ),
                             ),
@@ -173,16 +194,12 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  if (state.selectedCategory != null) ...[
-                                    Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: GlassChip(
-                                        label: state.selectedCategory!.name,
-                                        variant: GlassChipVariant.primary,
-                                        isSelected: true,
-                                        onTap: () =>
-                                            notifier.selectCategory(null),
-                                      ),
+                                  if (showSubCategoryBar) ...[
+                                    _SubCategorySelector(
+                                      subCategories: visibleSubCategories,
+                                      selectedSubCategoryId:
+                                          state.selectedSubCategoryId,
+                                      onSelect: notifier.selectSubCategory,
                                     ),
                                     const SizedBox(height: AppSizes.sm),
                                   ],
@@ -428,6 +445,88 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
       _ => '',
     };
   }
+
+  void _applyInitialCategorySelectionIfNeeded(ProductState state) {
+    final initialCategoryId = widget.initialCategoryId?.trim() ?? '';
+    if (_didApplyInitialCategory || state.isLoading || initialCategoryId.isEmpty) {
+      return;
+    }
+
+    final resolved = _resolveSelection(
+      state,
+      preferredCategoryId: initialCategoryId,
+      preferInitialCategory: true,
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _didApplyInitialCategory) return;
+      final notifier = ref.read(productProvider.notifier);
+      _didApplyInitialCategory = true;
+      notifier.selectCategory(resolved.parent?.id);
+      notifier.selectSubCategory(resolved.subCategory?.id);
+    });
+  }
+
+  _ResolvedCategorySelection _resolveSelection(
+    ProductState state, {
+    required String? preferredCategoryId,
+    required bool preferInitialCategory,
+  }) {
+    ProductCategory? selectedCategory;
+
+    if (preferInitialCategory) {
+      final initialCategoryId = preferredCategoryId?.trim() ?? '';
+      if (initialCategoryId.isNotEmpty) {
+        for (final category in state.categories) {
+          if (category.id == initialCategoryId) {
+            selectedCategory = category;
+            break;
+          }
+        }
+      }
+    } else {
+      selectedCategory = state.selectedCategory;
+    }
+
+    if (selectedCategory == null) {
+      return const _ResolvedCategorySelection(parent: null, subCategory: null);
+    }
+
+    if (selectedCategory.isTopLevel) {
+      final selectedSubCategoryId = preferInitialCategory
+          ? null
+          : state.selectedSubCategoryId;
+      ProductCategory? selectedSubCategory;
+      if ((selectedSubCategoryId ?? '').isNotEmpty) {
+        for (final category in state.categories) {
+          if (category.id == selectedSubCategoryId) {
+            selectedSubCategory = category;
+            break;
+          }
+        }
+      }
+      return _ResolvedCategorySelection(
+        parent: selectedCategory,
+        subCategory: selectedSubCategory,
+      );
+    }
+
+    ProductCategory? parentCategory;
+    final parentId = selectedCategory.parentId;
+    if ((parentId ?? '').isNotEmpty) {
+      for (final category in state.categories) {
+        if (category.id == parentId) {
+          parentCategory = category;
+          break;
+        }
+      }
+    }
+
+    return _ResolvedCategorySelection(
+      parent: parentCategory,
+      subCategory: selectedCategory,
+    );
+  }
 }
 
 class _ProductLoadingState extends StatelessWidget {
@@ -654,6 +753,54 @@ class _CategoryRail extends StatelessWidget {
     if (value.contains('oil')) return Icons.local_drink_outlined;
     return Icons.shopping_bag_outlined;
   }
+}
+
+class _SubCategorySelector extends StatelessWidget {
+  const _SubCategorySelector({
+    required this.subCategories,
+    required this.selectedSubCategoryId,
+    required this.onSelect,
+  });
+
+  final List<ProductCategory> subCategories;
+  final String? selectedSubCategoryId;
+  final ValueChanged<String?> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 36,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: subCategories.length + 1,
+        separatorBuilder: (context, index) => const SizedBox(width: AppSizes.xs),
+        itemBuilder: (context, index) {
+          final isAllChip = index == 0;
+          final category = isAllChip ? null : subCategories[index - 1];
+          final isSelected = isAllChip
+              ? (selectedSubCategoryId == null || selectedSubCategoryId!.isEmpty)
+              : selectedSubCategoryId == category!.id;
+
+          return GlassChip(
+            label: category?.name ?? 'All',
+            variant: GlassChipVariant.primary,
+            isSelected: isSelected,
+            onTap: () => onSelect(category?.id),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ResolvedCategorySelection {
+  const _ResolvedCategorySelection({
+    required this.parent,
+    required this.subCategory,
+  });
+
+  final ProductCategory? parent;
+  final ProductCategory? subCategory;
 }
 
 class _PinnedSearchRow extends StatelessWidget {
