@@ -62,7 +62,7 @@ class CartScreen extends ConsumerWidget {
                 AppSizes.screenPaddingH,
                 topInset,
                 AppSizes.screenPaddingH,
-                100,
+                AppSizes.md,
               ),
               itemCount: state.items.length,
               separatorBuilder: (context, index) =>
@@ -81,7 +81,6 @@ class CartScreen extends ConsumerWidget {
           ),
         ),
         _CartSummary(state: state),
-        const SizedBox(height: 100),
       ],
     );
   }
@@ -326,6 +325,14 @@ class _CartSummaryState extends ConsumerState<_CartSummary> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            _CartAddressSummary(
+              address: selectedAddress,
+              isLoading: addressState.isLoading,
+              onTap: authState.isAuthenticated
+                  ? () => _handleAddressTap(addressState.items)
+                  : null,
+            ),
+            const SizedBox(height: AppSizes.md),
             _SummaryRow(
               label: AppStrings.subtotal,
               value:
@@ -343,14 +350,6 @@ class _CartSummaryState extends ConsumerState<_CartSummary> {
               value:
                   '${AppStrings.currencySymbol}${widget.state.total.toStringAsFixed(0)}',
               isTotal: true,
-            ),
-            const SizedBox(height: AppSizes.md),
-            _CartAddressSummary(
-              address: selectedAddress,
-              isLoading: addressState.isLoading,
-              onTap: authState.isAuthenticated
-                  ? () => _handleAddressTap(addressState.items)
-                  : null,
             ),
             const SizedBox(height: AppSizes.md),
             GlassButton(
