@@ -37,11 +37,11 @@ class AppDrawer extends ConsumerWidget {
         child: Container(
           decoration: BoxDecoration(
             color: isDark
-                ? Colors.black.withOpacity(0.55)
-                : Colors.white.withOpacity(0.70),
+                ? Colors.black.withValues(alpha: 0.55)
+                : Colors.white.withValues(alpha: 0.70),
             border: Border(
               right: BorderSide(
-                color: Colors.white.withOpacity(0.15),
+                color: Colors.white.withValues(alpha: 0.15),
                 width: 1,
               ),
             ),

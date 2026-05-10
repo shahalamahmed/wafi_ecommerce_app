@@ -140,7 +140,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                       decoration: TextDecoration.lineThrough,
                       color: Theme.of(
                         context,
-                      ).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                      ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                     ),
                   ),
                 ),
@@ -376,7 +376,7 @@ class _DetailsImageFallback extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Theme.of(context).colorScheme.primary.withOpacity(0.06),
+      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.06),
       alignment: Alignment.center,
       padding: const EdgeInsets.all(AppSizes.xl2),
       child: Text(
@@ -453,11 +453,11 @@ class _SectionTabs extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: index == activeIndex
                       ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                      : Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
                   border: Border.all(
                     color: Theme.of(
                       context,
-                    ).colorScheme.primary.withOpacity(0.4),
+                    ).colorScheme.primary.withValues(alpha: 0.4),
                   ),
                 ),
                 child: Text(

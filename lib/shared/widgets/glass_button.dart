@@ -89,8 +89,8 @@ class _GlassButtonState extends State<GlassButton>
           fg: isDark ? AppColors.warningDark : AppColors.warningLight,
         ),
       GlassButtonVariant.bkash => _ButtonStyle(
-          bg: AppColors.bkashPink.withOpacity(0.10),
-          border: AppColors.bkashPink.withOpacity(0.25),
+          bg: AppColors.bkashPink.withValues(alpha: 0.10),
+          border: AppColors.bkashPink.withValues(alpha: 0.25),
           fg: AppColors.bkashPink,
         ),
     };
@@ -173,7 +173,7 @@ class _GlassButtonState extends State<GlassButton>
                   ? [
                       BoxShadow(
                         color: (isDark ? AppColors.primaryDark : AppColors.primaryLight)
-                            .withOpacity(isDark ? 0.08 : 0.18),
+                            .withValues(alpha: isDark ? 0.08 : 0.18),
                         blurRadius: isDark ? 12 : 24,
                         offset: Offset(0, isDark ? 5 : 10),
                       ),
@@ -185,10 +185,10 @@ class _GlassButtonState extends State<GlassButton>
                 colors: isDark
                     ? [
                         style.bg,
-                        style.bg.withOpacity(0.92),
+                        style.bg.withValues(alpha: 0.92),
                       ]
                     : [
-                        Colors.white.withOpacity(0.14),
+                        Colors.white.withValues(alpha: 0.14),
                         style.bg,
                       ],
               ),

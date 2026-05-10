@@ -183,7 +183,7 @@ class _CartImage extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppSizes.radiusMd),
         color: isDark
             ? AppColors.glassElevatedDark
-            : Theme.of(context).colorScheme.primary.withOpacity(0.06),
+            : Theme.of(context).colorScheme.primary.withValues(alpha: 0.06),
       ),
       clipBehavior: Clip.antiAlias,
       child: imageUrl.trim().isNotEmpty
@@ -239,10 +239,10 @@ class _QuantityStepper extends StatelessWidget {
         vertical: AppSizes.xs,
       ),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppSizes.radiusMd),
         border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.35),
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.35),
         ),
       ),
       child: Row(
@@ -298,7 +298,7 @@ class _CartSummary extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final surfaceColor = isDark
         ? const Color(0xFF1A1C1F)
-        : Theme.of(context).colorScheme.surface.withOpacity(0.95);
+        : Theme.of(context).colorScheme.surface.withValues(alpha: 0.95);
 
     return SafeArea(
       top: false,

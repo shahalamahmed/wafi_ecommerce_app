@@ -407,7 +407,7 @@ class _HeroBannerState extends State<_HeroBanner> {
                     width: isActive ? 20 : 7,
                     height: 7,
                     decoration: BoxDecoration(
-                      color: isActive ? primary : primary.withOpacity(0.35),
+                      color: isActive ? primary : primary.withValues(alpha: 0.35),
                       borderRadius: BorderRadius.circular(4),
                     ),
                   );
@@ -434,12 +434,12 @@ class _BannerSlide extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final titleColor = Colors.white;
-    final subtitleColor = Colors.white.withOpacity(isDark ? 0.88 : 0.92);
-    final chipBackground = Colors.white.withOpacity(isDark ? 0.12 : 0.16);
-    final chipBorder = Colors.white.withOpacity(isDark ? 0.24 : 0.32);
+    final subtitleColor = Colors.white.withValues(alpha: isDark ? 0.88 : 0.92);
+    final chipBackground = Colors.white.withValues(alpha: isDark ? 0.12 : 0.16);
+    final chipBorder = Colors.white.withValues(alpha: isDark ? 0.24 : 0.32);
     final textShadow = [
       Shadow(
-        color: Colors.black.withOpacity(isDark ? 0.36 : 0.28),
+        color: Colors.black.withValues(alpha: isDark ? 0.36 : 0.28),
         blurRadius: 18,
         offset: const Offset(0, 4),
       ),
@@ -464,9 +464,9 @@ class _BannerSlide extends StatelessWidget {
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
                 colors: [
-                  Colors.black.withOpacity(isDark ? 0.42 : 0.54),
-                  Colors.black.withOpacity(isDark ? 0.24 : 0.34),
-                  Colors.black.withOpacity(isDark ? 0.08 : 0.14),
+                  Colors.black.withValues(alpha: isDark ? 0.42 : 0.54),
+                  Colors.black.withValues(alpha: isDark ? 0.24 : 0.34),
+                  Colors.black.withValues(alpha: isDark ? 0.08 : 0.14),
                   Colors.transparent,
                 ],
                 stops: const [0.0, 0.34, 0.62, 1.0],
@@ -653,10 +653,10 @@ class _CategoryCard extends StatelessWidget {
         width: 90,
         child: Container(
           decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.6),
+            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
             borderRadius: BorderRadius.circular(AppSizes.radiusLg),
             border: Border.all(
-              color: theme.colorScheme.outline.withOpacity(0.2),
+              color: theme.colorScheme.outline.withValues(alpha: 0.2),
             ),
           ),
           padding: const EdgeInsets.symmetric(
@@ -671,7 +671,7 @@ class _CategoryCard extends StatelessWidget {
                 height: 44,
                 clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
-                  color: primary.withOpacity(0.12),
+                  color: primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(AppSizes.radiusMd),
                 ),
                 child: hasImage
@@ -838,7 +838,7 @@ class _ProductCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(AppSizes.radiusLg),
-          border: Border.all(color: theme.colorScheme.outline.withOpacity(0.3)),
+          border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1090,7 +1090,7 @@ class _NewArrivalCard extends StatelessWidget {
     final primary = theme.colorScheme.primary;
     final hasImage = product.primaryImage.trim().isNotEmpty;
     final cardBg = theme.colorScheme.surfaceContainerHighest;
-    final imgBg = theme.colorScheme.surfaceContainerHighest.withOpacity(0.6);
+    final imgBg = theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6);
 
     return GestureDetector(
       onTap: onTap,
@@ -1099,7 +1099,7 @@ class _NewArrivalCard extends StatelessWidget {
           color: cardBg,
           borderRadius: BorderRadius.circular(AppSizes.radiusLg),
           border: Border.all(
-            color: theme.colorScheme.outline.withOpacity(0.15),
+            color: theme.colorScheme.outline.withValues(alpha: 0.15),
           ),
         ),
         child: Column(
@@ -1178,7 +1178,7 @@ class _NewArrivalCard extends StatelessWidget {
                         ? product.shortDescription
                         : product.description,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1205,7 +1205,7 @@ class _NewArrivalCard extends StatelessWidget {
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   decoration: TextDecoration.lineThrough,
                                   color: theme.colorScheme.onSurface
-                                      .withOpacity(0.6),
+                                      .withValues(alpha: 0.6),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -1260,9 +1260,9 @@ class _EyebrowChip extends StatelessWidget {
         vertical: AppSizes.xs,
       ),
       decoration: BoxDecoration(
-        color: backgroundColor ?? primary.withOpacity(0.10),
+        color: backgroundColor ?? primary.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(AppSizes.radiusFull),
-        border: Border.all(color: borderColor ?? primary.withOpacity(0.20)),
+        border: Border.all(color: borderColor ?? primary.withValues(alpha: 0.20)),
       ),
       child: Text(
         label,
@@ -1336,11 +1336,13 @@ class _HomeCartAction extends StatelessWidget {
     final borderColor = filled
         ? Colors.transparent
         : inStock
-        ? primary.withOpacity(0.4)
-        : disabledColor.withOpacity(0.3);
+        ? primary.withValues(alpha: 0.4)
+        : disabledColor.withValues(alpha: 0.3);
     final backgroundColor = filled
-        ? (inStock ? primary : disabledColor.withOpacity(0.3))
-        : (inStock ? primary.withOpacity(0.1) : disabledColor.withOpacity(0.1));
+        ? (inStock ? primary : disabledColor.withValues(alpha: 0.3))
+        : (inStock
+            ? primary.withValues(alpha: 0.1)
+            : disabledColor.withValues(alpha: 0.1));
     final foregroundColor = filled
         ? Colors.white
         : (inStock ? primary : disabledColor);

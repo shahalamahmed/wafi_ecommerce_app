@@ -66,12 +66,12 @@ class GlassBottomNav extends StatelessWidget {
                 end: Alignment.bottomRight,
                 colors: isDark
                     ? [
-                  const Color(0xFF0A0A0A).withOpacity(0.75),
-                  const Color(0xFF0A0A0A).withOpacity(0.65),
+                  const Color(0xFF0A0A0A).withValues(alpha: 0.75),
+                  const Color(0xFF0A0A0A).withValues(alpha: 0.65),
                 ]
                     : [
-                  const Color(0xFFFDFDFF).withOpacity(0.75),
-                  const Color(0xFFFDFDFF).withOpacity(0.65),
+                  const Color(0xFFFDFDFF).withValues(alpha: 0.75),
+                  const Color(0xFFFDFDFF).withValues(alpha: 0.65),
                 ],
               ),
             ),
@@ -123,11 +123,11 @@ class _GlassBottomNavTile extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppSizes.radiusXl),
           color: isSelected
-              ? theme.colorScheme.primary.withOpacity(0.10)
+              ? theme.colorScheme.primary.withValues(alpha: 0.10)
               : Colors.transparent,
           border: isSelected
               ? Border.all(
-                  color: theme.colorScheme.primary.withOpacity(0.16),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.16),
                 )
               : null,
         ),

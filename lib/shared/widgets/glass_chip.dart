@@ -54,7 +54,9 @@ class GlassChip extends StatelessWidget {
           vertical:   AppSizes.xs,
         ),
         decoration: BoxDecoration(
-          color:        isSelected ? bg.withOpacity(bg.opacity * 1.5) : bg,
+          color:        isSelected
+              ? bg.withValues(alpha: (bg.a * 1.5).clamp(0.0, 1.0).toDouble())
+              : bg,
           borderRadius: BorderRadius.circular(AppSizes.radiusFull),
           border: Border.all(color: border, width: 1),
         ),
@@ -76,7 +78,7 @@ class GlassChip extends StatelessWidget {
               const SizedBox(width: AppSizes.xs),
               GestureDetector(
                 onTap: onDelete,
-                child: Icon(Icons.close, size: 12, color: fg.withOpacity(.7)),
+                child: Icon(Icons.close, size: 12, color: fg.withValues(alpha: .7)),
               ),
             ],
           ],

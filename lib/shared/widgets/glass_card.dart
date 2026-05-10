@@ -95,12 +95,12 @@ class GlassCard extends StatelessWidget {
                 end: Alignment.bottomRight,
                 colors: isDark
                     ? [
-                        Colors.white.withOpacity(0.02),
+                        Colors.white.withValues(alpha: 0.02),
                         Colors.transparent,
                       ]
                     : [
-                        Colors.white.withOpacity(0.08),
-                        Colors.white.withOpacity(0.02),
+                        Colors.white.withValues(alpha: 0.08),
+                        Colors.white.withValues(alpha: 0.02),
                       ],
               ),
             ),
