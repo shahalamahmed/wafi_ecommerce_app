@@ -32,6 +32,14 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
     final wishlistNotifier = ref.read(wishlistProvider.notifier);
     final product = widget.product;
     final isWishlisted = wishlistNotifier.containsProduct(product.id);
+    final cartQuantity = cartNotifier.quantityForProduct(product.id);
+    final effectiveQuantity = cartQuantity > 0 ? cartQuantity : _quantity;
+    final canIncreaseDraft =
+        _quantity < 20 && (_quantity < product.stock || product.stock <= 0);
+    final canIncreaseCart =
+        cartQuantity > 0 &&
+        cartQuantity < 20 &&
+        (cartQuantity < product.stock || product.stock <= 0);
 
     return Scaffold(
       appBar: WafiAppBar(
@@ -168,15 +176,21 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
             children: [
               Expanded(
                 child: _QuantitySelector(
-                  quantity: _quantity,
-                  onDecrease: _quantity > 1
+                  quantity: effectiveQuantity,
+                  onDecrease: cartQuantity > 0
+                      ? () => cartNotifier.decrement(product.id)
+                      : _quantity > 1
                       ? () {
                           setState(() {
                             _quantity--;
                           });
                         }
                       : null,
-                  onIncrease: _quantity < 20 && _quantity < product.stock
+                  onIncrease: cartQuantity > 0
+                      ? (canIncreaseCart
+                            ? () => cartNotifier.increment(product.id)
+                            : null)
+                      : canIncreaseDraft
                       ? () {
                           setState(() {
                             _quantity++;
@@ -280,24 +294,37 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
               _CartCountBadge(count: cartState.itemCount),
               const SizedBox(width: AppSizes.md),
               Expanded(
-                child: GlassButton(
-                  label: AppStrings.addToCart,
-                  variant: GlassButtonVariant.success,
-                  onPressed: product.inStock
-                      ? () async {
-                          await cartNotifier.addProduct(
-                            product,
-                            quantity: _quantity,
-                          );
-                          if (!context.mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('${product.name} added to cart'),
-                            ),
-                          );
-                        }
-                      : null,
-                ),
+                child: cartQuantity <= 0
+                    ? GlassButton(
+                        label: AppStrings.addToCart,
+                        variant: GlassButtonVariant.success,
+                        onPressed: product.inStock
+                            ? () async {
+                                await cartNotifier.addProduct(
+                                  product,
+                                  quantity: _quantity,
+                                );
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      '${product.name} added to cart',
+                                    ),
+                                  ),
+                                );
+                              }
+                            : null,
+                      )
+                    : _DetailsCartAction(
+                        quantity: cartQuantity,
+                        inStock: product.inStock,
+                        primary: Theme.of(context).colorScheme.primary,
+                        textStyle: Theme.of(context).textTheme.labelLarge,
+                        onIncrement: canIncreaseCart
+                            ? () => cartNotifier.increment(product.id)
+                            : null,
+                        onDecrement: () => cartNotifier.decrement(product.id),
+                      ),
               ),
               const SizedBox(width: AppSizes.md),
               Container(
@@ -310,7 +337,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                   borderRadius: BorderRadius.circular(AppSizes.radiusMd),
                 ),
                 child: Text(
-                  '${AppStrings.currencySymbol}${(product.price * _quantity).toStringAsFixed(0)}',
+                  '${AppStrings.currencySymbol}${(product.price * effectiveQuantity).toStringAsFixed(0)}',
                   style: Theme.of(
                     context,
                   ).textTheme.titleLarge?.copyWith(color: Colors.white),
@@ -319,6 +346,95 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _DetailsCartAction extends StatelessWidget {
+  const _DetailsCartAction({
+    required this.quantity,
+    required this.inStock,
+    required this.primary,
+    required this.textStyle,
+    required this.onIncrement,
+    required this.onDecrement,
+  });
+
+  final int quantity;
+  final bool inStock;
+  final Color primary;
+  final TextStyle? textStyle;
+  final VoidCallback? onIncrement;
+  final VoidCallback onDecrement;
+
+  @override
+  Widget build(BuildContext context) {
+    final disabledColor = Colors.grey;
+    final borderColor = inStock
+        ? primary.withValues(alpha: 0.4)
+        : disabledColor.withValues(alpha: 0.3);
+    final backgroundColor = inStock
+        ? primary.withValues(alpha: 0.1)
+        : disabledColor.withValues(alpha: 0.1);
+    final foregroundColor = inStock ? primary : disabledColor;
+
+    return Container(
+      height: AppSizes.buttonHeightMd,
+      padding: const EdgeInsets.symmetric(horizontal: AppSizes.sm),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(AppSizes.buttonRadius),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _DetailsQtyIconButton(
+            icon: Icons.remove_rounded,
+            color: foregroundColor,
+            onTap: onDecrement,
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSizes.md),
+            child: Text(
+              '$quantity',
+              style: textStyle?.copyWith(
+                color: foregroundColor,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          _DetailsQtyIconButton(
+            icon: Icons.add_rounded,
+            color: foregroundColor,
+            onTap: onIncrement,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailsQtyIconButton extends StatelessWidget {
+  const _DetailsQtyIconButton({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color color;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppSizes.radiusXs),
+      child: Padding(
+        padding: const EdgeInsets.all(2),
+        child: Icon(icon, size: AppSizes.iconSm, color: color),
       ),
     );
   }
