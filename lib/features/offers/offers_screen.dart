@@ -191,6 +191,7 @@ class OffersScreen extends ConsumerWidget {
                 products: offeredProducts,
                 viewMode: productState.viewMode,
                 categoryLookup: categoryLookup,
+                quantityForProduct: cartNotifier.quantityForProduct,
                 onTap: (product) {
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
@@ -205,6 +206,8 @@ class OffersScreen extends ConsumerWidget {
                     SnackBar(content: Text('${product.name} added to cart')),
                   );
                 },
+                onIncrement: (product) => cartNotifier.increment(product.id),
+                onDecrement: (product) => cartNotifier.decrement(product.id),
                 isWishlisted: wishlistNotifier.containsProduct,
                 onToggleWishlist: (product) async {
                   final wasWishlisted = wishlistNotifier.containsProduct(

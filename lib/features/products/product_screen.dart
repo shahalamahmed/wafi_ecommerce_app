@@ -198,6 +198,8 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                                             products: state.visibleProducts,
                                             viewMode: state.viewMode,
                                             categoryLookup: categoryLookup,
+                                            quantityForProduct:
+                                                cartNotifier.quantityForProduct,
                                             onTap: (product) {
                                               Navigator.of(context).push(
                                                 MaterialPageRoute<void>(
@@ -223,6 +225,14 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                                                 ),
                                               );
                                             },
+                                            onIncrement: (product) =>
+                                                cartNotifier.increment(
+                                                  product.id,
+                                                ),
+                                            onDecrement: (product) =>
+                                                cartNotifier.decrement(
+                                                  product.id,
+                                                ),
                                             isWishlisted:
                                                 wishlistNotifier.containsProduct,
                                             onToggleWishlist: (product) async {

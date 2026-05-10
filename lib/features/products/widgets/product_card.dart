@@ -8,16 +8,22 @@ class ProductCard extends StatelessWidget {
   const ProductCard({
     super.key,
     required this.product,
+    required this.quantityInCart,
     required this.onTap,
     required this.onAddToCart,
+    required this.onIncrement,
+    required this.onDecrement,
     required this.isWishlisted,
     required this.onToggleWishlist,
     this.categoryName,
   });
 
   final ProductModel product;
+  final int quantityInCart;
   final VoidCallback onTap;
   final VoidCallback onAddToCart;
+  final VoidCallback onIncrement;
+  final VoidCallback onDecrement;
   final bool isWishlisted;
   final VoidCallback onToggleWishlist;
   final String? categoryName;
@@ -119,9 +125,14 @@ class ProductCard extends StatelessWidget {
                             onTap: onToggleWishlist,
                           ),
                           const Spacer(),
-                          _AddButton(
+                          _ProductCartAction(
+                            quantity: quantityInCart,
                             inStock: product.inStock,
-                            onPressed: product.inStock ? onAddToCart : null,
+                            primary: theme.colorScheme.primary,
+                            textStyle: theme.textTheme.labelSmall,
+                            onAdd: onAddToCart,
+                            onIncrement: onIncrement,
+                            onDecrement: onDecrement,
                           ),
                         ],
                       ),
@@ -237,40 +248,106 @@ class _ProductImageFallback extends StatelessWidget {
   }
 }
 
-class _AddButton extends StatelessWidget {
-  const _AddButton({required this.inStock, required this.onPressed});
+class _ProductCartAction extends StatelessWidget {
+  const _ProductCartAction({
+    required this.quantity,
+    required this.inStock,
+    required this.primary,
+    required this.textStyle,
+    required this.onAdd,
+    required this.onIncrement,
+    required this.onDecrement,
+  });
 
+  final int quantity;
   final bool inStock;
-  final VoidCallback? onPressed;
+  final Color primary;
+  final TextStyle? textStyle;
+  final VoidCallback onAdd;
+  final VoidCallback onIncrement;
+  final VoidCallback onDecrement;
+
+  @override
+  Widget build(BuildContext context) {
+    final disabledColor = Colors.grey;
+    final borderColor = inStock
+        ? primary.withValues(alpha: 0.4)
+        : disabledColor.withValues(alpha: 0.3);
+    final backgroundColor = inStock
+        ? primary.withValues(alpha: 0.1)
+        : disabledColor.withValues(alpha: 0.1);
+    final foregroundColor = inStock ? primary : disabledColor;
+
+    if (quantity <= 0) {
+      return GestureDetector(
+        onTap: inStock ? onAdd : null,
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSizes.sm,
+            vertical: AppSizes.xs,
+          ),
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+            border: Border.all(color: borderColor),
+          ),
+          child: Icon(
+            inStock ? Icons.add_shopping_cart_rounded : Icons.block_rounded,
+            size: 16,
+            color: foregroundColor,
+          ),
+        ),
+      );
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        _QtyIconButton(
+          icon: Icons.remove_rounded,
+          color: foregroundColor,
+          onTap: onDecrement,
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
+            '$quantity',
+            style: textStyle?.copyWith(
+              color: foregroundColor,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        _QtyIconButton(
+          icon: Icons.add_rounded,
+          color: foregroundColor,
+          onTap: onIncrement,
+        ),
+      ],
+    );
+  }
+}
+
+class _QtyIconButton extends StatelessWidget {
+  const _QtyIconButton({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: onPressed,
-      borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 5,
-          vertical: 3,
-        ),
-        decoration: BoxDecoration(
-          color: inStock
-              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.16)
-              : Theme.of(context).disabledColor.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-          border: Border.all(
-            color: inStock
-                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.45)
-                : Theme.of(context).dividerColor,
-          ),
-        ),
-        child: Icon(
-          inStock ? Icons.add_shopping_cart_rounded : Icons.block_rounded,
-          size: 16,
-          color: inStock
-              ? Theme.of(context).colorScheme.primary
-              : Theme.of(context).disabledColor,
-        ),
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppSizes.radiusXs),
+      child: Padding(
+        padding: const EdgeInsets.all(1),
+        child: Icon(icon, size: 15, color: color),
       ),
     );
   }
