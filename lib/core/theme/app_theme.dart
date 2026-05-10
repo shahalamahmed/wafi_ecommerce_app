@@ -165,7 +165,9 @@ abstract class AppTheme {
   static ThemeData get light => _buildTheme(isDark: false);
 
   static ThemeData _buildTheme({required bool isDark}) {
-    final base = isDark ? ThemeData.dark() : ThemeData.light();
+    final base = isDark
+        ? ThemeData.dark(useMaterial3: true)
+        : ThemeData.light(useMaterial3: true);
     final bg = isDark ? AppColors.darkBackground : AppColors.lightBackground;
     final primary = isDark ? AppColors.primaryDark : AppColors.primaryLight;
     final textPrimary =
@@ -533,7 +535,6 @@ abstract class AppTheme {
           TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
         },
       ),
-      useMaterial3: true,
     );
   }
 

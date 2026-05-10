@@ -37,7 +37,10 @@ class CartService {
       return;
     }
 
-    final subtotal = items.fold<double>(0, (sum, item) => sum + item.subtotal);
+    final subtotal = items.fold<double>(
+      0,
+      (runningTotal, item) => runningTotal + item.subtotal,
+    );
     final tax = double.parse((subtotal * 0.05).toStringAsFixed(2));
     final total = subtotal + tax;
 

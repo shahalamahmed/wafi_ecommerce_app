@@ -66,7 +66,8 @@ class WishlistScreen extends ConsumerWidget {
           120,
         ),
         itemCount: state.items.length + 1,
-        separatorBuilder: (_, __) => const SizedBox(height: AppSizes.md),
+        separatorBuilder: (context, index) =>
+            const SizedBox(height: AppSizes.md),
         itemBuilder: (context, index) {
           if (index == 0) {
             return _WishlistSummaryCard(itemCount: state.itemCount);
@@ -239,7 +240,7 @@ class _WishlistImage extends StatelessWidget {
           ? Image.network(
               imageUrl,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) =>
+              errorBuilder: (context, error, stackTrace) =>
                   _WishlistImageFallback(name: productName),
             )
           : _WishlistImageFallback(name: productName),

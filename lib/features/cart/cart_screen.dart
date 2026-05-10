@@ -39,7 +39,7 @@ class CartScreen extends ConsumerWidget {
         onContinue: () async {
           await Navigator.of(context).push(
             MaterialPageRoute<void>(
-              builder: (_) => const ProductCatalogPage(
+              builder: (context) => const ProductCatalogPage(
                 title: 'All Products',
                 subtitle: 'Browse products and add items to your cart',
               ),
@@ -62,7 +62,8 @@ class CartScreen extends ConsumerWidget {
                 100,
               ),
               itemCount: state.items.length,
-              separatorBuilder: (_, __) => const SizedBox(height: AppSizes.md),
+              separatorBuilder: (context, index) =>
+                  const SizedBox(height: AppSizes.md),
               itemBuilder: (context, index) {
                 final item = state.items[index];
 
@@ -190,7 +191,7 @@ class _CartImage extends StatelessWidget {
           ? Image.network(
               imageUrl,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) =>
+              errorBuilder: (context, error, stackTrace) =>
                   _CartImageFallback(name: productName),
             )
           : _CartImageFallback(name: productName),

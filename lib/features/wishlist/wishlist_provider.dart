@@ -99,7 +99,7 @@ final wishlistProvider = StateNotifierProvider<WishlistNotifier, WishlistState>(
       () => ref.read(authProvider),
     );
 
-    ref.listen(authProvider, (_, __) {
+    ref.listen(authProvider, (previous, next) {
       notifier.handleAuthChanged();
     });
 

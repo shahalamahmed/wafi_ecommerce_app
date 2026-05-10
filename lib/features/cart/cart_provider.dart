@@ -163,7 +163,7 @@ final cartProvider = StateNotifierProvider<CartNotifier, CartState>((ref) {
     () => ref.read(authProvider),
   );
 
-  ref.listen(authProvider, (_, __) {
+  ref.listen(authProvider, (previous, next) {
     notifier.handleAuthChanged();
   });
 

@@ -454,7 +454,8 @@ class _BannerSlide extends StatelessWidget {
           Image.network(
             banner.imageUrl,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            errorBuilder: (context, error, stackTrace) =>
+                const SizedBox.shrink(),
           ),
 
           // ── Dark gradient overlay so text is readable ────────────────
@@ -533,7 +534,6 @@ class _SectionWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppSizes.radiusXxl),
@@ -624,7 +624,7 @@ class _CategoryGrid extends StatelessWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: categories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: AppSizes.sm),
+        separatorBuilder: (context, index) => const SizedBox(width: AppSizes.sm),
         itemBuilder: (context, index) {
           final cat = categories[index];
           return _CategoryCard(category: cat, onTap: () => onTap(cat));
@@ -678,7 +678,7 @@ class _CategoryCard extends StatelessWidget {
                     ? Image.network(
                         imageUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Icon(
+                        errorBuilder: (context, error, stackTrace) => Icon(
                           _iconFor(category.image),
                           color: primary,
                           size: 22,
@@ -781,7 +781,8 @@ class _HorizontalProductStrip extends StatelessWidget {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: products.length,
-            separatorBuilder: (_, __) => const SizedBox(width: spacing),
+            separatorBuilder: (context, index) =>
+                const SizedBox(width: spacing),
             itemBuilder: (context, index) {
               final product = products[index];
               return SizedBox(
@@ -860,7 +861,8 @@ class _ProductCard extends StatelessWidget {
                           ? Image.network(
                               product.primaryImage,
                               fit: BoxFit.contain,
-                              errorBuilder: (_, __, ___) => Icon(
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Icon(
                                 Icons.shopping_basket_outlined,
                                 size: 36,
                                 color: primary,
@@ -1039,7 +1041,8 @@ class _NewArrivalStrip extends StatelessWidget {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: products.length,
-            separatorBuilder: (_, __) => const SizedBox(width: spacing),
+            separatorBuilder: (context, index) =>
+                const SizedBox(width: spacing),
             itemBuilder: (context, index) {
               final product = products[index];
               return SizedBox(
@@ -1122,7 +1125,8 @@ class _NewArrivalCard extends StatelessWidget {
                           ? Image.network(
                               product.primaryImage,
                               fit: BoxFit.contain,
-                              errorBuilder: (_, __, ___) => Icon(
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Icon(
                                 Icons.local_mall_outlined,
                                 size: 36,
                                 color: primary,

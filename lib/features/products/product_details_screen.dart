@@ -90,7 +90,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                         ? Image.network(
                       product.primaryImage,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
+                      errorBuilder: (context, error, stackTrace) =>
                           _DetailsImageFallback(name: product.name),
                     )
                         : _DetailsImageFallback(name: product.name),
