@@ -279,7 +279,7 @@ class _CategoryManagementCard extends StatelessWidget {
             runSpacing: AppSizes.sm,
             children: [
               GlassChip(
-                label: category.isTopLevel ? 'Top Level' : 'Subcategory',
+                label: category.isTopLevel ? 'Main Category' : 'Nested Category',
                 variant: GlassChipVariant.primary,
               ),
               GlassChip(
@@ -332,6 +332,8 @@ class _CategoryEditorSheet extends ConsumerStatefulWidget {
       _CategoryEditorSheetState();
 }
 
+enum _CategoryCreationMode { main, nested }
+
 class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -339,8 +341,11 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
   final Map<String, String?> _errors = {};
 
   String? _selectedParentId;
+  String? _initialParentId;
   bool _isActive = true;
   bool _isUploadingImage = false;
+  bool _showAdvancedOrder = false;
+  late _CategoryCreationMode _creationMode;
   late final String _uploadFolderId;
   String? _existingImageUrl;
   String? _selectedImagePath;
@@ -359,9 +364,15 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
       _existingImageUrl = category.image.trim().isEmpty ? null : category.image;
       _displayOrderController.text = category.displayOrder.toString();
       _selectedParentId = category.parentId;
+      _initialParentId = category.parentId;
       _isActive = category.isActive;
+      _creationMode = (category.parentId == null || category.parentId!.isEmpty)
+          ? _CategoryCreationMode.main
+          : _CategoryCreationMode.nested;
     } else {
-      _displayOrderController.text = widget.categories.length.toString();
+      _creationMode = _CategoryCreationMode.main;
+      _displayOrderController.text =
+          _suggestedDisplayOrderFor(parentId: null).toString();
     }
   }
 
@@ -419,6 +430,10 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
       widget.categories,
       widget.category,
     );
+    final hasParentSelection = _creationMode == _CategoryCreationMode.nested;
+    final effectiveParentId = hasParentSelection ? _selectedParentId : null;
+    final selectedParentPath = _categoryPathForId(effectiveParentId);
+    final effectiveDisplayOrder = _effectiveDisplayOrder;
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -432,15 +447,62 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
             ),
             const SizedBox(height: AppSizes.xs),
             Text(
-              'Configure hierarchy, sorting, and storefront visibility for this category.',
+              'Choose where this category belongs, then add the details.',
               style: theme.textTheme.bodySmall,
             ),
             const SizedBox(height: AppSizes.lg),
+            _CategoryEditorSection(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Create As', style: theme.textTheme.labelLarge),
+                  const SizedBox(height: AppSizes.xs),
+                  Text(
+                    'Main categories appear at the top. Nested categories appear under an existing category.',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: AppSizes.md),
+                  Wrap(
+                    spacing: AppSizes.sm,
+                    runSpacing: AppSizes.sm,
+                    children: [
+                      GlassChip(
+                        label: 'Main Category',
+                        variant: GlassChipVariant.primary,
+                        isSelected: _creationMode == _CategoryCreationMode.main,
+                        onTap: isBusy
+                            ? null
+                            : () {
+                                setState(() {
+                                  _creationMode = _CategoryCreationMode.main;
+                                  _selectedParentId = null;
+                                });
+                              },
+                      ),
+                      GlassChip(
+                        label: 'Under Existing Category',
+                        variant: GlassChipVariant.primary,
+                        isSelected:
+                            _creationMode == _CategoryCreationMode.nested,
+                        onTap: isBusy
+                            ? null
+                            : () {
+                                setState(() {
+                                  _creationMode = _CategoryCreationMode.nested;
+                                });
+                              },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSizes.md),
             GlassInput(
               controller: _nameController,
               label: 'Category Name',
               isRequired: true,
-              hint: 'Accessories',
+              hint: 'Accessories, Phones, Android',
               errorText: _errors['name'],
               onChanged: (value) => _clearFieldError('name', value),
             ),
@@ -465,46 +527,90 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
                   : _removeSelectedImage,
             ),
             const SizedBox(height: AppSizes.md),
-            Row(
-              children: [
-                Expanded(
-                  child: _CategoryDropdownField<String?>(
-                    label: 'Parent Category',
-                    value: _selectedParentId,
-                    items: [
-                      const DropdownMenuItem<String?>(
-                        value: null,
-                        child: Text('None (Top Level)'),
-                      ),
-                      ...availableParents.map(
-                        (item) => DropdownMenuItem<String?>(
-                          value: item.id,
-                          child: Text(item.name),
-                        ),
-                      ),
-                    ],
-                    errorText: null,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedParentId = value;
-                      });
-                    },
-                  ),
+            if (hasParentSelection) ...[
+              _CategoryEditorSection(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _CategoryDropdownField<String?>(
+                      label: 'Parent Category',
+                      value: _selectedParentId,
+                      items: availableParents
+                          .map(
+                            (item) => DropdownMenuItem<String?>(
+                              value: item.id,
+                              child: Text(_categoryPath(item)),
+                            ),
+                          )
+                          .toList(),
+                      errorText: _errors['parentId'],
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedParentId = value;
+                          _errors['parentId'] = null;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: AppSizes.sm),
+                    Text(
+                      selectedParentPath == null
+                          ? 'Select a parent category to place this inside your existing structure.'
+                          : 'Parent Path: $selectedParentPath',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
                 ),
-                const SizedBox(width: AppSizes.md),
-                Expanded(
-                  child: GlassInput(
-                    controller: _displayOrderController,
-                    label: 'Display Order',
-                    isRequired: true,
-                    keyboardType: TextInputType.number,
-                    hint: '0',
-                    errorText: _errors['displayOrder'],
-                    onChanged: (value) =>
-                        _clearFieldError('displayOrder', value),
+              ),
+              const SizedBox(height: AppSizes.md),
+            ],
+            _CategoryEditorSection(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Position', style: theme.textTheme.labelLarge),
+                  const SizedBox(height: AppSizes.xs),
+                  Text(
+                    hasParentSelection
+                        ? 'By default, this category will be added after the other items under the selected parent.'
+                        : 'By default, this category will be added after the other main categories.',
+                    style: theme.textTheme.bodySmall,
                   ),
-                ),
-              ],
+                  const SizedBox(height: AppSizes.md),
+                  Text(
+                    'Automatic position: $effectiveDisplayOrder',
+                    style: theme.textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: AppSizes.sm),
+                  SwitchListTile.adaptive(
+                    value: _showAdvancedOrder,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      'Set custom position',
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    subtitle: Text(
+                      'Turn this on only if you want to override the automatic order.',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                    onChanged: isBusy
+                        ? null
+                        : (value) => setState(() => _showAdvancedOrder = value),
+                  ),
+                  if (_showAdvancedOrder) ...[
+                    const SizedBox(height: AppSizes.sm),
+                    GlassInput(
+                      controller: _displayOrderController,
+                      label: 'Custom Position',
+                      isRequired: true,
+                      keyboardType: TextInputType.number,
+                      hint: '$effectiveDisplayOrder',
+                      errorText: _errors['displayOrder'],
+                      onChanged: (value) =>
+                          _clearFieldError('displayOrder', value),
+                    ),
+                  ],
+                ],
+              ),
             ),
             const SizedBox(height: AppSizes.md),
             _CategoryEditorSection(
@@ -597,14 +703,26 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
   Future<void> _submit() async {
     final name = _nameController.text.trim();
     final description = _descriptionController.text.trim();
-    final displayOrder = int.tryParse(_displayOrderController.text.trim());
+    final effectiveParentId = _creationMode == _CategoryCreationMode.nested
+        ? _selectedParentId
+        : null;
+    final customDisplayOrder = int.tryParse(_displayOrderController.text.trim());
+    final displayOrder = _showAdvancedOrder
+        ? customDisplayOrder
+        : _effectiveDisplayOrder;
 
     final nextErrors = <String, String?>{
       'name': AppValidators.required(name),
-      'displayOrder': _displayOrderController.text.trim().isEmpty
+      'parentId': _creationMode == _CategoryCreationMode.nested &&
+              (effectiveParentId == null || effectiveParentId.isEmpty)
+          ? 'Select a parent category.'
+          : null,
+      'displayOrder': !_showAdvancedOrder
+          ? null
+          : _displayOrderController.text.trim().isEmpty
           ? AppStrings.validRequired
           : displayOrder == null
-          ? 'Enter a valid display order.'
+          ? 'Enter a valid custom position.'
           : null,
     };
 
@@ -651,7 +769,7 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
       name: name,
       description: description,
       image: image,
-      parentId: _selectedParentId,
+      parentId: effectiveParentId,
       displayOrder: displayOrder!,
       isActive: _isActive,
     );
@@ -672,6 +790,69 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
   void _clearFieldError(String fieldKey, String value) {
     if (value.trim().isEmpty || _errors[fieldKey] == null) return;
     setState(() => _errors[fieldKey] = null);
+  }
+
+  int get _effectiveDisplayOrder {
+    if (_showAdvancedOrder) {
+      final parsed = int.tryParse(_displayOrderController.text.trim());
+      if (parsed != null) return parsed;
+    }
+
+    final effectiveParentId = _creationMode == _CategoryCreationMode.nested
+        ? _selectedParentId
+        : null;
+    if (_isEditing &&
+        widget.category != null &&
+        effectiveParentId == _initialParentId) {
+      return widget.category!.displayOrder;
+    }
+    return _suggestedDisplayOrderFor(parentId: effectiveParentId);
+  }
+
+  int _suggestedDisplayOrderFor({required String? parentId}) {
+    final siblingOrders = widget.categories
+        .where((category) {
+          if (widget.category != null && category.id == widget.category!.id) {
+            return false;
+          }
+          final categoryParentId = (category.parentId ?? '').trim();
+          final normalizedParentId = (parentId ?? '').trim();
+          return categoryParentId == normalizedParentId;
+        })
+        .map((category) => category.displayOrder);
+
+    if (siblingOrders.isEmpty) return 1;
+    return siblingOrders.reduce((max, value) => value > max ? value : max) + 1;
+  }
+
+  String _categoryPath(ProductCategory category) {
+    final segments = <String>[category.name];
+    var cursor = category.parentId;
+
+    while ((cursor ?? '').isNotEmpty) {
+      ProductCategory? parent;
+      for (final item in widget.categories) {
+        if (item.id == cursor) {
+          parent = item;
+          break;
+        }
+      }
+      if (parent == null) break;
+      segments.insert(0, parent.name);
+      cursor = parent.parentId;
+    }
+
+    return segments.join(' > ');
+  }
+
+  String? _categoryPathForId(String? categoryId) {
+    if ((categoryId ?? '').isEmpty) return null;
+    for (final category in widget.categories) {
+      if (category.id == categoryId) {
+        return _categoryPath(category);
+      }
+    }
+    return null;
   }
 }
 
