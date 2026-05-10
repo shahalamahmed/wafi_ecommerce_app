@@ -38,6 +38,10 @@ class CategoryManagementScreen extends ConsumerWidget {
     final categoryLookup = <String, ProductCategory>{
       for (final category in state.categories) category.id: category,
     };
+    final categoryPathLookup = <String, String>{
+      for (final category in state.categories)
+        category.id: _categoryPath(category, categoryLookup),
+    };
 
     return RefreshIndicator(
       onRefresh: notifier.load,
@@ -123,7 +127,9 @@ class CategoryManagementScreen extends ConsumerWidget {
                 padding: const EdgeInsets.only(bottom: AppSizes.md),
                 child: _CategoryManagementCard(
                   category: category,
-                  parentCategory: categoryLookup[category.parentId],
+                  parentPath: category.parentId == null
+                      ? null
+                      : categoryPathLookup[category.parentId!],
                   onEdit: () => _openCategoryEditor(
                     context,
                     categories: state.categories,
@@ -224,16 +230,33 @@ class CategoryManagementScreen extends ConsumerWidget {
   }
 }
 
+String _categoryPath(
+  ProductCategory category,
+  Map<String, ProductCategory> categoryLookup,
+) {
+  final segments = <String>[category.name];
+  var cursor = category.parentId;
+
+  while ((cursor ?? '').isNotEmpty) {
+    final parent = categoryLookup[cursor];
+    if (parent == null) break;
+    segments.insert(0, parent.name);
+    cursor = parent.parentId;
+  }
+
+  return segments.join(' > ');
+}
+
 class _CategoryManagementCard extends StatelessWidget {
   const _CategoryManagementCard({
     required this.category,
-    required this.parentCategory,
+    required this.parentPath,
     required this.onEdit,
     required this.onDelete,
   });
 
   final ProductCategory category;
-  final ProductCategory? parentCategory;
+  final String? parentPath;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -286,9 +309,9 @@ class _CategoryManagementCard extends StatelessWidget {
                 label: 'Order ${category.displayOrder}',
                 variant: GlassChipVariant.neutral,
               ),
-              if (parentCategory != null)
+              if ((parentPath ?? '').isNotEmpty)
                 GlassChip(
-                  label: 'Parent ${parentCategory!.name}',
+                  label: 'Parent $parentPath',
                   variant: GlassChipVariant.warning,
                 ),
             ],

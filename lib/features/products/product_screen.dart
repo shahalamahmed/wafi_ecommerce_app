@@ -119,6 +119,7 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
           ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder)));
     final showSubCategoryBar =
         selectedParentCategory != null && visibleSubCategories.isNotEmpty;
+    final showProductEmptyState = state.visibleProducts.isEmpty;
 
     _applyInitialCategorySelectionIfNeeded(state);
 
@@ -163,19 +164,6 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                           topPadding: contentTopPadding,
                         );
                       }
-                      if (state.visibleProducts.isEmpty) {
-                        return ListView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          padding: EdgeInsets.fromLTRB(
-                            0,
-                            contentTopPadding,
-                            0,
-                            100,
-                          ),
-                          children: const [_ProductEmptyState()],
-                        );
-                      }
-
                       return Padding(
                         padding: EdgeInsets.only(top: contentTopPadding),
                         child: Row(
@@ -204,55 +192,61 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                                     const SizedBox(height: AppSizes.sm),
                                   ],
                                   Expanded(
-                                    child: ProductList(
-                                      products: state.visibleProducts,
-                                      viewMode: state.viewMode,
-                                      categoryLookup: categoryLookup,
-                                      onTap: (product) {
-                                        Navigator.of(context).push(
-                                          MaterialPageRoute<void>(
-                                            builder: (_) =>
-                                                ProductDetailsScreen(
-                                                  product: product,
+                                    child: showProductEmptyState
+                                        ? const _ProductEmptyState()
+                                        : ProductList(
+                                            products: state.visibleProducts,
+                                            viewMode: state.viewMode,
+                                            categoryLookup: categoryLookup,
+                                            onTap: (product) {
+                                              Navigator.of(context).push(
+                                                MaterialPageRoute<void>(
+                                                  builder: (_) =>
+                                                      ProductDetailsScreen(
+                                                        product: product,
+                                                      ),
                                                 ),
+                                              );
+                                            },
+                                            onAddToCart: (product) async {
+                                              await cartNotifier.addProduct(
+                                                product,
+                                              );
+                                              if (!context.mounted) return;
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    '${product.name} added to cart',
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                            isWishlisted:
+                                                wishlistNotifier.containsProduct,
+                                            onToggleWishlist: (product) async {
+                                              final wasWishlisted =
+                                                  wishlistNotifier
+                                                      .containsProduct(
+                                                        product.id,
+                                                      );
+                                              await wishlistNotifier
+                                                  .toggleProduct(product);
+                                              if (!context.mounted) return;
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    wasWishlisted
+                                                        ? '${product.name} removed from wishlist'
+                                                        : '${product.name} added to wishlist',
+                                                  ),
+                                                ),
+                                              );
+                                            },
                                           ),
-                                        );
-                                      },
-                                      onAddToCart: (product) async {
-                                        await cartNotifier.addProduct(product);
-                                        if (!context.mounted) return;
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              '${product.name} added to cart',
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                      isWishlisted:
-                                          wishlistNotifier.containsProduct,
-                                      onToggleWishlist: (product) async {
-                                        final wasWishlisted = wishlistNotifier
-                                            .containsProduct(product.id);
-                                        await wishlistNotifier.toggleProduct(
-                                          product,
-                                        );
-                                        if (!context.mounted) return;
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              wasWishlisted
-                                                  ? '${product.name} removed from wishlist'
-                                                  : '${product.name} added to wishlist',
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
                                   ),
                                 ],
                               ),
