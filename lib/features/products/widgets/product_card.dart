@@ -32,19 +32,16 @@ class ProductCard extends StatelessWidget {
         variant: GlassCardVariant.elevated,
         padding: EdgeInsets.zero,
         child: SizedBox(
-          height: 124,
+          height: 90,
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _ProductImage(product: product),
-              const SizedBox(width: AppSizes.sm),
+              const SizedBox(width: 6),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(
-                    0,
-                    AppSizes.sm,
-                    AppSizes.xs,
-                    AppSizes.sm,
+                      0, 6, 6, 6
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -55,6 +52,7 @@ class ProductCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.labelSmall?.copyWith(
+                            fontSize: 9,
                             color: theme.colorScheme.primary,
                             fontWeight: FontWeight.w600,
                           ),
@@ -65,6 +63,7 @@ class ProductCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.titleSmall?.copyWith(
+                          fontSize: 12,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -77,6 +76,7 @@ class ProductCard extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.titleMedium?.copyWith(
+                                fontSize: 13,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -148,7 +148,7 @@ class _ProductImage extends StatelessWidget {
     final theme = Theme.of(context);
 
     return SizedBox(
-      width: 76,
+      width: 68,
       child: Stack(
         children: [
           Positioned.fill(
@@ -250,8 +250,8 @@ class _AddButton extends StatelessWidget {
       borderRadius: BorderRadius.circular(AppSizes.radiusMd),
       child: Container(
         padding: const EdgeInsets.symmetric(
-          horizontal: AppSizes.xs,
-          vertical: 4,
+          horizontal: 5,
+          vertical: 3,
         ),
         decoration: BoxDecoration(
           color: inStock
