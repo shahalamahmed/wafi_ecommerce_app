@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wafi_ecommerce_app/core/constants/colors.dart';
 import 'package:wafi_ecommerce_app/core/constants/sizes.dart';
 import 'package:wafi_ecommerce_app/core/constants/strings.dart';
+import 'package:wafi_ecommerce_app/features/addresses/address_model.dart';
+import 'package:wafi_ecommerce_app/features/addresses/address_provider.dart';
+import 'package:wafi_ecommerce_app/features/addresses/address_screen.dart';
 import 'package:wafi_ecommerce_app/features/auth/auth_provider.dart';
 import 'package:wafi_ecommerce_app/features/auth/auth_screen.dart';
 import 'package:wafi_ecommerce_app/features/cart/cart_model.dart';
@@ -288,18 +291,27 @@ class _StepperButton extends StatelessWidget {
   }
 }
 
-class _CartSummary extends ConsumerWidget {
+class _CartSummary extends ConsumerStatefulWidget {
   const _CartSummary({required this.state});
 
   final CartState state;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_CartSummary> createState() => _CartSummaryState();
+}
+
+class _CartSummaryState extends ConsumerState<_CartSummary> {
+  String? _selectedAddressId;
+
+  @override
+  Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final addressState = ref.watch(addressProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final surfaceColor = isDark
         ? const Color(0xFF1A1C1F)
         : Theme.of(context).colorScheme.surface.withValues(alpha: 0.95);
+    final selectedAddress = _resolveSelectedAddress(addressState.items);
 
     return SafeArea(
       top: false,
@@ -317,20 +329,28 @@ class _CartSummary extends ConsumerWidget {
             _SummaryRow(
               label: AppStrings.subtotal,
               value:
-                  '${AppStrings.currencySymbol}${state.subtotal.toStringAsFixed(0)}',
+                  '${AppStrings.currencySymbol}${widget.state.subtotal.toStringAsFixed(0)}',
             ),
             const SizedBox(height: AppSizes.xs),
             _SummaryRow(
               label: AppStrings.tax,
               value:
-                  '${AppStrings.currencySymbol}${state.tax.toStringAsFixed(0)}',
+                  '${AppStrings.currencySymbol}${widget.state.tax.toStringAsFixed(0)}',
             ),
             const Divider(height: AppSizes.lg),
             _SummaryRow(
               label: AppStrings.total,
               value:
-                  '${AppStrings.currencySymbol}${state.total.toStringAsFixed(0)}',
+                  '${AppStrings.currencySymbol}${widget.state.total.toStringAsFixed(0)}',
               isTotal: true,
+            ),
+            const SizedBox(height: AppSizes.md),
+            _CartAddressSummary(
+              address: selectedAddress,
+              isLoading: addressState.isLoading,
+              onTap: authState.isAuthenticated
+                  ? () => _handleAddressTap(addressState.items)
+                  : null,
             ),
             const SizedBox(height: AppSizes.md),
             GlassButton(
@@ -346,9 +366,27 @@ class _CartSummary extends ConsumerWidget {
                   if (!context.mounted || didLogin != true) return;
                 }
 
+                final addresses = ref.read(addressProvider).items;
+                final resolvedAddress = _resolveSelectedAddress(addresses);
+                if (resolvedAddress == null) {
+                  if (addresses.isEmpty) {
+                    await showAddressSheet(context, ref);
+                  } else {
+                    await _openAddressPicker(addresses);
+                  }
+                  if (!context.mounted) return;
+                  final nextAddress =
+                      _resolveSelectedAddress(ref.read(addressProvider).items);
+                  if (nextAddress == null) return;
+                }
+
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
-                    builder: (_) => const CheckoutScreen(),
+                    builder: (_) => CheckoutScreen(
+                      selectedAddress: _resolveSelectedAddress(
+                        ref.read(addressProvider).items,
+                      )!,
+                    ),
                   ),
                 );
               },
@@ -356,6 +394,135 @@ class _CartSummary extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+
+  AddressModel? _resolveSelectedAddress(List<AddressModel> addresses) {
+    if (addresses.isEmpty) return null;
+
+    AddressModel? match;
+    if ((_selectedAddressId ?? '').isNotEmpty) {
+      for (final address in addresses) {
+        if (address.id == _selectedAddressId) {
+          match = address;
+          break;
+        }
+      }
+    }
+
+    match ??= _defaultAddress(addresses);
+    match ??= addresses.first;
+    _selectedAddressId = match.id;
+    return match;
+  }
+
+  AddressModel? _defaultAddress(List<AddressModel> addresses) {
+    for (final address in addresses) {
+      if (address.isDefault) return address;
+    }
+    return null;
+  }
+
+  Future<void> _handleAddressTap(List<AddressModel> addresses) async {
+    if (addresses.isEmpty) {
+      await showAddressSheet(context, ref);
+      if (!mounted) return;
+      setState(() {});
+      return;
+    }
+
+    await _openAddressPicker(addresses);
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  Future<void> _openAddressPicker(List<AddressModel> addresses) async {
+    final selectedAddress = _resolveSelectedAddress(addresses);
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSizes.lg,
+              AppSizes.lg,
+              AppSizes.lg,
+              AppSizes.xl2,
+            ),
+            child: Consumer(
+              builder: (context, ref, _) {
+                final state = ref.watch(addressProvider);
+                final items = state.items;
+                final effectiveSelected =
+                    _resolveSelectedAddress(items) ?? selectedAddress;
+
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            AppStrings.deliveryAddress,
+                            style: Theme.of(context).textTheme.headlineSmall,
+                          ),
+                        ),
+                        GlassButton(
+                          label: AppStrings.addAddress,
+                          prefixIcon: Icons.add_rounded,
+                          isFullWidth: false,
+                          onPressed: () async {
+                            Navigator.of(sheetContext).pop();
+                            await showAddressSheet(this.context, this.ref);
+                            if (!mounted) return;
+                            setState(() {});
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSizes.md),
+                    if (state.isLoading)
+                      const Padding(
+                        padding: EdgeInsets.all(AppSizes.xl),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (items.isEmpty)
+                      const _CartAddressEmptyState()
+                    else
+                      Flexible(
+                        child: ListView.separated(
+                          shrinkWrap: true,
+                          itemCount: items.length,
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: AppSizes.md),
+                          itemBuilder: (context, index) {
+                            final address = items[index];
+                            final isSelected =
+                                effectiveSelected?.id == address.id;
+
+                            return _CartAddressOption(
+                              address: address,
+                              isSelected: isSelected,
+                              onTap: () {
+                                setState(() {
+                                  _selectedAddressId = address.id;
+                                });
+                                Navigator.of(sheetContext).pop();
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -388,6 +555,186 @@ class _SummaryRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _CartAddressSummary extends StatelessWidget {
+  const _CartAddressSummary({
+    required this.address,
+    required this.isLoading,
+    required this.onTap,
+  });
+
+  final AddressModel? address;
+  final bool isLoading;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+    final resolvedAddress = address;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(AppSizes.md),
+        decoration: BoxDecoration(
+          color: primary.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+          border: Border.all(color: primary.withValues(alpha: 0.18)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.location_on_outlined, color: primary),
+            const SizedBox(width: AppSizes.sm),
+            Expanded(
+              child: isLoading
+                  ? Text(
+                      'Loading saved addresses...',
+                      style: theme.textTheme.bodyMedium,
+                    )
+                  : resolvedAddress == null
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          AppStrings.addAddress,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: AppSizes.xs),
+                        Text(
+                          'Add a delivery address before checkout.',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              resolvedAddress.typeLabel,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(width: AppSizes.xs),
+                            if (resolvedAddress.isDefault)
+                              Text(
+                                AppStrings.defaultAddress,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: primary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSizes.xs),
+                        Text(
+                          resolvedAddress.formatted,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+            ),
+            const SizedBox(width: AppSizes.sm),
+            Icon(Icons.keyboard_arrow_down_rounded, color: primary),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CartAddressOption extends StatelessWidget {
+  const _CartAddressOption({
+    required this.address,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final AddressModel address;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: GlassCard(
+        variant: GlassCardVariant.elevated,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              isSelected
+                  ? Icons.radio_button_checked_rounded
+                  : Icons.radio_button_off_rounded,
+              color: isSelected ? primary : theme.dividerColor,
+            ),
+            const SizedBox(width: AppSizes.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        address.typeLabel,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(width: AppSizes.xs),
+                      if (address.isDefault)
+                        Text(
+                          AppStrings.defaultAddress,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSizes.xs),
+                  Text(
+                    address.formatted,
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CartAddressEmptyState extends StatelessWidget {
+  const _CartAddressEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassCard(
+      variant: GlassCardVariant.elevated,
+      child: Text(
+        'No saved addresses yet. Add one to continue.',
+        style: Theme.of(context).textTheme.bodyMedium,
+      ),
     );
   }
 }

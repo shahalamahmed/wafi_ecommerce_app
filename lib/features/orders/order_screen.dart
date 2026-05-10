@@ -141,6 +141,13 @@ class OrderDetailsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSizes.sm),
                 _OrderStatusChip(status: order.statusLabel),
+                const SizedBox(height: AppSizes.lg),
+                Text(
+                  'Order Tracking',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: AppSizes.md),
+                _OrderTrackingTimeline(order: order),
                 const SizedBox(height: AppSizes.md),
                 if (order.createdAt != null)
                   Text(
@@ -324,6 +331,141 @@ class _OrderStatusChip extends StatelessWidget {
           fontWeight: FontWeight.w700,
         ),
       ),
+    );
+  }
+}
+
+class _OrderTrackingTimeline extends StatelessWidget {
+  const _OrderTrackingTimeline({required this.order});
+
+  final CustomerOrder order;
+
+  static const _steps = <String>[
+    'Pending',
+    'Confirmed',
+    'Shipped',
+    'Delivered',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final currentIndex = _statusIndex(order.status);
+    final isCancelled = order.status.trim().toLowerCase() == 'cancelled';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            for (var index = 0; index < _steps.length; index++) ...[
+              _TrackingNode(
+                label: _steps[index],
+                isActive: !isCancelled && index <= currentIndex,
+                isCurrent: !isCancelled && index == currentIndex,
+                activeColor: scheme.primary,
+              ),
+              if (index < _steps.length - 1)
+                Expanded(
+                  child: Container(
+                    height: 3,
+                    margin: const EdgeInsets.only(bottom: 22),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(AppSizes.radiusFull),
+                      color: !isCancelled && index < currentIndex
+                          ? scheme.primary.withValues(alpha: 0.85)
+                          : theme.dividerColor.withValues(alpha: 0.55),
+                    ),
+                  ),
+                ),
+            ],
+          ],
+        ),
+        if (isCancelled) ...[
+          const SizedBox(height: AppSizes.sm),
+          Text(
+            'This order was cancelled before completion.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: scheme.error,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  int _statusIndex(String status) {
+    return switch (status.trim().toLowerCase()) {
+      'confirmed' => 1,
+      'shipped' => 2,
+      'delivered' => 3,
+      _ => 0,
+    };
+  }
+}
+
+class _TrackingNode extends StatelessWidget {
+  const _TrackingNode({
+    required this.label,
+    required this.isActive,
+    required this.isCurrent,
+    required this.activeColor,
+  });
+
+  final String label;
+  final bool isActive;
+  final bool isCurrent;
+  final Color activeColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final inactiveColor = theme.dividerColor.withValues(alpha: 0.9);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          width: isCurrent ? 24 : 20,
+          height: isCurrent ? 24 : 20,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isActive ? activeColor : inactiveColor,
+            boxShadow: isCurrent
+                ? [
+                    BoxShadow(
+                      color: activeColor.withValues(alpha: 0.22),
+                      blurRadius: 10,
+                      spreadRadius: 1,
+                    ),
+                  ]
+                : null,
+            border: Border.all(
+              color: isActive
+                  ? activeColor.withValues(alpha: 0.22)
+                  : inactiveColor.withValues(alpha: 0.3),
+              width: isCurrent ? 3 : 2,
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSizes.xs),
+        SizedBox(
+          width: 62,
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: isActive ? activeColor : theme.textTheme.bodySmall?.color,
+              fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

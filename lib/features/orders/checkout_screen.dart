@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:wafi_ecommerce_app/core/constants/sizes.dart';
 import 'package:wafi_ecommerce_app/core/constants/strings.dart';
 import 'package:wafi_ecommerce_app/core/utils/validators.dart';
+import 'package:wafi_ecommerce_app/features/addresses/address_model.dart';
 import 'package:wafi_ecommerce_app/features/auth/auth_provider.dart';
 import 'package:wafi_ecommerce_app/features/cart/cart_model.dart';
 import 'package:wafi_ecommerce_app/features/cart/cart_provider.dart';
@@ -18,7 +18,9 @@ import 'package:wafi_ecommerce_app/shared/widgets/glass_input.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
-  const CheckoutScreen({super.key});
+  const CheckoutScreen({super.key, required this.selectedAddress});
+
+  final AddressModel selectedAddress;
 
   @override
   ConsumerState<CheckoutScreen> createState() => _CheckoutScreenState();
@@ -27,17 +29,11 @@ class CheckoutScreen extends ConsumerStatefulWidget {
 class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _addressLine1Controller = TextEditingController();
-  final _addressLine2Controller = TextEditingController();
-  final _cityController = TextEditingController(text: 'Dhaka');
-  final _postalController = TextEditingController();
-  final _countryController = TextEditingController(text: 'Bangladesh');
   final _notesController = TextEditingController();
-  final _couponController = TextEditingController();
   final Map<String, String?> _errors = {};
 
   PaymentMethod _paymentMethod = PaymentMethod.cashOnDelivery;
-  DateTime _deliveryDate = DateTime.now().add(const Duration(days: 1));
+  final DateTime _deliveryDate = DateTime.now().add(const Duration(days: 1));
 
   static const double _deliveryCharge = 160;
 
@@ -55,13 +51,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
-    _addressLine1Controller.dispose();
-    _addressLine2Controller.dispose();
-    _cityController.dispose();
-    _postalController.dispose();
-    _countryController.dispose();
     _notesController.dispose();
-    _couponController.dispose();
     super.dispose();
   }
 
@@ -111,57 +101,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   onChanged: (value) => _clearFieldError('phone', value),
                 ),
                 const SizedBox(height: AppSizes.md),
-                _FormInput(
-                  controller: _addressLine1Controller,
-                  label: AppStrings.addressLine1,
-                  isRequired: true,
-                  hint: 'House, road, area',
-                  errorText: _errors['addressLine1'],
-                  onChanged: (value) => _clearFieldError('addressLine1', value),
-                ),
-                const SizedBox(height: AppSizes.md),
-                _FormInput(
-                  controller: _addressLine2Controller,
-                  label: AppStrings.addressLine2,
-                  hint: 'Apartment, landmark',
-                ),
-                const SizedBox(height: AppSizes.md),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _FormInput(
-                        controller: _cityController,
-                        label: AppStrings.city,
-                        isRequired: true,
-                        hint: 'City',
-                        errorText: _errors['city'],
-                        onChanged: (value) => _clearFieldError('city', value),
-                      ),
-                    ),
-                    const SizedBox(width: AppSizes.md),
-                    Expanded(
-                      child: _FormInput(
-                        controller: _postalController,
-                        label: AppStrings.postalCode,
-                        isRequired: true,
-                        hint: 'Postal code',
-                        keyboardType: TextInputType.number,
-                        errorText: _errors['postalCode'],
-                        onChanged: (value) =>
-                            _clearFieldError('postalCode', value),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSizes.md),
-                _FormInput(
-                  controller: _countryController,
-                  label: AppStrings.country,
-                  isRequired: true,
-                  hint: 'Country',
-                  errorText: _errors['country'],
-                  onChanged: (value) => _clearFieldError('country', value),
-                ),
+                _SelectedAddressPreview(address: widget.selectedAddress),
                 const SizedBox(height: AppSizes.md),
                 _FormInput(
                   controller: _notesController,
@@ -172,41 +112,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: AppSizes.xl),
-          _DeliveryDateTile(
-            deliveryDate: _deliveryDate,
-            onTap: _pickDeliveryDate,
-          ),
-          const SizedBox(height: AppSizes.xl),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: _FormInput(
-                  controller: _couponController,
-                  label: 'Coupon Code',
-                  hint: 'Have a coupon code?',
-                ),
-              ),
-              const SizedBox(width: AppSizes.md),
-              SizedBox(
-                width: 110,
-                child: GlassButton(
-                  label: 'APPLY',
-                  isFullWidth: true,
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Coupon validation is not implemented yet.',
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
           ),
           const SizedBox(height: AppSizes.xl),
           _SectionCard(
@@ -272,19 +177,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     );
   }
 
-  Future<void> _pickDeliveryDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _deliveryDate,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 30)),
-    );
-
-    if (picked != null) {
-      setState(() => _deliveryDate = picked);
-    }
-  }
-
   double _calculateItemDiscount(
     List<CartItem> items,
     List<ProductModel> products,
@@ -317,10 +209,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     final nextErrors = <String, String?>{
       'name': AppValidators.name(_nameController.text),
       'phone': AppValidators.phone(_phoneController.text),
-      'addressLine1': AppValidators.required(_addressLine1Controller.text),
-      'city': AppValidators.required(_cityController.text),
-      'postalCode': AppValidators.required(_postalController.text),
-      'country': AppValidators.required(_countryController.text),
     };
 
     setState(() {
@@ -348,14 +236,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       address: CheckoutAddress(
         fullName: _nameController.text.trim(),
         phone: _phoneController.text.trim(),
-        addressLine1: _addressLine1Controller.text.trim(),
-        addressLine2: _addressLine2Controller.text.trim(),
-        city: _cityController.text.trim(),
-        postalCode: _postalController.text.trim(),
-        country: _countryController.text.trim(),
+        addressLine1: widget.selectedAddress.addressLine1,
+        addressLine2: widget.selectedAddress.addressLine2,
+        city: widget.selectedAddress.city,
+        postalCode: widget.selectedAddress.postalCode,
+        country: widget.selectedAddress.country,
       ),
       notes: _notesController.text.trim(),
-      couponCode: _couponController.text.trim(),
+      couponCode: '',
       deliveryDate: _deliveryDate,
       paymentMethod: _paymentMethod,
       paymentGateway: null,
@@ -400,6 +288,59 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   void _clearFieldError(String fieldKey, String value) {
     if (value.trim().isEmpty || _errors[fieldKey] == null) return;
     setState(() => _errors[fieldKey] = null);
+  }
+}
+
+class _SelectedAddressPreview extends StatelessWidget {
+  const _SelectedAddressPreview({required this.address});
+
+  final AddressModel address;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSizes.md),
+      decoration: BoxDecoration(
+        color: primary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+        border: Border.all(color: primary.withValues(alpha: 0.18)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                address.typeLabel,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: AppSizes.xs),
+              if (address.isDefault)
+                Text(
+                  AppStrings.defaultAddress,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSizes.xs),
+          Text(
+            address.formatted,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall,
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -457,48 +398,6 @@ class _FormInput extends StatelessWidget {
       keyboardType: keyboardType,
       maxLines: maxLines,
       onChanged: onChanged,
-    );
-  }
-}
-
-class _DeliveryDateTile extends StatelessWidget {
-  const _DeliveryDateTile({required this.deliveryDate, required this.onTap});
-
-  final DateTime deliveryDate;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final formatter = DateFormat('EEE, MMM d, yyyy');
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppSizes.radiusLg),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSizes.lg,
-          vertical: AppSizes.xl,
-        ),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
-        ),
-        child: Row(
-          children: [
-            Text(
-              'Delivery Date',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const Spacer(),
-            Text(
-              formatter.format(deliveryDate),
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(width: AppSizes.sm),
-            const Icon(Icons.chevron_right_rounded),
-          ],
-        ),
-      ),
     );
   }
 }
