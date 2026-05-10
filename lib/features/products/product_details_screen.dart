@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wafi_ecommerce_app/core/constants/sizes.dart';
 import 'package:wafi_ecommerce_app/core/constants/strings.dart';
 import 'package:wafi_ecommerce_app/features/cart/cart_provider.dart';
+import 'package:wafi_ecommerce_app/features/cart/cart_screen.dart';
 import 'package:wafi_ecommerce_app/features/products/product_model.dart';
 import 'package:wafi_ecommerce_app/features/wishlist/wishlist_provider.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
@@ -89,7 +90,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
             children: [
               GlassCard(
                 variant: GlassCardVariant.elevated,
-                padding: EdgeInsets.zero,  // ← padding শূন্য
+                padding: EdgeInsets.zero,
                 child: AspectRatio(
                   aspectRatio: 1,
                   child: ClipRRect(
@@ -291,7 +292,14 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
           ),
           child: Row(
             children: [
-              _CartCountBadge(count: cartState.itemCount),
+              _CartCountBadge(
+                count: cartState.itemCount,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const _StandaloneCartDetailsScreen(),
+                  ),
+                ),
+              ),
               const SizedBox(width: AppSizes.md),
               Expanded(
                 child: cartQuantity <= 0
@@ -347,6 +355,21 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _StandaloneCartDetailsScreen extends StatelessWidget {
+  const _StandaloneCartDetailsScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: const WafiAppBar(
+        title: AppStrings.cart,
+        subtitle: null,
+      ),
+      body: const CartScreen(),
     );
   }
 }
@@ -671,43 +694,48 @@ class _ReviewsSection extends StatelessWidget {
 }
 
 class _CartCountBadge extends StatelessWidget {
-  const _CartCountBadge({required this.count});
+  const _CartCountBadge({required this.count, this.onTap});
 
   final int count;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-            border: Border.all(color: Theme.of(context).dividerColor),
-          ),
-          child: Icon(
-            Icons.shopping_cart_outlined,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-        ),
-        if (count > 0)
-          Positioned(
-            right: -6,
-            top: -6,
-            child: CircleAvatar(
-              radius: 11,
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              child: Text(
-                '$count',
-                style: Theme.of(
-                  context,
-                ).textTheme.labelSmall?.copyWith(color: Colors.white),
-              ),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+              border: Border.all(color: Theme.of(context).dividerColor),
+            ),
+            child: Icon(
+              Icons.shopping_cart_outlined,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
-      ],
+          if (count > 0)
+            Positioned(
+              right: -6,
+              top: -6,
+              child: CircleAvatar(
+                radius: 11,
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                child: Text(
+                  '$count',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelSmall?.copyWith(color: Colors.white),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
