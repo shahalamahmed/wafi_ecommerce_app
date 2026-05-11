@@ -174,7 +174,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   const SizedBox(width: AppSizes.md),
                   _QuickActionTile(
                     icon: Icons.credit_card_outlined,
-                    label: 'Payments',
+                    label: 'Payment',
                     onTap: () => _openPlaceholder(
                       title: 'Payments',
                       subtitle: 'Saved payment methods are not available yet.',
@@ -509,7 +509,7 @@ class _QuickActionTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSizes.sm,
-          vertical: 3,
+          vertical: AppSizes.sm,
         ),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppSizes.radiusLg),
@@ -524,8 +524,8 @@ class _QuickActionTile extends StatelessWidget {
               clipBehavior: Clip.none,
               children: [
                 Container(
-                  width: 40,
-                  height: 40,
+                  width: 34,
+                  height: 34,
                   decoration: BoxDecoration(
                     color: primary.withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(AppSizes.radiusMd),
@@ -562,7 +562,7 @@ class _QuickActionTile extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               label,
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
               style: Theme.of(
