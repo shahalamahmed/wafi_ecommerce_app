@@ -2,19 +2,23 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:wafi_ecommerce_app/core/constants/file_upload.dart';
 import 'package:wafi_ecommerce_app/core/constants/sizes.dart';
 import 'package:wafi_ecommerce_app/core/constants/strings.dart';
+import 'package:wafi_ecommerce_app/core/utils/validators.dart';
 import 'package:wafi_ecommerce_app/features/addresses/address_provider.dart';
 import 'package:wafi_ecommerce_app/features/addresses/address_screen.dart';
 import 'package:wafi_ecommerce_app/features/auth/auth_model.dart';
 import 'package:wafi_ecommerce_app/features/auth/auth_provider.dart';
 import 'package:wafi_ecommerce_app/features/orders/order_screen.dart';
+import 'package:wafi_ecommerce_app/features/profile/contact_support_service.dart';
 import 'package:wafi_ecommerce_app/features/settings/settings_screen.dart';
 import 'package:wafi_ecommerce_app/features/wishlist/wishlist_provider.dart';
 import 'package:wafi_ecommerce_app/features/wishlist/wishlist_screen.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/glass_input.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/profile_avatar.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
 
@@ -277,13 +281,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               _ProfileMenuRow(
                 icon: Icons.mail_outline_rounded,
                 title: 'Contact Us',
-                subtitle: 'Support contact channels will appear here soon',
-                onTap: () => _openPlaceholder(
-                  title: 'Contact Us',
-                  subtitle:
-                      'Contact options will be connected in a later update.',
-                  icon: Icons.mail_outline_rounded,
-                ),
+                subtitle: 'Phone, email, WhatsApp, LinkedIn, and feedback',
+                onTap: () => _openPage(const _ContactSupportScreen()),
               ),
               const SizedBox(height: AppSizes.md),
               _ProfileMenuRow(
@@ -653,6 +652,454 @@ class _StandaloneOrdersScreen extends StatelessWidget {
         centerTitle: false,
       ),
       body: const OrderScreen(),
+    );
+  }
+}
+
+class _ContactSupportScreen extends ConsumerStatefulWidget {
+  const _ContactSupportScreen();
+
+  @override
+  ConsumerState<_ContactSupportScreen> createState() =>
+      _ContactSupportScreenState();
+}
+
+class _ContactSupportScreenState extends ConsumerState<_ContactSupportScreen> {
+  static const _phoneNumber = '01758344572';
+  static const _supportEmail = 'shahalamahemd21@gmail.com';
+  static const _linkedinUrl = 'https://www.linkedin.com/in/shah-alam-app/';
+  static const _whatsAppNumber = '8801758344572';
+
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _messageController = TextEditingController();
+
+  final Map<String, String?> _errors = {};
+  bool _isSubmitting = false;
+  String? _successMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    final authState = ref.read(authProvider);
+    final user = authState.user;
+    if (user != null) {
+      _nameController.text = user.displayName;
+      _emailController.text = user.email;
+      _phoneController.text = user.phone;
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _messageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _launchExternal(Uri uri) async {
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      _showSnack('Could not open the selected contact option.');
+    }
+  }
+
+  Future<void> _submit() async {
+    final nextErrors = <String, String?>{
+      'name': AppValidators.name(_nameController.text),
+      'email': AppValidators.email(_emailController.text),
+      'phone': AppValidators.phone(_phoneController.text),
+      'message': _validateMessage(_messageController.text),
+    };
+
+    setState(() {
+      _errors
+        ..clear()
+        ..addAll(nextErrors);
+      _successMessage = null;
+    });
+
+    if (nextErrors.values.any((value) => value != null)) {
+      return;
+    }
+
+    final authState = ref.read(authProvider);
+    final user = authState.user;
+
+    setState(() => _isSubmitting = true);
+    try {
+      await ref
+          .read(contactSupportServiceProvider)
+          .submitContactRequest(
+            ContactSupportRequest(
+              name: _nameController.text.trim(),
+              email: _emailController.text.trim(),
+              phone: _phoneController.text.trim(),
+              message: _messageController.text.trim(),
+              userId: user?.uid,
+              isGuest: authState.isAnonymous || !authState.isAuthenticated,
+            ),
+          );
+
+      _messageController.clear();
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+        _successMessage =
+            'Your message has been sent successfully. We will get back to you soon.';
+      });
+      _showSnack('Feedback submitted successfully.');
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      _showSnack('Failed to send your message. Please try again.');
+    }
+  }
+
+  String? _validateMessage(String? value) {
+    final requiredError = AppValidators.required(
+      value,
+      message: 'Please enter your message or feedback.',
+    );
+    if (requiredError != null) return requiredError;
+    if (value!.trim().length < 10) {
+      return 'Please provide a bit more detail in your message.';
+    }
+    return null;
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Contact Us'), centerTitle: false),
+      body: ListView(
+        padding: const EdgeInsets.all(AppSizes.screenPaddingH),
+        children: [
+          GlassCard(
+            variant: GlassCardVariant.elevated,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    primary.withValues(alpha: isDark ? 0.22 : 0.16),
+                    theme.colorScheme.surface.withValues(
+                      alpha: isDark ? 0.92 : 0.84,
+                    ),
+                  ],
+                ),
+              ),
+              padding: const EdgeInsets.all(AppSizes.lg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSizes.md,
+                      vertical: AppSizes.sm,
+                    ),
+                    decoration: BoxDecoration(
+                      color: primary.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(AppSizes.radiusFull),
+                    ),
+                    child: Text(
+                      'Support Desk',
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSizes.md),
+                  Text(
+                    'Reach our team instantly or send detailed feedback.',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: AppSizes.sm),
+                  Text(
+                    'Choose the fastest channel for your issue, or leave a message and we will follow up with you professionally.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.textTheme.bodyMedium?.color?.withValues(
+                        alpha: 0.72,
+                      ),
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSizes.lg),
+          _SectionCard(
+            title: 'Direct Contact',
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _ContactActionCard(
+                        icon: Icons.call_outlined,
+                        title: 'Phone',
+                        value: _phoneNumber,
+                        accentColor: primary,
+                        onTap: () => _launchExternal(
+                          Uri(scheme: 'tel', path: _phoneNumber),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: AppSizes.md),
+                    Expanded(
+                      child: _ContactActionCard(
+                        icon: Icons.mail_outline_rounded,
+                        title: 'Email',
+                        value: _supportEmail,
+                        accentColor: const Color(0xFF0EA5E9),
+                        onTap: () => _launchExternal(
+                          Uri(
+                            scheme: 'mailto',
+                            path: _supportEmail,
+                            queryParameters: {
+                              'subject': 'Wafi App Support Request',
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSizes.md),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _ContactActionCard(
+                        icon: Icons.chat_bubble_outline_rounded,
+                        title: 'WhatsApp',
+                        value: _phoneNumber,
+                        accentColor: const Color(0xFF16A34A),
+                        onTap: () => _launchExternal(
+                          Uri.parse(
+                            'https://wa.me/$_whatsAppNumber?text=${Uri.encodeComponent('Hello, I need help with Wafi app.')}',
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: AppSizes.md),
+                    Expanded(
+                      child: _ContactActionCard(
+                        icon: Icons.work_outline_rounded,
+                        title: 'LinkedIn',
+                        value: 'Open profile',
+                        accentColor: const Color(0xFF2563EB),
+                        onTap: () => _launchExternal(Uri.parse(_linkedinUrl)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSizes.lg),
+          _SectionCard(
+            title: 'Message / Feedback',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Send us your issue, suggestion, or partnership inquiry.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.textTheme.bodyMedium?.color?.withValues(
+                      alpha: 0.72,
+                    ),
+                  ),
+                ),
+                if ((_successMessage ?? '').isNotEmpty) ...[
+                  const SizedBox(height: AppSizes.md),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(AppSizes.md),
+                    decoration: BoxDecoration(
+                      color: primary.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                      border: Border.all(color: primary.withValues(alpha: 0.20)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.check_circle_outline_rounded,
+                          color: primary,
+                        ),
+                        const SizedBox(width: AppSizes.sm),
+                        Expanded(
+                          child: Text(
+                            _successMessage!,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: AppSizes.md),
+                GlassInput(
+                  controller: _nameController,
+                  label: 'Full Name',
+                  hint: 'Your name',
+                  prefixIcon: Icons.person_outline_rounded,
+                  errorText: _errors['name'],
+                  onChanged: (_) => setState(() => _errors['name'] = null),
+                ),
+                const SizedBox(height: AppSizes.md),
+                GlassInput(
+                  controller: _emailController,
+                  label: 'Email Address',
+                  hint: 'you@example.com',
+                  prefixIcon: Icons.alternate_email_rounded,
+                  keyboardType: TextInputType.emailAddress,
+                  errorText: _errors['email'],
+                  onChanged: (_) => setState(() => _errors['email'] = null),
+                ),
+                const SizedBox(height: AppSizes.md),
+                GlassInput(
+                  controller: _phoneController,
+                  label: 'Phone Number',
+                  hint: '01XXXXXXXXX',
+                  prefixIcon: Icons.phone_outlined,
+                  keyboardType: TextInputType.phone,
+                  errorText: _errors['phone'],
+                  onChanged: (_) => setState(() => _errors['phone'] = null),
+                ),
+                const SizedBox(height: AppSizes.md),
+                GlassInput(
+                  controller: _messageController,
+                  label: 'Message',
+                  hint: 'Write your feedback or support request here',
+                  prefixIcon: Icons.edit_note_rounded,
+                  maxLines: 6,
+                  errorText: _errors['message'],
+                  onChanged: (_) => setState(() => _errors['message'] = null),
+                ),
+                const SizedBox(height: AppSizes.lg),
+                Row(
+                  children: [
+                    Expanded(
+                      child: GlassButton(
+                        label: 'Send Message',
+                        prefixIcon: Icons.send_rounded,
+                        isLoading: _isSubmitting,
+                        onPressed: _isSubmitting ? null : _submit,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ContactActionCard extends StatelessWidget {
+  const _ContactActionCard({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.accentColor,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String value;
+  final Color accentColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+      child: Container(
+        padding: const EdgeInsets.all(AppSizes.md),
+        decoration: BoxDecoration(
+          color: theme.cardColor.withValues(alpha: 0.38),
+          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+          border: Border.all(color: accentColor.withValues(alpha: 0.18)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: accentColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+              ),
+              child: Icon(icon, color: accentColor),
+            ),
+            const SizedBox(height: AppSizes.md),
+            Text(
+              title,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: AppSizes.xs),
+            Text(
+              value,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.72),
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: AppSizes.md),
+            Row(
+              children: [
+                Text(
+                  'Open',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: accentColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(width: AppSizes.xs),
+                Icon(
+                  Icons.arrow_forward_rounded,
+                  size: AppSizes.iconXs,
+                  color: accentColor,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
