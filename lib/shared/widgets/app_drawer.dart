@@ -11,10 +11,8 @@ import 'package:wafi_ecommerce_app/features/auth/auth_provider.dart';
 import 'package:wafi_ecommerce_app/features/owner/owner_catalog_screen.dart';
 import 'package:wafi_ecommerce_app/features/owner/order_management_screen.dart';
 import 'package:wafi_ecommerce_app/features/owner/user_management_screen.dart';
-import 'package:wafi_ecommerce_app/features/settings/settings_screen.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
-import 'package:wafi_ecommerce_app/shared/widgets/glass_chip.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/profile_avatar.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
 
@@ -64,47 +62,45 @@ class AppDrawer extends ConsumerWidget {
           ),
           child: SafeArea(
             child: ListView(
-              padding: const EdgeInsets.all(AppSizes.lg),
+              padding: const EdgeInsets.all(AppSizes.md),
               children: [
                 GlassCard(
                   variant: GlassCardVariant.elevated,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ProfileAvatar(user: user, isGuest: isGuest, radius: 26),
-                      const SizedBox(height: AppSizes.md),
-                      Text(
-                        user?.displayName ?? 'Guest session',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: AppSizes.xs),
-                      Text(
-                        user?.email.isNotEmpty == true
-                            ? user!.email
-                            : AppStrings.guestBannerMsg,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      const SizedBox(height: AppSizes.md),
-                      Wrap(
-                        spacing: AppSizes.sm,
-                        runSpacing: AppSizes.sm,
+                      Row(
                         children: [
-                          GlassChip(
-                            label: isOwner ? 'Shop Owner' : 'Customer',
-                            variant: isOwner
-                                ? GlassChipVariant.warning
-                                : GlassChipVariant.primary,
+                          ProfileAvatar(
+                            user: user,
+                            isGuest: isGuest,
+                            radius: 26,
                           ),
-                          GlassChip(
-                            label: themeState.mode.label,
-                            variant: GlassChipVariant.neutral,
+                          const SizedBox(width: AppSizes.md),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  user?.displayName ?? 'Guest session',
+                                  style: Theme.of(context).textTheme.titleLarge,
+                                ),
+                                const SizedBox(height: AppSizes.xs),
+                                Text(
+                                  user?.email.isNotEmpty == true
+                                      ? user!.email
+                                      : AppStrings.guestBannerMsg,
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: AppSizes.xl2),
+                const SizedBox(height: AppSizes.md),
                 _DrawerCategorySection(
                   categories: topLevelCategories,
                   childCategoryMap: childCategoryMap,
@@ -175,52 +171,11 @@ class AppDrawer extends ConsumerWidget {
                   ),
                   const SizedBox(height: AppSizes.xl2),
                 ],
-                GlassButton(
-                  label: AppStrings.settings,
-                  prefixIcon: Icons.settings_outlined,
-                  isFullWidth: true,
-                  variant: GlassButtonVariant.ghost,
-                  onPressed: () {
-                    Navigator.of(context)
-                      ..pop()
-                      ..push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const SettingsScreen(),
-                        ),
-                      );
-                  },
-                ),
+
                 const SizedBox(height: AppSizes.xl2),
-                Text(
-                  'Theme Mode',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: AppSizes.md),
-                GlassButton(
-                  label: 'System',
-                  isFullWidth: true,
-                  variant: themeState.mode == AppThemeMode.system
-                      ? GlassButtonVariant.primary
-                      : GlassButtonVariant.ghost,
-                  onPressed: () => themeNotifier.setTheme(AppThemeMode.system),
-                ),
-                const SizedBox(height: AppSizes.sm),
-                GlassButton(
-                  label: 'Light',
-                  isFullWidth: true,
-                  variant: themeState.mode == AppThemeMode.light
-                      ? GlassButtonVariant.primary
-                      : GlassButtonVariant.ghost,
-                  onPressed: () => themeNotifier.setTheme(AppThemeMode.light),
-                ),
-                const SizedBox(height: AppSizes.sm),
-                GlassButton(
-                  label: 'Dark',
-                  isFullWidth: true,
-                  variant: themeState.mode == AppThemeMode.dark
-                      ? GlassButtonVariant.primary
-                      : GlassButtonVariant.ghost,
-                  onPressed: () => themeNotifier.setTheme(AppThemeMode.dark),
+                _ThemeModePicker(
+                  selectedMode: themeState.mode,
+                  onChanged: themeNotifier.setTheme,
                 ),
                 const SizedBox(height: AppSizes.xl2),
                 GlassButton(
@@ -236,6 +191,156 @@ class AppDrawer extends ConsumerWidget {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ThemeModePicker extends StatelessWidget {
+  const _ThemeModePicker({required this.selectedMode, required this.onChanged});
+
+  final AppThemeMode selectedMode;
+  final ValueChanged<AppThemeMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final borderColor = theme.colorScheme.outlineVariant.withValues(
+      alpha: 0.24,
+    );
+    final shellColor = theme.colorScheme.surface.withValues(alpha: 0.72);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Theme Mode',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: AppSizes.md),
+        Container(
+          padding: const EdgeInsets.all(AppSizes.xs),
+          decoration: BoxDecoration(
+            color: shellColor,
+            borderRadius: BorderRadius.circular(AppSizes.radiusXl),
+            border: Border.all(color: borderColor),
+            boxShadow: [
+              BoxShadow(
+                color: theme.shadowColor.withValues(alpha: 0.08),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: _ThemeModeOption(
+                  label: 'System',
+                  icon: Icons.brightness_auto_rounded,
+                  isSelected: selectedMode == AppThemeMode.system,
+                  onTap: () => onChanged(AppThemeMode.system),
+                ),
+              ),
+              _ThemeModeDivider(color: borderColor),
+              Expanded(
+                child: _ThemeModeOption(
+                  label: 'Light',
+                  icon: Icons.light_mode_rounded,
+                  isSelected: selectedMode == AppThemeMode.light,
+                  onTap: () => onChanged(AppThemeMode.light),
+                ),
+              ),
+              _ThemeModeDivider(color: borderColor),
+              Expanded(
+                child: _ThemeModeOption(
+                  label: 'Dark',
+                  icon: Icons.dark_mode_rounded,
+                  isSelected: selectedMode == AppThemeMode.dark,
+                  onTap: () => onChanged(AppThemeMode.dark),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ThemeModeDivider extends StatelessWidget {
+  const _ThemeModeDivider({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 34,
+      margin: const EdgeInsets.symmetric(horizontal: AppSizes.xs),
+      color: color,
+    );
+  }
+}
+
+class _ThemeModeOption extends StatelessWidget {
+  const _ThemeModeOption({
+    required this.label,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+    final selectedFill = primary.withValues(alpha: 0.12);
+    final selectedBorder = primary.withValues(alpha: 0.24);
+    final idleColor = theme.textTheme.bodyMedium?.color?.withValues(
+      alpha: 0.78,
+    );
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSizes.xs,
+            vertical: AppSizes.sm,
+          ),
+          decoration: BoxDecoration(
+            color: isSelected ? selectedFill : Colors.transparent,
+            borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+            border: isSelected ? Border.all(color: selectedBorder) : null,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: isSelected ? primary : idleColor, size: 18),
+              const SizedBox(height: AppSizes.xs),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: isSelected ? primary : idleColor,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -325,7 +430,7 @@ class _DrawerCategoryTile extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSizes.lg,
-                vertical: AppSizes.lg,
+                vertical: AppSizes.md,
               ),
               child: Row(
                 children: [
@@ -359,9 +464,10 @@ class _DrawerCategoryTile extends StatelessWidget {
       child: Theme(
         data: theme.copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
+          minTileHeight: 0,
           tilePadding: const EdgeInsets.symmetric(
             horizontal: AppSizes.lg,
-            vertical: AppSizes.sm,
+            vertical: AppSizes.xs,
           ),
           childrenPadding: const EdgeInsets.fromLTRB(
             AppSizes.xl,
@@ -369,6 +475,7 @@ class _DrawerCategoryTile extends StatelessWidget {
             AppSizes.lg,
             AppSizes.md,
           ),
+          visualDensity: const VisualDensity(vertical: -3),
           iconColor: theme.colorScheme.primary,
           collapsedIconColor: theme.colorScheme.primary,
           title: Text(

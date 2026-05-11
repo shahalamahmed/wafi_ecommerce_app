@@ -174,7 +174,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   const SizedBox(width: AppSizes.md),
                   _QuickActionTile(
                     icon: Icons.credit_card_outlined,
-                    label: 'Payment',
+                    label: 'Payments',
                     onTap: () => _openPlaceholder(
                       title: 'Payments',
                       subtitle: 'Saved payment methods are not available yet.',
