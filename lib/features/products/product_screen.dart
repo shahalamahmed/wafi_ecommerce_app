@@ -23,11 +23,13 @@ class ProductCatalogPage extends StatelessWidget {
     required this.title,
     required this.subtitle,
     this.initialCategoryId,
+    this.initialOffersOnly = false,
   });
 
   final String title;
   final String subtitle;
   final String? initialCategoryId;
+  final bool initialOffersOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +38,7 @@ class ProductCatalogPage extends StatelessWidget {
       appBar: WafiAppBar(title: title, subtitle: subtitle),
       body: ProductScreen(
         initialCategoryId: initialCategoryId,
+        initialOffersOnly: initialOffersOnly,
         resetFiltersOnOpen: true,
         resetFiltersOnDispose: true,
         immersiveShell: true,
@@ -48,12 +51,14 @@ class ProductScreen extends ConsumerStatefulWidget {
   const ProductScreen({
     super.key,
     this.initialCategoryId,
+    this.initialOffersOnly = false,
     this.resetFiltersOnOpen = false,
     this.resetFiltersOnDispose = false,
     this.immersiveShell = false,
   });
 
   final String? initialCategoryId;
+  final bool initialOffersOnly;
   final bool resetFiltersOnOpen;
   final bool resetFiltersOnDispose;
   final bool immersiveShell;
@@ -74,6 +79,9 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
 
       if (widget.resetFiltersOnOpen) {
         notifier.resetFilters();
+      }
+      if (widget.initialOffersOnly) {
+        notifier.toggleOffersOnly();
       }
     });
   }

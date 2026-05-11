@@ -60,6 +60,9 @@ class HomeScreen extends ConsumerWidget {
 
     final categories = productState.activeCategories;
     final products = productState.products.where((p) => p.isActive).toList();
+    final topLevelCategories = categories.where((category) {
+      return category.isTopLevel;
+    }).toList()..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
 
     final popularItems = [...products]
       ..sort((a, b) {
@@ -69,17 +72,51 @@ class HomeScreen extends ConsumerWidget {
       });
 
     final newArrivals = [...products]
+      ..sort((a, b) => _productTimestamp(b).compareTo(_productTimestamp(a)));
+
+    final specialOffers = products.where((p) => p.hasDiscount).toList()
       ..sort((a, b) {
-        final dateA =
-            a.updatedAt ??
-            a.createdAt ??
-            DateTime.fromMillisecondsSinceEpoch(0);
-        final dateB =
-            b.updatedAt ??
-            b.createdAt ??
-            DateTime.fromMillisecondsSinceEpoch(0);
-        return dateB.compareTo(dateA);
+        final discountCompare = b.discountPercent.compareTo(a.discountPercent);
+        if (discountCompare != 0) return discountCompare;
+        return _productTimestamp(b).compareTo(_productTimestamp(a));
       });
+
+    final topCategorySection = _resolveTopCategorySection(
+      categories: categories,
+      topLevelCategories: topLevelCategories,
+      products: products,
+    );
+
+    void openProductDetails(ProductModel product) {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => ProductDetailsScreen(product: product),
+        ),
+      );
+    }
+
+    Future<void> addToCart(ProductModel product) async {
+      await cartNotifier.addProduct(product);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('${product.name} added to cart')));
+    }
+
+    Future<void> toggleWishlist(ProductModel product) async {
+      final wasWishlisted = wishlistNotifier.containsProduct(product.id);
+      await wishlistNotifier.toggleProduct(product);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            wasWishlisted
+                ? '${product.name} removed from wishlist'
+                : '${product.name} added to wishlist',
+          ),
+        ),
+      );
+    }
 
     return RefreshIndicator(
       onRefresh: () => ref.read(productProvider.notifier).load(),
@@ -159,36 +196,11 @@ class HomeScreen extends ConsumerWidget {
                   products: popularItems.take(6).toList(),
                   quantityForProduct: cartNotifier.quantityForProduct,
                   isWishlisted: wishlistNotifier.containsProduct,
-                  onTap: (p) => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => ProductDetailsScreen(product: p),
-                    ),
-                  ),
-                  onAddToCart: (p) async {
-                    await cartNotifier.addProduct(p);
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('${p.name} added to cart')),
-                    );
-                  },
+                  onTap: openProductDetails,
+                  onAddToCart: addToCart,
                   onIncrement: (p) => cartNotifier.increment(p.id),
                   onDecrement: (p) => cartNotifier.decrement(p.id),
-                  onToggleWishlist: (p) async {
-                    final wasWishlisted = wishlistNotifier.containsProduct(
-                      p.id,
-                    );
-                    await wishlistNotifier.toggleProduct(p);
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          wasWishlisted
-                              ? '${p.name} removed from wishlist'
-                              : '${p.name} added to wishlist',
-                        ),
-                      ),
-                    );
-                  },
+                  onToggleWishlist: toggleWishlist,
                 ),
               ],
             ),
@@ -217,40 +229,86 @@ class HomeScreen extends ConsumerWidget {
                   products: newArrivals.take(6).toList(),
                   quantityForProduct: cartNotifier.quantityForProduct,
                   isWishlisted: wishlistNotifier.containsProduct,
-                  onTap: (p) => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => ProductDetailsScreen(product: p),
-                    ),
-                  ),
-                  onAddToCart: (p) async {
-                    await cartNotifier.addProduct(p);
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('${p.name} added to cart')),
-                    );
-                  },
+                  onTap: openProductDetails,
+                  onAddToCart: addToCart,
                   onIncrement: (p) => cartNotifier.increment(p.id),
                   onDecrement: (p) => cartNotifier.decrement(p.id),
-                  onToggleWishlist: (p) async {
-                    final wasWishlisted = wishlistNotifier.containsProduct(
-                      p.id,
-                    );
-                    await wishlistNotifier.toggleProduct(p);
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          wasWishlisted
-                              ? '${p.name} removed from wishlist'
-                              : '${p.name} added to wishlist',
-                        ),
-                      ),
-                    );
-                  },
+                  onToggleWishlist: toggleWishlist,
                 ),
               ],
             ),
           ),
+          if (specialOffers.isNotEmpty) ...[
+            const SizedBox(height: AppSizes.lg),
+            _SectionWrapper(
+              child: _SectionHeader(
+                title: 'Special Offer',
+                actionLabel: AppStrings.seeAll,
+                onActionTap: () => _openCatalog(
+                  context,
+                  title: 'Special Offer',
+                  subtitle: 'Discounted products available now',
+                  initialOffersOnly: true,
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSizes.lg),
+            _SectionWrapper(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _HorizontalProductStrip(
+                    products: specialOffers.take(6).toList(),
+                    quantityForProduct: cartNotifier.quantityForProduct,
+                    isWishlisted: wishlistNotifier.containsProduct,
+                    onTap: openProductDetails,
+                    onAddToCart: addToCart,
+                    onIncrement: (p) => cartNotifier.increment(p.id),
+                    onDecrement: (p) => cartNotifier.decrement(p.id),
+                    onToggleWishlist: toggleWishlist,
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (topCategorySection != null &&
+              topCategorySection.products.isNotEmpty) ...[
+            const SizedBox(height: AppSizes.lg),
+            _SectionWrapper(
+              dark: true,
+              child: _SectionHeader(
+                title: '${topCategorySection.category.name} picks',
+                actionLabel: AppStrings.seeAll,
+                onActionTap: () => _openCatalog(
+                  context,
+                  title: topCategorySection.category.name,
+                  subtitle: topCategorySection.category.description.isNotEmpty
+                      ? topCategorySection.category.description
+                      : 'Most stocked category right now',
+                  categoryId: topCategorySection.category.id,
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSizes.lg),
+            _SectionWrapper(
+              dark: true,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _HorizontalProductStrip(
+                    products: topCategorySection.products.take(6).toList(),
+                    quantityForProduct: cartNotifier.quantityForProduct,
+                    isWishlisted: wishlistNotifier.containsProduct,
+                    onTap: openProductDetails,
+                    onAddToCart: addToCart,
+                    onIncrement: (p) => cartNotifier.increment(p.id),
+                    onDecrement: (p) => cartNotifier.decrement(p.id),
+                    onToggleWishlist: toggleWishlist,
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 100),
         ],
       ),
@@ -262,6 +320,7 @@ class HomeScreen extends ConsumerWidget {
     required String title,
     required String subtitle,
     String? categoryId,
+    bool initialOffersOnly = false,
   }) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -269,6 +328,7 @@ class HomeScreen extends ConsumerWidget {
           title: title,
           subtitle: subtitle,
           initialCategoryId: categoryId,
+          initialOffersOnly: initialOffersOnly,
         ),
       ),
     );
@@ -276,6 +336,87 @@ class HomeScreen extends ConsumerWidget {
 }
 
 // ─── Banner data model ───────────────────────────────────────────────────────
+
+DateTime _productTimestamp(ProductModel product) {
+  return product.updatedAt ??
+      product.createdAt ??
+      DateTime.fromMillisecondsSinceEpoch(0);
+}
+
+double _homeStripCardWidth(double availableWidth) {
+  const spacing = AppSizes.sm;
+  const cardsInViewport = 2.18;
+  final reservedSpacing = spacing * 2;
+  return (availableWidth - reservedSpacing) / cardsInViewport;
+}
+
+_TopCategorySection? _resolveTopCategorySection({
+  required List<ProductCategory> categories,
+  required List<ProductCategory> topLevelCategories,
+  required List<ProductModel> products,
+}) {
+  if (topLevelCategories.isEmpty || products.isEmpty) {
+    return null;
+  }
+
+  _TopCategorySection? winner;
+
+  for (final category in topLevelCategories) {
+    final descendantIds = _descendantCategoryIds(
+      parentId: category.id,
+      categories: categories,
+    );
+    final matchingProducts = products.where((product) {
+      return product.categoryId == category.id ||
+          descendantIds.contains(product.categoryId) ||
+          (product.subCategoryId != null &&
+              descendantIds.contains(product.subCategoryId));
+    }).toList()
+      ..sort((a, b) => _productTimestamp(b).compareTo(_productTimestamp(a)));
+
+    if (matchingProducts.isEmpty) {
+      continue;
+    }
+
+    final current = _TopCategorySection(
+      category: category,
+      products: matchingProducts,
+    );
+
+    if (winner == null || current.products.length > winner.products.length) {
+      winner = current;
+    }
+  }
+
+  return winner;
+}
+
+Set<String> _descendantCategoryIds({
+  required String parentId,
+  required List<ProductCategory> categories,
+}) {
+  final descendants = <String>{};
+  final pending = <String>[parentId];
+
+  while (pending.isNotEmpty) {
+    final currentId = pending.removeLast();
+    for (final category in categories) {
+      if (!category.isActive || category.parentId != currentId) continue;
+      if (descendants.add(category.id)) {
+        pending.add(category.id);
+      }
+    }
+  }
+
+  return descendants;
+}
+
+class _TopCategorySection {
+  const _TopCategorySection({required this.category, required this.products});
+
+  final ProductCategory category;
+  final List<ProductModel> products;
+}
 
 class _BannerItem {
   const _BannerItem({
@@ -774,7 +915,7 @@ class _HorizontalProductStrip extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         const spacing = AppSizes.sm;
-        final cardWidth = (constraints.maxWidth - spacing) / 2;
+        final cardWidth = _homeStripCardWidth(constraints.maxWidth);
 
         return SizedBox(
           height: 220,
@@ -1034,7 +1175,7 @@ class _NewArrivalStrip extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         const spacing = AppSizes.sm;
-        final cardWidth = (constraints.maxWidth - spacing) / 2;
+        final cardWidth = _homeStripCardWidth(constraints.maxWidth);
 
         return SizedBox(
           height: 236,
