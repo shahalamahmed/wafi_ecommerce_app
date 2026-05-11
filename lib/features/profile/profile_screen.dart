@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -285,13 +284,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       'Contact options will be connected in a later update.',
                   icon: Icons.mail_outline_rounded,
                 ),
-              ),
-              const SizedBox(height: AppSizes.md),
-              _ProfileMenuRow(
-                icon: Icons.info_outline_rounded,
-                title: 'About',
-                subtitle: '${AppStrings.appName} grocery shopping experience',
-                onTap: () => _openPage(const SettingsScreen()),
               ),
               const SizedBox(height: AppSizes.md),
               _ProfileMenuRow(
