@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wafi_ecommerce_app/core/constants/sizes.dart';
 import 'package:wafi_ecommerce_app/core/constants/strings.dart';
+import 'package:wafi_ecommerce_app/features/products/product_model.dart';
+import 'package:wafi_ecommerce_app/features/products/product_provider.dart';
+import 'package:wafi_ecommerce_app/features/products/product_screen.dart';
 import 'package:wafi_ecommerce_app/core/theme/theme_provider.dart';
 import 'package:wafi_ecommerce_app/features/auth/auth_provider.dart';
 import 'package:wafi_ecommerce_app/features/owner/owner_catalog_screen.dart';
@@ -22,6 +25,7 @@ class AppDrawer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
     final authNotifier = ref.read(authProvider.notifier);
+    final productState = ref.watch(productProvider);
     final themeState = ref.watch(themeProvider);
     final themeNotifier = ref.read(themeProvider.notifier);
 
@@ -29,6 +33,18 @@ class AppDrawer extends ConsumerWidget {
     final isOwner = user?.isOwner == true;
     final isGuest = authState.isAnonymous || !authState.isAuthenticated;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final activeCategories = productState.activeCategories;
+    final topLevelCategories =
+        activeCategories.where((category) => category.isTopLevel).toList()
+          ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+    final childCategoryMap = <String, List<ProductCategory>>{
+      for (final parent in topLevelCategories)
+        parent.id:
+            activeCategories
+                .where((category) => category.parentId == parent.id)
+                .toList()
+              ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder)),
+    };
 
     return Drawer(
       backgroundColor: Colors.transparent,
@@ -89,6 +105,11 @@ class AppDrawer extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: AppSizes.xl2),
+                _DrawerCategorySection(
+                  categories: topLevelCategories,
+                  childCategoryMap: childCategoryMap,
+                ),
+                const SizedBox(height: AppSizes.xl2),
                 if (isOwner) ...[
                   GlassButton(
                     label: 'Catalog Management',
@@ -103,7 +124,7 @@ class AppDrawer extends ConsumerWidget {
                             builder: (_) => const _DrawerScreen(
                               title: 'Catalog Management',
                               subtitle:
-                              'Category, product, and inventory controls',
+                                  'Category, product, and inventory controls',
                               child: OwnerCatalogScreen(),
                             ),
                           ),
@@ -124,7 +145,7 @@ class AppDrawer extends ConsumerWidget {
                             builder: (_) => const _DrawerScreen(
                               title: 'Order Management',
                               subtitle:
-                              'Queue, fulfillment, and status updates',
+                                  'Queue, fulfillment, and status updates',
                               child: OrderManagementScreen(),
                             ),
                           ),
@@ -145,7 +166,7 @@ class AppDrawer extends ConsumerWidget {
                             builder: (_) => const _DrawerScreen(
                               title: 'User Management',
                               subtitle:
-                              'Assign owner access and review user roles',
+                                  'Assign owner access and review user roles',
                               child: UserManagementScreen(),
                             ),
                           ),
@@ -219,6 +240,186 @@ class AppDrawer extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+class _DrawerCategorySection extends StatelessWidget {
+  const _DrawerCategorySection({
+    required this.categories,
+    required this.childCategoryMap,
+  });
+
+  final List<ProductCategory> categories;
+  final Map<String, List<ProductCategory>> childCategoryMap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          AppStrings.categories,
+          style: theme.textTheme.titleLarge?.copyWith(
+            color: theme.colorScheme.primary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: AppSizes.md),
+        if (categories.isEmpty)
+          GlassCard(
+            variant: GlassCardVariant.elevated,
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSizes.lg,
+              vertical: AppSizes.lg,
+            ),
+            child: Text(
+              'No active categories available right now.',
+              style: theme.textTheme.bodyMedium,
+            ),
+          )
+        else
+          ...categories.map(
+            (category) => Padding(
+              padding: const EdgeInsets.only(bottom: AppSizes.md),
+              child: _DrawerCategoryTile(
+                category: category,
+                children: childCategoryMap[category.id] ?? const [],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _DrawerCategoryTile extends StatelessWidget {
+  const _DrawerCategoryTile({required this.category, required this.children});
+
+  final ProductCategory category;
+  final List<ProductCategory> children;
+
+  bool get _hasChildren => children.isNotEmpty;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cardColor = theme.colorScheme.surface.withValues(alpha: 0.72);
+    final borderColor = theme.colorScheme.outlineVariant.withValues(
+      alpha: 0.32,
+    );
+
+    if (!_hasChildren) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+          onTap: () => _openCategory(context, category),
+          child: Ink(
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+              border: Border.all(color: borderColor),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSizes.lg,
+                vertical: AppSizes.lg,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      category.name,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: AppSizes.iconXs,
+                    color: theme.colorScheme.primary,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+        border: Border.all(color: borderColor),
+      ),
+      child: Theme(
+        data: theme.copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(
+            horizontal: AppSizes.lg,
+            vertical: AppSizes.sm,
+          ),
+          childrenPadding: const EdgeInsets.fromLTRB(
+            AppSizes.xl,
+            0,
+            AppSizes.lg,
+            AppSizes.md,
+          ),
+          iconColor: theme.colorScheme.primary,
+          collapsedIconColor: theme.colorScheme.primary,
+          title: Text(
+            category.name,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          children: [
+            ...children.map(
+              (child) => ListTile(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                visualDensity: const VisualDensity(vertical: -2),
+                title: Text(child.name, style: theme.textTheme.bodyLarge),
+                onTap: () => _openCategory(context, child),
+              ),
+            ),
+            const SizedBox(height: AppSizes.xs),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () => _openCategory(context, category),
+                style: TextButton.styleFrom(
+                  foregroundColor: theme.colorScheme.primary,
+                  padding: EdgeInsets.zero,
+                ),
+                icon: const Icon(Icons.storefront_outlined, size: 18),
+                label: const Text('View all'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openCategory(BuildContext context, ProductCategory selectedCategory) {
+    Navigator.of(context)
+      ..pop()
+      ..push(
+        MaterialPageRoute<void>(
+          builder: (_) => ProductCatalogPage(
+            title: selectedCategory.name,
+            subtitle: selectedCategory.description.trim().isNotEmpty
+                ? selectedCategory.description
+                : 'Browse products from this category',
+            initialCategoryId: selectedCategory.id,
+          ),
+        ),
+      );
   }
 }
 
