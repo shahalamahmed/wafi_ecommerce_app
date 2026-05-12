@@ -228,6 +228,15 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       return;
     }
 
+    final stockError = await _validateCartInventory();
+    if (!mounted) return;
+    if (stockError != null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(stockError)));
+      return;
+    }
+
     final cartState = ref.read(cartProvider);
     final draft = OrderDraft(
       userId: userId,
@@ -288,6 +297,38 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   void _clearFieldError(String fieldKey, String value) {
     if (value.trim().isEmpty || _errors[fieldKey] == null) return;
     setState(() => _errors[fieldKey] = null);
+  }
+
+  Future<String?> _validateCartInventory() async {
+    await ref.read(productProvider.notifier).load();
+    final products = ref.read(productProvider).products;
+    final cartItems = ref.read(cartProvider).items;
+    final requestedByProduct = <String, int>{};
+    for (final item in cartItems) {
+      requestedByProduct.update(
+        item.productId,
+        (current) => current + item.quantity,
+        ifAbsent: () => item.quantity,
+      );
+    }
+
+    final productById = <String, ProductModel>{
+      for (final product in products) product.id: product,
+    };
+
+    for (final entry in requestedByProduct.entries) {
+      final product = productById[entry.key];
+      if (product == null || !product.isActive) {
+        return 'Some items are no longer available.';
+      }
+      if (product.stock < entry.value) {
+        return product.stock <= 0
+            ? '${product.name} is out of stock.'
+            : 'Only ${product.stock} unit(s) left for ${product.name}.';
+      }
+    }
+
+    return null;
   }
 }
 

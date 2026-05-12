@@ -408,45 +408,82 @@ async function finalizeSuccessfulPayment(context, req) {
     };
   }
 
-  await db.runTransaction(async (transaction) => {
-    const latestSnap = await transaction.get(context.ref);
-    const latest = latestSnap.data();
+  try {
+    await db.runTransaction(async (transaction) => {
+      const latestSnap = await transaction.get(context.ref);
+      const latest = latestSnap.data();
 
-    if (!latest || latest.orderId) {
-      return;
-    }
+      if (!latest || latest.orderId) {
+        return;
+      }
 
-    const orderRef = db.collection('orders').doc(context.attemptId);
-    const orderNumber = generateOrderNumber();
+      const reservedInventory = await reserveInventoryInTransaction(
+        transaction,
+        Array.isArray(latest.checkoutSnapshot?.items)
+          ? latest.checkoutSnapshot.items
+          : [],
+      );
+      const orderRef = db.collection('orders').doc(context.attemptId);
+      const orderNumber = generateOrderNumber();
 
-    transaction.set(orderRef, buildOrderDocument(context.attemptId, latest, validation, orderNumber));
-    transaction.set(
-      context.ref,
+      transaction.set(
+        orderRef,
+        buildOrderDocument(
+          context.attemptId,
+          latest,
+          validation,
+          orderNumber,
+          reservedInventory,
+        ),
+      );
+      transaction.set(
+        context.ref,
+        {
+          status: 'paid',
+          paymentStatus: 'paid',
+          message: 'Payment verified and order created.',
+          orderId: orderNumber,
+          orderDocumentId: context.attemptId,
+          orderNumber,
+          gatewayTransactionId: String(validation.tran_id || latest.tranId || ''),
+          gatewayValidationId: String(validation.val_id || valId),
+          bankTransactionId: String(validation.bank_tran_id || ''),
+          callbackPayload: extractCallbackPayload(req),
+          validationResponse: summarizeValidation(validation),
+          paidAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+    });
+
+    return {
+      httpStatus: 200,
+      status: 'paid',
+      title: 'Payment successful',
+      message: 'Your payment was verified and the order has been placed successfully.',
+    };
+  } catch (error) {
+    const message = error?.message || 'Stock was no longer available for one or more items.';
+    await context.ref.set(
       {
-        status: 'paid',
-        paymentStatus: 'paid',
-        message: 'Payment verified and order created.',
-        orderId: orderNumber,
-        orderDocumentId: context.attemptId,
-        orderNumber,
-        gatewayTransactionId: String(validation.tran_id || latest.tranId || ''),
-        gatewayValidationId: String(validation.val_id || valId),
-        bankTransactionId: String(validation.bank_tran_id || ''),
+        status: 'invalid',
+        paymentStatus: 'invalid',
+        message: `Payment captured but order creation was blocked: ${message}`,
         callbackPayload: extractCallbackPayload(req),
         validationResponse: summarizeValidation(validation),
-        paidAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       },
       { merge: true },
     );
-  });
 
-  return {
-    httpStatus: 200,
-    status: 'paid',
-    title: 'Payment successful',
-    message: 'Your payment was verified and the order has been placed successfully.',
-  };
+    return {
+      httpStatus: error?.statusCode || 409,
+      status: 'invalid',
+      title: 'Order could not be created',
+      message,
+    };
+  }
 }
 
 async function updateAttemptTerminalState(context, nextStatus, req, message) {
@@ -522,7 +559,13 @@ async function fetchJson(url, options = undefined) {
   return json;
 }
 
-function buildOrderDocument(attemptId, attempt, validation, orderNumber) {
+function buildOrderDocument(
+  attemptId,
+  attempt,
+  validation,
+  orderNumber,
+  stockBeforeByProduct = {},
+) {
   const snapshot = attempt.checkoutSnapshot || {};
   const deliveryDate = parseIsoDate(snapshot.deliveryDate);
   const gatewayTransactionId = String(validation.tran_id || attempt.tranId || '');
@@ -532,8 +575,15 @@ function buildOrderDocument(attemptId, attempt, validation, orderNumber) {
     orderId: orderNumber,
     userId: attempt.userId,
     customerEmail: attempt.customerEmail || snapshot.customerEmail || '',
-    items: Array.isArray(snapshot.items) ? snapshot.items : [],
+    items: attachInventorySnapshots(
+      Array.isArray(snapshot.items) ? snapshot.items : [],
+      stockBeforeByProduct,
+    ),
     status: 'pending',
+    inventoryReserved: true,
+    inventoryRestocked: false,
+    inventoryReservedAt: admin.firestore.FieldValue.serverTimestamp(),
+    inventoryRestockedAt: null,
     paymentMethod: 'online',
     paymentStatus: 'paid',
     paymentGateway: 'sslcommerz',
@@ -563,6 +613,74 @@ function buildOrderDocument(attemptId, attempt, validation, orderNumber) {
     shippedAt: null,
     deliveredAt: null,
   };
+}
+
+async function reserveInventoryInTransaction(transaction, items) {
+  const quantityByProduct = aggregateItemQuantities(items);
+  const entries = Object.entries(quantityByProduct);
+
+  if (!entries.length) {
+    throw httpError(400, 'Cart is empty.');
+  }
+
+  const stockBeforeByProduct = {};
+  for (const [productId, quantity] of entries) {
+    const productRef = db.collection('products').doc(productId);
+    const productSnap = await transaction.get(productRef);
+
+    if (!productSnap.exists) {
+      throw httpError(409, 'Some items are no longer available.');
+    }
+
+    const product = productSnap.data() || {};
+    const isActive = Boolean(product.isActive);
+    const stock = Number(product.stock || 0);
+    const name = String(product.name || 'This product').trim();
+
+    if (!isActive) {
+      throw httpError(409, `${name} is no longer available.`);
+    }
+    if (stock < quantity) {
+      throw httpError(
+        409,
+        stock <= 0 ? `${name} is out of stock.` : `Only ${stock} unit(s) left for ${name}.`,
+      );
+    }
+
+    stockBeforeByProduct[productId] = stock;
+    transaction.update(productRef, {
+      stock: stock - quantity,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  }
+
+  return stockBeforeByProduct;
+}
+
+function aggregateItemQuantities(items) {
+  const quantityByProduct = {};
+
+  for (const item of Array.isArray(items) ? items : []) {
+    const productId = String(item?.productId || '').trim();
+    const quantity = Number(item?.quantity || 0);
+    if (!productId || quantity <= 0) continue;
+    quantityByProduct[productId] = (quantityByProduct[productId] || 0) + quantity;
+  }
+
+  return quantityByProduct;
+}
+
+function attachInventorySnapshots(items, stockBeforeByProduct) {
+  return (Array.isArray(items) ? items : []).map((item) => {
+    const productId = String(item?.productId || '').trim();
+    return {
+      ...item,
+      stockBefore:
+        productId && Object.prototype.hasOwnProperty.call(stockBeforeByProduct, productId)
+          ? stockBeforeByProduct[productId]
+          : null,
+    };
+  });
 }
 
 function paymentStatusPayload(attemptId, attempt) {

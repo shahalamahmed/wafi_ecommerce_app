@@ -60,10 +60,13 @@ class OwnerManagementService {
     await _categories.add(draft.toMap());
   }
 
-  Future<void> updateCategory(String categoryId, OwnerCategoryDraft draft) async {
-    await _categories.doc(categoryId).update(
-      draft.toMap(includeCreatedAt: false),
-    );
+  Future<void> updateCategory(
+    String categoryId,
+    OwnerCategoryDraft draft,
+  ) async {
+    await _categories
+        .doc(categoryId)
+        .update(draft.toMap(includeCreatedAt: false));
   }
 
   Future<void> deleteCategory(String categoryId) async {
@@ -118,7 +121,10 @@ class OwnerManagementService {
   Future<void> updateProduct(String productId, OwnerProductDraft draft) async {
     final batch = _firestore.batch();
 
-    batch.update(_products.doc(productId), draft.toMap(includeCreatedAt: false));
+    batch.update(
+      _products.doc(productId),
+      draft.toMap(includeCreatedAt: false),
+    );
     _syncOfferInBatch(
       batch,
       productId: productId,
@@ -132,15 +138,11 @@ class OwnerManagementService {
   Future<void> deleteProduct(String productId) async {
     final batch = _firestore.batch();
     batch.delete(_products.doc(productId));
-    batch.set(
-      _offers.doc(productId),
-      {
-        'productId': productId,
-        'isActive': false,
-        'updatedAt': FieldValue.serverTimestamp(),
-      },
-      SetOptions(merge: true),
-    );
+    batch.set(_offers.doc(productId), {
+      'productId': productId,
+      'isActive': false,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
     await batch.commit();
   }
 
@@ -154,14 +156,16 @@ class OwnerManagementService {
       return;
     }
 
-    await _offers.doc(productId).set(
-      _offerMap(
-        productId: productId,
-        draft: draft,
-        includeCreatedAt: includeCreatedAt,
-      ),
-      SetOptions(merge: true),
-    );
+    await _offers
+        .doc(productId)
+        .set(
+          _offerMap(
+            productId: productId,
+            draft: draft,
+            includeCreatedAt: includeCreatedAt,
+          ),
+          SetOptions(merge: true),
+        );
   }
 
   Future<void> deactivateOffer(String productId) async {
@@ -174,16 +178,21 @@ class OwnerManagementService {
 
   Future<List<OfferModel>> fetchOffers() async {
     final snapshot = await _offers.get();
-    final offers = snapshot.docs
-        .map((doc) => OfferModel.fromMap(doc.id, doc.data()))
-        .toList()
-      ..sort((a, b) {
-        final aDate =
-            a.updatedAt ?? a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-        final bDate =
-            b.updatedAt ?? b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-        return bDate.compareTo(aDate);
-      });
+    final offers =
+        snapshot.docs
+            .map((doc) => OfferModel.fromMap(doc.id, doc.data()))
+            .toList()
+          ..sort((a, b) {
+            final aDate =
+                a.updatedAt ??
+                a.createdAt ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+            final bDate =
+                b.updatedAt ??
+                b.createdAt ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+            return bDate.compareTo(aDate);
+          });
 
     return offers;
   }
@@ -213,20 +222,79 @@ class OwnerManagementService {
     required String orderDocId,
     required String status,
   }) async {
-    final payload = <String, dynamic>{
-      'status': status,
-      'updatedAt': FieldValue.serverTimestamp(),
-    };
+    await _firestore.runTransaction((transaction) async {
+      final orderRef = _orders.doc(orderDocId);
+      final orderSnap = await transaction.get(orderRef);
+      if (!orderSnap.exists) {
+        throw const OrderStatusUpdateException('Order not found.');
+      }
 
-    if (status == 'confirmed') {
-      payload['confirmedAt'] = FieldValue.serverTimestamp();
-    } else if (status == 'shipped') {
-      payload['shippedAt'] = FieldValue.serverTimestamp();
-    } else if (status == 'delivered') {
-      payload['deliveredAt'] = FieldValue.serverTimestamp();
-    }
+      final order = orderSnap.data() ?? <String, dynamic>{};
+      final currentStatus =
+          (order['status'] as String?)?.trim().toLowerCase() ?? 'pending';
+      final nextStatus = status.trim().toLowerCase();
 
-    await _orders.doc(orderDocId).update(payload);
+      _validateStatusTransition(
+        currentStatus: currentStatus,
+        nextStatus: nextStatus,
+      );
+
+      if (currentStatus == nextStatus) {
+        return;
+      }
+
+      final payload = <String, dynamic>{
+        'status': nextStatus,
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      if (nextStatus == 'confirmed') {
+        payload['confirmedAt'] = FieldValue.serverTimestamp();
+      } else if (nextStatus == 'shipped') {
+        payload['shippedAt'] = FieldValue.serverTimestamp();
+      } else if (nextStatus == 'delivered') {
+        payload['deliveredAt'] = FieldValue.serverTimestamp();
+      } else if (nextStatus == 'cancelled') {
+        final inventoryReserved = order['inventoryReserved'] as bool? ?? false;
+        final inventoryRestocked =
+            order['inventoryRestocked'] as bool? ?? false;
+
+        if (inventoryReserved && !inventoryRestocked) {
+          final items = (order['items'] as List<dynamic>? ?? const <dynamic>[])
+              .map((item) => Map<String, dynamic>.from(item as Map))
+              .toList();
+          final quantityByProduct = <String, int>{};
+          for (final item in items) {
+            final productId = (item['productId'] as String?)?.trim() ?? '';
+            final quantity = (item['quantity'] as num?)?.toInt() ?? 0;
+            if (productId.isEmpty || quantity <= 0) continue;
+            quantityByProduct.update(
+              productId,
+              (current) => current + quantity,
+              ifAbsent: () => quantity,
+            );
+          }
+
+          for (final entry in quantityByProduct.entries) {
+            final productRef = _products.doc(entry.key);
+            final productSnap = await transaction.get(productRef);
+            if (!productSnap.exists) continue;
+
+            final currentStock =
+                (productSnap.data()?['stock'] as num?)?.toInt() ?? 0;
+            transaction.update(productRef, {
+              'stock': currentStock + entry.value,
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+          }
+
+          payload['inventoryRestocked'] = true;
+          payload['inventoryRestockedAt'] = FieldValue.serverTimestamp();
+        }
+      }
+
+      transaction.update(orderRef, payload);
+    });
   }
 
   Future<List<AppUser>> fetchUsers() async {
@@ -271,24 +339,20 @@ class OwnerManagementService {
     final offerRef = _offers.doc(productId);
 
     if (!draft.hasDiscount) {
-      batch.set(
-        offerRef,
-        {
-          'productId': productId,
-          'productName': draft.name,
-          'productImage': draft.primaryImage,
-          'categoryId': draft.categoryId,
-          'subCategoryId': draft.subCategoryId,
-          'originalPrice': draft.originalPrice,
-          'offerPrice': draft.price,
-          'discountAmount': 0,
-          'discountPercent': 0,
-          'isActive': false,
-          if (includeCreatedAt) 'createdAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true),
-      );
+      batch.set(offerRef, {
+        'productId': productId,
+        'productName': draft.name,
+        'productImage': draft.primaryImage,
+        'categoryId': draft.categoryId,
+        'subCategoryId': draft.subCategoryId,
+        'originalPrice': draft.originalPrice,
+        'offerPrice': draft.price,
+        'discountAmount': 0,
+        'discountPercent': 0,
+        'isActive': false,
+        if (includeCreatedAt) 'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
       return;
     }
 
@@ -322,6 +386,65 @@ class OwnerManagementService {
       if (includeCreatedAt) 'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     };
+  }
+}
+
+class OrderStatusUpdateException implements Exception {
+  const OrderStatusUpdateException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
+extension on OwnerManagementService {
+  void _validateStatusTransition({
+    required String currentStatus,
+    required String nextStatus,
+  }) {
+    if (currentStatus == nextStatus) {
+      if (currentStatus == 'cancelled') return;
+      throw OrderStatusUpdateException(
+        'Order is already ${_labelForStatus(currentStatus)}.',
+      );
+    }
+
+    final allowedTransitions = <String, Set<String>>{
+      'pending': {'confirmed', 'cancelled'},
+      'confirmed': {'shipped', 'cancelled'},
+      'shipped': {'delivered', 'cancelled'},
+      'delivered': <String>{},
+      'cancelled': <String>{},
+    };
+
+    final allowed = allowedTransitions[currentStatus] ?? const <String>{};
+    if (allowed.contains(nextStatus)) return;
+
+    if (currentStatus == 'delivered' && nextStatus == 'cancelled') {
+      throw const OrderStatusUpdateException(
+        'Delivered orders cannot be cancelled.',
+      );
+    }
+
+    throw OrderStatusUpdateException(
+      'Cannot change an order from ${_labelForStatus(currentStatus)} to ${_labelForStatus(nextStatus)}.',
+    );
+  }
+
+  String _labelForStatus(String status) {
+    switch (status) {
+      case 'confirmed':
+        return 'Confirmed';
+      case 'shipped':
+        return 'Shipped';
+      case 'delivered':
+        return 'Delivered';
+      case 'cancelled':
+        return 'Cancelled';
+      default:
+        return 'Pending';
+    }
   }
 }
 
@@ -363,6 +486,7 @@ class OwnerProductDraft {
     return (((normalizedOriginalPrice - price) / normalizedOriginalPrice) * 100)
         .round();
   }
+
   String get primaryImage => images.isEmpty ? '' : images.first;
 
   Map<String, dynamic> toMap({bool includeCreatedAt = true}) {

@@ -186,7 +186,7 @@ class OrderDraft {
     );
   }
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toMap({Map<String, int>? stockBeforeByProduct}) {
     final gatewayCode = paymentGateway?.code;
     final onlineMethodCode = onlinePaymentMethod?.code;
     final txId = gatewayTransactionId?.trim() ?? '';
@@ -208,8 +208,19 @@ class OrderDraft {
       'orderId': generateOrderNumber(),
       'userId': userId,
       'customerEmail': customerEmail,
-      'items': items.map(_cartItemToMap).toList(),
+      'items': items
+          .map(
+            (item) => _cartItemToMap(
+              item,
+              stockBefore: stockBeforeByProduct?[item.productId],
+            ),
+          )
+          .toList(),
       'status': 'pending',
+      'inventoryReserved': true,
+      'inventoryRestocked': false,
+      'inventoryReservedAt': FieldValue.serverTimestamp(),
+      'inventoryRestockedAt': null,
       'paymentMethod': paymentMethod.code,
       'paymentStatus':
           paymentStatus ??
@@ -255,7 +266,10 @@ class OrderDraft {
     };
   }
 
-  static Map<String, dynamic> _cartItemToMap(CartItem item) {
+  static Map<String, dynamic> _cartItemToMap(
+    CartItem item, {
+    int? stockBefore,
+  }) {
     return {
       'productId': item.productId,
       'productName': item.productName,
@@ -266,6 +280,7 @@ class OrderDraft {
       'discount': item.totalDiscount,
       'selectedOptionLabel': item.selectedOptionLabel,
       'selectedOptionKey': item.selectedOptionKey,
+      'stockBefore': stockBefore,
     };
   }
 
@@ -283,6 +298,7 @@ class OrderItemModel {
     required this.price,
     required this.subtotal,
     required this.selectedOptionLabel,
+    required this.stockBefore,
   });
 
   final String productId;
@@ -291,6 +307,7 @@ class OrderItemModel {
   final double price;
   final double subtotal;
   final String selectedOptionLabel;
+  final int stockBefore;
 
   factory OrderItemModel.fromMap(Map<String, dynamic> map) {
     return OrderItemModel(
@@ -301,6 +318,7 @@ class OrderItemModel {
       subtotal: (map['subtotal'] as num?)?.toDouble() ?? 0,
       selectedOptionLabel:
           (map['selectedOptionLabel'] as String?)?.trim() ?? '',
+      stockBefore: (map['stockBefore'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -326,11 +344,15 @@ class CustomerOrder {
     required this.total,
     required this.notes,
     required this.couponCode,
+    required this.inventoryReserved,
+    required this.inventoryRestocked,
     this.deliveryDate,
     this.createdAt,
     this.confirmedAt,
     this.shippedAt,
     this.deliveredAt,
+    this.inventoryReservedAt,
+    this.inventoryRestockedAt,
   });
 
   final String id;
@@ -352,11 +374,15 @@ class CustomerOrder {
   final double total;
   final String notes;
   final String couponCode;
+  final bool inventoryReserved;
+  final bool inventoryRestocked;
   final DateTime? deliveryDate;
   final DateTime? createdAt;
   final DateTime? confirmedAt;
   final DateTime? shippedAt;
   final DateTime? deliveredAt;
+  final DateTime? inventoryReservedAt;
+  final DateTime? inventoryRestockedAt;
 
   String get statusLabel => switch (status) {
     'confirmed' => 'Confirmed',
@@ -455,11 +481,15 @@ class CustomerOrder {
       total: (map['total'] as num?)?.toDouble() ?? 0,
       notes: (map['notes'] as String?)?.trim() ?? '',
       couponCode: (map['couponCode'] as String?)?.trim() ?? '',
+      inventoryReserved: map['inventoryReserved'] as bool? ?? false,
+      inventoryRestocked: map['inventoryRestocked'] as bool? ?? false,
       deliveryDate: _readDate(map['deliveryDate']),
       createdAt: _readDate(map['createdAt']),
       confirmedAt: _readDate(map['confirmedAt']),
       shippedAt: _readDate(map['shippedAt']),
       deliveredAt: _readDate(map['deliveredAt']),
+      inventoryReservedAt: _readDate(map['inventoryReservedAt']),
+      inventoryRestockedAt: _readDate(map['inventoryRestockedAt']),
     );
   }
 

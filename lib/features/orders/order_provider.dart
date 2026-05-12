@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wafi_ecommerce_app/features/auth/auth_provider.dart';
+import 'package:wafi_ecommerce_app/features/products/product_provider.dart';
 
 import 'order_model.dart';
 import 'order_service.dart';
@@ -34,20 +35,21 @@ class OrderState {
       isSubmitting: isSubmitting ?? this.isSubmitting,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
-      lastSuccessMessage: clearSuccess ? null : lastSuccessMessage ?? this.lastSuccessMessage,
+      lastSuccessMessage: clearSuccess
+          ? null
+          : lastSuccessMessage ?? this.lastSuccessMessage,
       orders: orders ?? this.orders,
     );
   }
 }
 
 class OrderNotifier extends StateNotifier<OrderState> {
-  OrderNotifier(
-    this._service,
-    this._readUserId,
-  ) : super(const OrderState());
+  OrderNotifier(this._service, this._readUserId, this._ref)
+    : super(const OrderState());
 
   final OrderService _service;
   final String? Function() _readUserId;
+  final Ref _ref;
 
   Future<void> placeOrder(OrderDraft draft) async {
     state = state.copyWith(
@@ -63,6 +65,13 @@ class OrderNotifier extends StateNotifier<OrderState> {
         lastSuccessMessage: 'Order placed successfully.',
       );
       await loadOrders();
+      try {
+        await _ref.read(productProvider.notifier).load();
+      } catch (_) {
+        // Inventory was already reserved; catalog refresh failure should not mask success.
+      }
+    } on OrderInventoryException catch (error) {
+      state = state.copyWith(isSubmitting: false, errorMessage: error.message);
     } catch (error) {
       state = state.copyWith(
         isSubmitting: false,
@@ -74,7 +83,11 @@ class OrderNotifier extends StateNotifier<OrderState> {
   Future<void> loadOrders() async {
     final userId = _readUserId();
     if (userId == null || userId.isEmpty) {
-      state = state.copyWith(orders: const [], isLoading: false, clearError: true);
+      state = state.copyWith(
+        orders: const [],
+        isLoading: false,
+        clearError: true,
+      );
       return;
     }
 
@@ -87,10 +100,7 @@ class OrderNotifier extends StateNotifier<OrderState> {
         clearError: true,
       );
     } catch (error) {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: error.toString(),
-      );
+      state = state.copyWith(isLoading: false, errorMessage: error.toString());
     }
   }
 }
@@ -103,6 +113,7 @@ final orderProvider = StateNotifierProvider<OrderNotifier, OrderState>((ref) {
   final notifier = OrderNotifier(
     ref.read(orderServiceProvider),
     () => ref.read(authProvider).user?.uid,
+    ref,
   );
   notifier.loadOrders();
   return notifier;

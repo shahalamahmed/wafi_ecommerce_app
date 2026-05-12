@@ -243,8 +243,7 @@ class OwnerCategoryManagementState {
       return category.name.toLowerCase().contains(query) ||
           category.description.toLowerCase().contains(query) ||
           (category.parentId ?? '').toLowerCase().contains(query);
-    }).toList()
-      ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+    }).toList()..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
     return items;
   }
 
@@ -273,12 +272,13 @@ class OwnerCategoryManagementState {
 
 class OwnerOrderManagementNotifier
     extends StateNotifier<OwnerOrderManagementState> {
-  OwnerOrderManagementNotifier(this._service)
+  OwnerOrderManagementNotifier(this._service, this._ref)
     : super(const OwnerOrderManagementState()) {
     load();
   }
 
   final OwnerManagementService _service;
+  final Ref _ref;
 
   Future<void> load() async {
     state = state.copyWith(
@@ -314,10 +314,17 @@ class OwnerOrderManagementNotifier
     try {
       await _service.updateOrderStatus(orderDocId: orderId, status: status);
       await load();
+      try {
+        await _ref.read(productProvider.notifier).load();
+      } catch (_) {
+        // Order update succeeded; catalog refresh failure should not mask success.
+      }
       state = state.copyWith(
         isSaving: false,
         successMessage: 'Order status updated to ${_labelFor(status)}.',
       );
+    } on OrderStatusUpdateException catch (error) {
+      state = state.copyWith(isSaving: false, errorMessage: error.message);
     } catch (error) {
       state = state.copyWith(isSaving: false, errorMessage: error.toString());
     }
@@ -462,7 +469,7 @@ class OwnerUserManagementNotifier
 class OwnerCategoryManagementNotifier
     extends StateNotifier<OwnerCategoryManagementState> {
   OwnerCategoryManagementNotifier(this._service, this._ref)
-      : super(const OwnerCategoryManagementState()) {
+    : super(const OwnerCategoryManagementState()) {
     load();
   }
 
@@ -509,7 +516,10 @@ class OwnerCategoryManagementNotifier
     }
   }
 
-  Future<void> updateCategory(String categoryId, OwnerCategoryDraft draft) async {
+  Future<void> updateCategory(
+    String categoryId,
+    OwnerCategoryDraft draft,
+  ) async {
     state = state.copyWith(
       isSaving: true,
       clearError: true,
@@ -574,6 +584,7 @@ final ownerOrderManagementProvider =
     >((ref) {
       return OwnerOrderManagementNotifier(
         ref.read(ownerManagementServiceProvider),
+        ref,
       );
     });
 
@@ -587,11 +598,13 @@ final ownerUserManagementProvider =
       );
     });
 
-final ownerCategoryManagementProvider = StateNotifierProvider<
-    OwnerCategoryManagementNotifier,
-    OwnerCategoryManagementState>((ref) {
-  return OwnerCategoryManagementNotifier(
-    ref.read(ownerManagementServiceProvider),
-    ref,
-  );
-});
+final ownerCategoryManagementProvider =
+    StateNotifierProvider<
+      OwnerCategoryManagementNotifier,
+      OwnerCategoryManagementState
+    >((ref) {
+      return OwnerCategoryManagementNotifier(
+        ref.read(ownerManagementServiceProvider),
+        ref,
+      );
+    });
