@@ -423,6 +423,10 @@ class _TrackingNode extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final inactiveColor = theme.dividerColor.withValues(alpha: 0.9);
+    final iconColor = isActive
+        ? Colors.white
+        : theme.textTheme.bodySmall?.color?.withValues(alpha: 0.72) ??
+              Colors.black54;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -450,6 +454,11 @@ class _TrackingNode extends StatelessWidget {
               width: isCurrent ? 3 : 2,
             ),
           ),
+          child: Icon(
+            _iconFor(label),
+            size: isCurrent ? 13 : 11,
+            color: iconColor,
+          ),
         ),
         const SizedBox(height: AppSizes.xs),
         SizedBox(
@@ -467,6 +476,16 @@ class _TrackingNode extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  IconData _iconFor(String label) {
+    return switch (label.trim().toLowerCase()) {
+      'pending' => Icons.hourglass_top_rounded,
+      'confirmed' => Icons.check_circle_outline_rounded,
+      'shipped' => Icons.local_shipping_outlined,
+      'delivered' => Icons.inventory_2_outlined,
+      _ => Icons.radio_button_checked_rounded,
+    };
   }
 }
 
