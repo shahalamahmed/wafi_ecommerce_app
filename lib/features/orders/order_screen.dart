@@ -8,16 +8,30 @@ import 'package:wafi_ecommerce_app/features/orders/order_provider.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
 
-class OrderScreen extends ConsumerWidget {
+class OrderScreen extends ConsumerStatefulWidget {
   const OrderScreen({super.key, this.immersiveShell = false});
 
   final bool immersiveShell;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<OrderScreen> createState() => _OrderScreenState();
+}
+
+class _OrderScreenState extends ConsumerState<OrderScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(orderProvider.notifier).loadOrders();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(orderProvider);
     final notifier = ref.read(orderProvider.notifier);
-    final topInset = immersiveShell
+    final topInset = widget.immersiveShell
         ? WafiAppBar.compactOverlayTopInset(
             context,
             hasSubtitle: false,
