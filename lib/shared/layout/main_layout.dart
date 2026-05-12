@@ -19,14 +19,22 @@ import 'package:wafi_ecommerce_app/shared/widgets/glass_bottom_nav.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
 
 class MainLayout extends ConsumerStatefulWidget {
-  const MainLayout({super.key});
+  const MainLayout({super.key, this.initialIndex = 0});
+
+  final int initialIndex;
 
   @override
   ConsumerState<MainLayout> createState() => _MainLayoutState();
 }
 
 class _MainLayoutState extends ConsumerState<MainLayout> {
-  int _currentIndex = 0;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+  }
 
   List<_ShellPage> _pagesFor(AppUser? user) {
     final isOwner = user?.isOwner == true;

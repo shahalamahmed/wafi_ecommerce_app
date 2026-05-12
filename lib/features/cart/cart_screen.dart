@@ -12,6 +12,7 @@ import 'package:wafi_ecommerce_app/features/cart/cart_model.dart';
 import 'package:wafi_ecommerce_app/features/cart/cart_provider.dart';
 import 'package:wafi_ecommerce_app/features/orders/checkout_screen.dart';
 import 'package:wafi_ecommerce_app/features/products/product_screen.dart';
+import 'package:wafi_ecommerce_app/shared/layout/main_layout.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
@@ -374,8 +375,9 @@ class _CartSummaryState extends ConsumerState<_CartSummary> {
                     await _openAddressPicker(addresses);
                   }
                   if (!context.mounted) return;
-                  final nextAddress =
-                      _resolveSelectedAddress(ref.read(addressProvider).items);
+                  final nextAddress = _resolveSelectedAddress(
+                    ref.read(addressProvider).items,
+                  );
                   if (nextAddress == null) return;
                 }
 
@@ -709,10 +711,7 @@ class _CartAddressOption extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: AppSizes.xs),
-                  Text(
-                    address.formatted,
-                    style: theme.textTheme.bodySmall,
-                  ),
+                  Text(address.formatted, style: theme.textTheme.bodySmall),
                 ],
               ),
             ),
@@ -775,7 +774,14 @@ class _CartEmptyState extends StatelessWidget {
                 GlassButton(
                   label: AppStrings.continueShopping,
                   isFullWidth: false,
-                  onPressed: () => ProductScreen(),
+                  onPressed: () {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const MainLayout(initialIndex: 0),
+                      ),
+                      (route) => false,
+                    );
+                  },
                 ),
               ],
             ),
