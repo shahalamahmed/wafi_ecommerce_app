@@ -6,6 +6,7 @@ import 'package:wafi_ecommerce_app/features/auth/auth_model.dart';
 import 'package:wafi_ecommerce_app/features/auth/auth_provider.dart';
 import 'package:wafi_ecommerce_app/features/cart/cart_provider.dart';
 import 'package:wafi_ecommerce_app/features/cart/cart_screen.dart';
+import 'package:wafi_ecommerce_app/features/dashboard/dashboard_screen.dart';
 import 'package:wafi_ecommerce_app/features/home/home_screen.dart';
 import 'package:wafi_ecommerce_app/features/offers/offers_screen.dart';
 import 'package:wafi_ecommerce_app/features/owner/order_management_screen.dart';
@@ -15,7 +16,6 @@ import 'package:wafi_ecommerce_app/features/products/product_screen.dart';
 import 'package:wafi_ecommerce_app/features/profile/profile_screen.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/app_drawer.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_bottom_nav.dart';
-import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
 
 class MainLayout extends ConsumerStatefulWidget {
@@ -39,7 +39,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
           icon: Icons.dashboard_outlined,
           scrollUnderAppBar: false,
           topInset: null,
-          body: _OverviewPage(user: user),
+          body: OwnerDashboardScreen(user: user),
         ),
         const _ShellPage(
           title: AppStrings.products,
@@ -57,16 +57,13 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
           topInset: null,
           body: OrderManagementScreen(),
         ),
-        const _ShellPage(
+        _ShellPage(
           title: 'Analytics',
           subtitle: 'Sales and fulfillment overview',
           icon: Icons.bar_chart_rounded,
           scrollUnderAppBar: false,
           topInset: null,
-          body: _PlaceholderPage(
-            title: 'Analytics Workspace',
-            subtitle: 'Sales charts and fulfillment data will connect here.',
-          ),
+          body: const OwnerAnalyticsScreen(),
         ),
       ];
     }
@@ -255,119 +252,6 @@ class _StandaloneCartScreen extends StatelessWidget {
         subtitle: 'Review selected products before checkout',
       ),
       body: CartScreen(),
-    );
-  }
-}
-
-class _OverviewPage extends StatelessWidget {
-  const _OverviewPage({required this.user});
-
-  final AppUser? user;
-
-  @override
-  Widget build(BuildContext context) {
-    final cards = <({String title, String value, IconData icon})>[
-      (
-        title: 'Session',
-        value: user == null ? 'Guest' : 'Active',
-        icon: Icons.shield_outlined,
-      ),
-      (
-        title: 'Role',
-        value: user?.isOwner == true ? 'Owner' : 'Customer',
-        icon: Icons.badge_outlined,
-      ),
-      (
-        title: 'Theme',
-        value: Theme.of(context).brightness == Brightness.dark
-            ? 'Pure Black'
-            : 'Pure White',
-        icon: Icons.contrast_rounded,
-      ),
-    ];
-
-    return ListView(
-      padding: const EdgeInsets.all(AppSizes.screenPaddingH),
-      children: [
-        GlassCard(
-          variant: GlassCardVariant.elevated,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Welcome, ${user?.firstName.isNotEmpty == true ? user!.firstName : 'Wafi user'}',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: AppSizes.sm),
-              Text(
-                'Owner shell is ready for dashboard, product, and order integrations.',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSizes.lg),
-        Wrap(
-          spacing: AppSizes.lg,
-          runSpacing: AppSizes.lg,
-          children: [
-            for (final card in cards)
-              SizedBox(
-                width: 220,
-                child: GlassCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(card.icon),
-                      const SizedBox(height: AppSizes.md),
-                      Text(
-                        card.title,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: AppSizes.xs),
-                      Text(
-                        card.value,
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 100),
-      ],
-    );
-  }
-}
-
-class _PlaceholderPage extends StatelessWidget {
-  const _PlaceholderPage({required this.title, required this.subtitle});
-
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSizes.screenPaddingH),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 720),
-          child: GlassCard(
-            variant: GlassCardVariant.elevated,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: Theme.of(context).textTheme.headlineSmall),
-                const SizedBox(height: AppSizes.sm),
-                Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
