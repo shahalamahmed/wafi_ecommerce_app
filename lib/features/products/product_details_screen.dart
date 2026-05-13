@@ -25,6 +25,20 @@ class ProductDetailsScreen extends ConsumerStatefulWidget {
 class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
   int _quantity = 1;
   int _activeTab = 0;
+  int _activeImageIndex = 0;
+  late final PageController _imagePageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _imagePageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _imagePageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +47,10 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
     final wishlistState = ref.watch(wishlistProvider);
     final wishlistNotifier = ref.read(wishlistProvider.notifier);
     final product = widget.product;
+    final productImages = product.images
+        .map((image) => image.trim())
+        .where((image) => image.isNotEmpty)
+        .toList();
     final isWishlisted = wishlistNotifier.containsProduct(product.id);
     final cartQuantity = cartNotifier.quantityForProduct(product.id);
     final effectiveQuantity = cartQuantity > 0 ? cartQuantity : _quantity;
@@ -95,12 +113,21 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                     borderRadius: BorderRadius.circular(
                       AppSizes.productCardRadius,
                     ), // ← -4 বাদ
-                    child: product.primaryImage.trim().isNotEmpty
-                        ? Image.network(
-                            product.primaryImage,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                _DetailsImageFallback(name: product.name),
+                    child: productImages.isNotEmpty
+                        ? PageView.builder(
+                            controller: _imagePageController,
+                            itemCount: productImages.length,
+                            onPageChanged: (index) {
+                              setState(() {
+                                _activeImageIndex = index;
+                              });
+                            },
+                            itemBuilder: (context, index) => Image.network(
+                              productImages[index],
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  _DetailsImageFallback(name: product.name),
+                            ),
                           )
                         : _DetailsImageFallback(name: product.name),
                   ),
@@ -110,14 +137,14 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(
-                  product.images.isEmpty ? 1 : product.images.length,
+                  productImages.isEmpty ? 1 : productImages.length,
                   (index) => AnimatedContainer(
                     duration: const Duration(milliseconds: 180),
-                    width: index == 0 ? 18 : 8,
+                    width: index == _activeImageIndex ? 18 : 8,
                     height: 8,
                     margin: const EdgeInsets.symmetric(horizontal: 4),
                     decoration: BoxDecoration(
-                      color: index == 0
+                      color: index == _activeImageIndex
                           ? Theme.of(context).colorScheme.primary
                           : Theme.of(context).dividerColor,
                       borderRadius: BorderRadius.circular(999),

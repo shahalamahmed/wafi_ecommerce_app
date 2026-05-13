@@ -321,13 +321,7 @@ class _OrderStatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final color = switch (status.toLowerCase()) {
-      'confirmed' => scheme.primary,
-      'shipped' => Colors.orange,
-      'delivered' => Colors.green,
-      'cancelled' => scheme.error,
-      _ => Colors.amber.shade700,
-    };
+    final color = _statusAccentColor(status, scheme);
 
     return Container(
       padding: const EdgeInsets.symmetric(
@@ -349,6 +343,17 @@ class _OrderStatusChip extends StatelessWidget {
   }
 }
 
+Color _statusAccentColor(String status, ColorScheme scheme) {
+  return switch (status.trim().toLowerCase()) {
+    'pending' => const Color(0xFFE6A700),
+    'confirmed' => const Color(0xFF3B82F6),
+    'shipped' => const Color(0xFF14B8A6),
+    'delivered' => const Color(0xFF16A34A),
+    'cancelled' => scheme.error,
+    _ => scheme.primary,
+  };
+}
+
 class _OrderTrackingTimeline extends StatelessWidget {
   const _OrderTrackingTimeline({required this.order});
 
@@ -364,7 +369,6 @@ class _OrderTrackingTimeline extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     final currentIndex = _statusIndex(order.status);
     final isCancelled = order.status.trim().toLowerCase() == 'cancelled';
 
@@ -378,7 +382,7 @@ class _OrderTrackingTimeline extends StatelessWidget {
                 label: _steps[index],
                 isActive: !isCancelled && index <= currentIndex,
                 isCurrent: !isCancelled && index == currentIndex,
-                activeColor: scheme.primary,
+                activeColor: _stepColor(_steps[index]),
               ),
               if (index < _steps.length - 1)
                 Expanded(
@@ -388,7 +392,7 @@ class _OrderTrackingTimeline extends StatelessWidget {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(AppSizes.radiusFull),
                       color: !isCancelled && index < currentIndex
-                          ? scheme.primary.withValues(alpha: 0.85)
+                          ? _connectorColor(index).withValues(alpha: 0.78)
                           : theme.dividerColor.withValues(alpha: 0.55),
                     ),
                   ),
@@ -401,7 +405,7 @@ class _OrderTrackingTimeline extends StatelessWidget {
           Text(
             'This order was cancelled before completion.',
             style: theme.textTheme.bodySmall?.copyWith(
-              color: scheme.error,
+              color: theme.colorScheme.error,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -416,6 +420,25 @@ class _OrderTrackingTimeline extends StatelessWidget {
       'shipped' => 2,
       'delivered' => 3,
       _ => 0,
+    };
+  }
+
+  Color _stepColor(String status) {
+    return switch (status.trim().toLowerCase()) {
+      'pending' => const Color(0xFFE6A700),
+      'confirmed' => const Color(0xFF3B82F6),
+      'shipped' => const Color(0xFF14B8A6),
+      'delivered' => const Color(0xFF16A34A),
+      _ => const Color(0xFF64748B),
+    };
+  }
+
+  Color _connectorColor(int completedStepIndex) {
+    return switch (completedStepIndex) {
+      0 => const Color(0xFFD9A321),
+      1 => const Color(0xFF2F9FD8),
+      2 => const Color(0xFF15A883),
+      _ => const Color(0xFF16A34A),
     };
   }
 }
