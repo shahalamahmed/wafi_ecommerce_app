@@ -11,6 +11,7 @@ import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_chip.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_input.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/glass_snackbar.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
 
 class AddressScreen extends ConsumerWidget {
@@ -108,16 +109,12 @@ Future<void> showAddressSheet(
   final userId = ref.read(authProvider).user?.uid;
 
   if (userId == null || userId.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Sign in first to manage addresses.')),
-    );
+    GlassSnackbar.info(context, 'Sign in first to manage addresses.');
     return;
   }
 
   if (initial == null && state.items.length >= AppConfig.addressMaxCount) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text(AppStrings.maxAddress)));
+    GlassSnackbar.warning(context, AppStrings.maxAddress);
     return;
   }
 

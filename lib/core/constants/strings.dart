@@ -218,6 +218,9 @@ abstract class AppStrings {
   static const String errGoogleLogin = 'Google sign-in failed. Try again.';
   static const String errStockLimit = 'Not enough stock available.';
   static const String errCartMax = 'You cannot add more than 20 items.';
+  static const String errProductUnavailable = 'This product is not available.';
+  static const String errOutOfStock = 'This product is out of stock.';
+  static const String errQuantityLimit = 'Quantity limit reached.';
 
   // ─── Empty States ────────────────────────────────────────────
   static const String emptyCart = 'Your cart is empty';

@@ -15,6 +15,7 @@ import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_chip.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_input.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/glass_snackbar.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
 
 class ProductCatalogPage extends StatelessWidget {
@@ -124,7 +125,7 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                     category.parentId == selectedParentCategory.id,
               )
               .toList()
-          ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder)));
+            ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder)));
     final showSubCategoryBar =
         selectedParentCategory != null && visibleSubCategories.isNotEmpty;
     final showProductEmptyState = state.visibleProducts.isEmpty;
@@ -223,14 +224,9 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                                                 product,
                                               );
                                               if (!context.mounted) return;
-                                              ScaffoldMessenger.of(
+                                              GlassSnackbar.success(
                                                 context,
-                                              ).showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    '${product.name} added to cart',
-                                                  ),
-                                                ),
+                                                '${product.name} added to cart',
                                               );
                                             },
                                             onIncrement: (product) =>
@@ -241,8 +237,8 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                                                 cartNotifier.decrement(
                                                   product.id,
                                                 ),
-                                            isWishlisted:
-                                                wishlistNotifier.containsProduct,
+                                            isWishlisted: wishlistNotifier
+                                                .containsProduct,
                                             onToggleWishlist: (product) async {
                                               final wasWishlisted =
                                                   wishlistNotifier
@@ -252,16 +248,11 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                                               await wishlistNotifier
                                                   .toggleProduct(product);
                                               if (!context.mounted) return;
-                                              ScaffoldMessenger.of(
+                                              GlassSnackbar.info(
                                                 context,
-                                              ).showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    wasWishlisted
-                                                        ? '${product.name} removed from wishlist'
-                                                        : '${product.name} added to wishlist',
-                                                  ),
-                                                ),
+                                                wasWishlisted
+                                                    ? '${product.name} removed from wishlist'
+                                                    : '${product.name} added to wishlist',
                                               );
                                             },
                                           ),
@@ -396,8 +387,10 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                             title: 'Sort By',
                             child: Column(
                               children: [
-                                for (final option in ProductSortOption.values
-                                    .where((o) => o != ProductSortOption.topRated))
+                                for (final option
+                                    in ProductSortOption.values.where(
+                                      (o) => o != ProductSortOption.topRated,
+                                    ))
                                   _SortOptionTile(
                                     label: _sortLabel(option),
                                     subtitle: _sortSubtitle(option),
@@ -452,15 +445,19 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
   String _sortSubtitle(ProductSortOption option) {
     return switch (option) {
       ProductSortOption.newest => 'Show recently updated items first.',
-      ProductSortOption.priceLowToHigh => 'Surface the most affordable products first.',
-      ProductSortOption.priceHighToLow => 'Bring premium and higher-ticket items to the top.',
+      ProductSortOption.priceLowToHigh =>
+        'Surface the most affordable products first.',
+      ProductSortOption.priceHighToLow =>
+        'Bring premium and higher-ticket items to the top.',
       _ => '',
     };
   }
 
   void _applyInitialCategorySelectionIfNeeded(ProductState state) {
     final initialCategoryId = widget.initialCategoryId?.trim() ?? '';
-    if (_didApplyInitialCategory || state.isLoading || initialCategoryId.isEmpty) {
+    if (_didApplyInitialCategory ||
+        state.isLoading ||
+        initialCategoryId.isEmpty) {
       return;
     }
 
@@ -785,12 +782,14 @@ class _SubCategorySelector extends StatelessWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: subCategories.length + 1,
-        separatorBuilder: (context, index) => const SizedBox(width: AppSizes.xs),
+        separatorBuilder: (context, index) =>
+            const SizedBox(width: AppSizes.xs),
         itemBuilder: (context, index) {
           final isAllChip = index == 0;
           final category = isAllChip ? null : subCategories[index - 1];
           final isSelected = isAllChip
-              ? (selectedSubCategoryId == null || selectedSubCategoryId!.isEmpty)
+              ? (selectedSubCategoryId == null ||
+                    selectedSubCategoryId!.isEmpty)
               : selectedSubCategoryId == category!.id;
 
           return GlassChip(
@@ -935,7 +934,6 @@ class _FilterActionButton extends StatelessWidget {
                 ],
               ),
               const SizedBox(width: AppSizes.sm),
-
             ],
           ),
         ),

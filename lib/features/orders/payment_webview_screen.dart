@@ -6,6 +6,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:wafi_ecommerce_app/core/constants/sizes.dart';
 import 'package:wafi_ecommerce_app/features/orders/payment_model.dart';
 import 'package:wafi_ecommerce_app/features/orders/payment_service.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/glass_snackbar.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
 
@@ -126,8 +127,7 @@ class _PaymentWebViewScreenState extends ConsumerState<PaymentWebViewScreen> {
   void _onWebResourceError(WebResourceError error) {
     if (!mounted || _hasHandledCallback) return;
 
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(SnackBar(content: Text(error.description)));
+    GlassSnackbar.error(context, error.description);
   }
 
   Future<void> _handleCallback(String url) async {
@@ -170,9 +170,7 @@ class _PaymentWebViewScreenState extends ConsumerState<PaymentWebViewScreen> {
         _viewState = _CheckoutViewState.invalid;
         _statusText = error.toString();
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.toString())));
+      GlassSnackbar.error(context, error.toString());
       Navigator.of(context).pop();
     }
   }

@@ -11,6 +11,7 @@ import 'package:wafi_ecommerce_app/features/products/product_screen.dart';
 import 'package:wafi_ecommerce_app/features/wishlist/wishlist_provider.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/glass_snackbar.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -98,23 +99,18 @@ class HomeScreen extends ConsumerWidget {
     Future<void> addToCart(ProductModel product) async {
       await cartNotifier.addProduct(product);
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('${product.name} added to cart')));
+      GlassSnackbar.success(context, '${product.name} added to cart');
     }
 
     Future<void> toggleWishlist(ProductModel product) async {
       final wasWishlisted = wishlistNotifier.containsProduct(product.id);
       await wishlistNotifier.toggleProduct(product);
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            wasWishlisted
-                ? '${product.name} removed from wishlist'
-                : '${product.name} added to wishlist',
-          ),
-        ),
+      GlassSnackbar.info(
+        context,
+        wasWishlisted
+            ? '${product.name} removed from wishlist'
+            : '${product.name} added to wishlist',
       );
     }
 
@@ -366,13 +362,15 @@ _TopCategorySection? _resolveTopCategorySection({
       parentId: category.id,
       categories: categories,
     );
-    final matchingProducts = products.where((product) {
-      return product.categoryId == category.id ||
-          descendantIds.contains(product.categoryId) ||
-          (product.subCategoryId != null &&
-              descendantIds.contains(product.subCategoryId));
-    }).toList()
-      ..sort((a, b) => _productTimestamp(b).compareTo(_productTimestamp(a)));
+    final matchingProducts =
+        products.where((product) {
+          return product.categoryId == category.id ||
+              descendantIds.contains(product.categoryId) ||
+              (product.subCategoryId != null &&
+                  descendantIds.contains(product.subCategoryId));
+        }).toList()..sort(
+          (a, b) => _productTimestamp(b).compareTo(_productTimestamp(a)),
+        );
 
     if (matchingProducts.isEmpty) {
       continue;
@@ -548,7 +546,9 @@ class _HeroBannerState extends State<_HeroBanner> {
                     width: isActive ? 20 : 7,
                     height: 7,
                     decoration: BoxDecoration(
-                      color: isActive ? primary : primary.withValues(alpha: 0.35),
+                      color: isActive
+                          ? primary
+                          : primary.withValues(alpha: 0.35),
                       borderRadius: BorderRadius.circular(4),
                     ),
                   );
@@ -765,7 +765,8 @@ class _CategoryGrid extends StatelessWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: categories.length,
-        separatorBuilder: (context, index) => const SizedBox(width: AppSizes.sm),
+        separatorBuilder: (context, index) =>
+            const SizedBox(width: AppSizes.sm),
         itemBuilder: (context, index) {
           final cat = categories[index];
           return _CategoryCard(category: cat, onTap: () => onTap(cat));
@@ -794,7 +795,9 @@ class _CategoryCard extends StatelessWidget {
         width: 90,
         child: Container(
           decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+            color: theme.colorScheme.surfaceContainerHighest.withValues(
+              alpha: 0.6,
+            ),
             borderRadius: BorderRadius.circular(AppSizes.radiusLg),
             border: Border.all(
               color: theme.colorScheme.outline.withValues(alpha: 0.2),
@@ -980,7 +983,9 @@ class _ProductCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(AppSizes.radiusLg),
-          border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+          border: Border.all(
+            color: theme.colorScheme.outline.withValues(alpha: 0.3),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1004,10 +1009,10 @@ class _ProductCard extends StatelessWidget {
                               fit: BoxFit.contain,
                               errorBuilder: (context, error, stackTrace) =>
                                   Icon(
-                                Icons.shopping_basket_outlined,
-                                size: 36,
-                                color: primary,
-                              ),
+                                    Icons.shopping_basket_outlined,
+                                    size: 36,
+                                    color: primary,
+                                  ),
                             )
                           : Icon(
                               Icons.shopping_basket_outlined,
@@ -1234,7 +1239,9 @@ class _NewArrivalCard extends StatelessWidget {
     final primary = theme.colorScheme.primary;
     final hasImage = product.primaryImage.trim().isNotEmpty;
     final cardBg = theme.colorScheme.surfaceContainerHighest;
-    final imgBg = theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6);
+    final imgBg = theme.colorScheme.surfaceContainerHighest.withValues(
+      alpha: 0.6,
+    );
 
     return GestureDetector(
       onTap: onTap,
@@ -1268,10 +1275,10 @@ class _NewArrivalCard extends StatelessWidget {
                               fit: BoxFit.contain,
                               errorBuilder: (context, error, stackTrace) =>
                                   Icon(
-                                Icons.local_mall_outlined,
-                                size: 36,
-                                color: primary,
-                              ),
+                                    Icons.local_mall_outlined,
+                                    size: 36,
+                                    color: primary,
+                                  ),
                             )
                           : Icon(
                               Icons.local_mall_outlined,
@@ -1349,8 +1356,9 @@ class _NewArrivalCard extends StatelessWidget {
                                 '${AppStrings.currencySymbol}${product.originalPrice.toStringAsFixed(0)}',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   decoration: TextDecoration.lineThrough,
-                                  color: theme.colorScheme.onSurface
-                                      .withValues(alpha: 0.6),
+                                  color: theme.colorScheme.onSurface.withValues(
+                                    alpha: 0.6,
+                                  ),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -1407,7 +1415,9 @@ class _EyebrowChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: backgroundColor ?? primary.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(AppSizes.radiusFull),
-        border: Border.all(color: borderColor ?? primary.withValues(alpha: 0.20)),
+        border: Border.all(
+          color: borderColor ?? primary.withValues(alpha: 0.20),
+        ),
       ),
       child: Text(
         label,
@@ -1486,8 +1496,8 @@ class _HomeCartAction extends StatelessWidget {
     final backgroundColor = filled
         ? (inStock ? primary : disabledColor.withValues(alpha: 0.3))
         : (inStock
-            ? primary.withValues(alpha: 0.1)
-            : disabledColor.withValues(alpha: 0.1));
+              ? primary.withValues(alpha: 0.1)
+              : disabledColor.withValues(alpha: 0.1));
     final foregroundColor = filled
         ? Colors.white
         : (inStock ? primary : disabledColor);

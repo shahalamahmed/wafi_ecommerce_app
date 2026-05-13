@@ -9,6 +9,7 @@ import 'package:wafi_ecommerce_app/features/products/product_provider.dart';
 import 'package:wafi_ecommerce_app/shared/layout/main_layout.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/glass_snackbar.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
 
 import 'wishlist_provider.dart';
@@ -101,10 +102,9 @@ class WishlistScreen extends ConsumerWidget {
                 (p) => p.id == item.productId,
               );
               if (match.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Product details are unavailable.'),
-                  ),
+                GlassSnackbar.warning(
+                  context,
+                  AppStrings.errProductUnavailable,
                 );
                 return;
               }
@@ -128,10 +128,9 @@ class WishlistScreen extends ConsumerWidget {
                         .read(cartProvider.notifier)
                         .addProduct(match.first);
                     if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('${item.productName} added to cart'),
-                      ),
+                    GlassSnackbar.success(
+                      context,
+                      '${item.productName} added to cart',
                     );
                   }
                 : null,

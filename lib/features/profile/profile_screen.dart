@@ -19,6 +19,7 @@ import 'package:wafi_ecommerce_app/features/wishlist/wishlist_screen.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_input.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/glass_snackbar.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/profile_avatar.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
 
@@ -65,9 +66,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    GlassSnackbar.info(context, message);
   }
 
   void _openPage(Widget page) {
@@ -772,9 +771,7 @@ class _ContactSupportScreenState extends ConsumerState<_ContactSupportScreen> {
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    GlassSnackbar.info(context, message);
   }
 
   @override
@@ -828,9 +825,7 @@ class _ContactSupportScreenState extends ConsumerState<_ContactSupportScreen> {
                   const SizedBox(height: AppSizes.md),
                   Text(
                     'Reach our team instantly or send detailed feedback.',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      height: 1.2,
-                    ),
+                    style: theme.textTheme.headlineSmall?.copyWith(height: 1.2),
                   ),
                   const SizedBox(height: AppSizes.sm),
                   Text(
@@ -937,7 +932,9 @@ class _ContactSupportScreenState extends ConsumerState<_ContactSupportScreen> {
                     decoration: BoxDecoration(
                       color: primary.withValues(alpha: 0.10),
                       borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-                      border: Border.all(color: primary.withValues(alpha: 0.20)),
+                      border: Border.all(
+                        color: primary.withValues(alpha: 0.20),
+                      ),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1075,7 +1072,9 @@ class _ContactActionCard extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.72),
+                color: theme.textTheme.bodySmall?.color?.withValues(
+                  alpha: 0.72,
+                ),
                 height: 1.4,
               ),
             ),

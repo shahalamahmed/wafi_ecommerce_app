@@ -15,6 +15,7 @@ import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_chip.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_input.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/glass_snackbar.dart';
 
 class CategoryManagementScreen extends ConsumerWidget {
   const CategoryManagementScreen({super.key});
@@ -25,13 +26,12 @@ class CategoryManagementScreen extends ConsumerWidget {
     final notifier = ref.read(ownerCategoryManagementProvider.notifier);
 
     ref.listen(ownerCategoryManagementProvider, (previous, next) {
-      final messenger = ScaffoldMessenger.of(context);
       if (next.errorMessage != previous?.errorMessage && next.hasError) {
-        messenger.showSnackBar(SnackBar(content: Text(next.errorMessage!)));
+        GlassSnackbar.error(context, next.errorMessage!);
       }
       if (next.successMessage != previous?.successMessage &&
           (next.successMessage?.isNotEmpty ?? false)) {
-        messenger.showSnackBar(SnackBar(content: Text(next.successMessage!)));
+        GlassSnackbar.success(context, next.successMessage!);
       }
     });
 
@@ -302,7 +302,9 @@ class _CategoryManagementCard extends StatelessWidget {
             runSpacing: AppSizes.sm,
             children: [
               GlassChip(
-                label: category.isTopLevel ? 'Main Category' : 'Nested Category',
+                label: category.isTopLevel
+                    ? 'Main Category'
+                    : 'Nested Category',
                 variant: GlassChipVariant.primary,
               ),
               GlassChip(
@@ -394,8 +396,9 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
           : _CategoryCreationMode.nested;
     } else {
       _creationMode = _CategoryCreationMode.main;
-      _displayOrderController.text =
-          _suggestedDisplayOrderFor(parentId: null).toString();
+      _displayOrderController.text = _suggestedDisplayOrderFor(
+        parentId: null,
+      ).toString();
     }
   }
 
@@ -439,9 +442,7 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    GlassSnackbar.info(context, message);
   }
 
   @override
@@ -729,14 +730,17 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
     final effectiveParentId = _creationMode == _CategoryCreationMode.nested
         ? _selectedParentId
         : null;
-    final customDisplayOrder = int.tryParse(_displayOrderController.text.trim());
+    final customDisplayOrder = int.tryParse(
+      _displayOrderController.text.trim(),
+    );
     final displayOrder = _showAdvancedOrder
         ? customDisplayOrder
         : _effectiveDisplayOrder;
 
     final nextErrors = <String, String?>{
       'name': AppValidators.required(name),
-      'parentId': _creationMode == _CategoryCreationMode.nested &&
+      'parentId':
+          _creationMode == _CategoryCreationMode.nested &&
               (effectiveParentId == null || effectiveParentId.isEmpty)
           ? 'Select a parent category.'
           : null,

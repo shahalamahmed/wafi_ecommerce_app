@@ -10,6 +10,7 @@ import 'package:wafi_ecommerce_app/features/orders/order_provider.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_input.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/glass_snackbar.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
 
 class PaymentSelectionScreen extends ConsumerStatefulWidget {
@@ -309,9 +310,7 @@ class _PaymentSelectionScreenState
         _DemoPaymentOutcome.success => '',
       };
       setState(() => _errorMessage = message);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      GlassSnackbar.warning(context, message);
       return;
     }
 
@@ -333,9 +332,7 @@ class _PaymentSelectionScreenState
         _isProcessing = false;
         _errorMessage = orderState.errorMessage;
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(orderState.errorMessage!)));
+      GlassSnackbar.error(context, orderState.errorMessage!);
       return;
     }
 
@@ -343,12 +340,9 @@ class _PaymentSelectionScreenState
     if (!mounted) return;
 
     setState(() => _isProcessing = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '${method.label} payment successful. Order placed successfully.',
-        ),
-      ),
+    GlassSnackbar.success(
+      context,
+      '${method.label} payment successful. Order placed successfully.',
     );
     Navigator.of(context).pop(true);
   }

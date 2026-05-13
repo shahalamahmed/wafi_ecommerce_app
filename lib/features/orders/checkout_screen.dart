@@ -15,6 +15,7 @@ import 'package:wafi_ecommerce_app/features/products/product_provider.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_input.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/glass_snackbar.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
@@ -220,20 +221,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     if (nextErrors.values.any((error) => error != null)) return;
 
     if (userId.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please sign in before placing an order.'),
-        ),
-      );
+      GlassSnackbar.info(context, 'Please sign in before placing an order.');
       return;
     }
 
     final stockError = await _validateCartInventory();
     if (!mounted) return;
     if (stockError != null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(stockError)));
+      GlassSnackbar.warning(context, stockError);
       return;
     }
 
@@ -280,17 +275,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     if (!mounted) return;
 
     if (nextState.hasError) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(nextState.errorMessage!)));
+      GlassSnackbar.error(context, nextState.errorMessage!);
       return;
     }
 
     await ref.read(cartProvider.notifier).clear();
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Order placed successfully.')));
+    GlassSnackbar.success(context, 'Order placed successfully.');
     Navigator.of(context).pop();
   }
 

@@ -9,6 +9,7 @@ import 'package:wafi_ecommerce_app/features/wishlist/wishlist_provider.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_chip.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/glass_snackbar.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
 
 class ProductDetailsScreen extends ConsumerStatefulWidget {
@@ -56,14 +57,11 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
               );
               await wishlistNotifier.toggleProduct(product);
               if (!context.mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    wasWishlisted
-                        ? '${product.name} removed from wishlist'
-                        : '${product.name} added to wishlist',
-                  ),
-                ),
+              GlassSnackbar.info(
+                context,
+                wasWishlisted
+                    ? '${product.name} removed from wishlist'
+                    : '${product.name} added to wishlist',
               );
             },
             tooltip: isWishlisted
@@ -94,14 +92,16 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                 child: AspectRatio(
                   aspectRatio: 1,
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(AppSizes.productCardRadius),  // ← -4 বাদ
+                    borderRadius: BorderRadius.circular(
+                      AppSizes.productCardRadius,
+                    ), // ← -4 বাদ
                     child: product.primaryImage.trim().isNotEmpty
                         ? Image.network(
-                      product.primaryImage,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          _DetailsImageFallback(name: product.name),
-                    )
+                            product.primaryImage,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                _DetailsImageFallback(name: product.name),
+                          )
                         : _DetailsImageFallback(name: product.name),
                   ),
                 ),
@@ -244,14 +244,11 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                   );
                   await wishlistNotifier.toggleProduct(product);
                   if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        wasWishlisted
-                            ? '${product.name} removed from wishlist'
-                            : '${product.name} added to wishlist',
-                      ),
-                    ),
+                  GlassSnackbar.info(
+                    context,
+                    wasWishlisted
+                        ? '${product.name} removed from wishlist'
+                        : '${product.name} added to wishlist',
                   );
                 },
               ),
@@ -313,12 +310,9 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                                   quantity: _quantity,
                                 );
                                 if (!context.mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      '${product.name} added to cart',
-                                    ),
-                                  ),
+                                GlassSnackbar.success(
+                                  context,
+                                  '${product.name} added to cart',
                                 );
                               }
                             : null,
@@ -365,10 +359,7 @@ class _StandaloneCartDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const WafiAppBar(
-        title: AppStrings.cart,
-        subtitle: null,
-      ),
+      appBar: const WafiAppBar(title: AppStrings.cart, subtitle: null),
       body: const CartScreen(),
     );
   }
@@ -592,7 +583,9 @@ class _SectionTabs extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: index == activeIndex
                       ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+                      : Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.08),
                   border: Border.all(
                     color: Theme.of(
                       context,

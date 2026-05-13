@@ -5,14 +5,12 @@ import 'package:wafi_ecommerce_app/core/constants/strings.dart';
 import 'package:wafi_ecommerce_app/features/auth/auth_model.dart';
 import 'package:wafi_ecommerce_app/features/auth/auth_provider.dart';
 import 'package:wafi_ecommerce_app/features/auth/widgets/login_form.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/glass_snackbar.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_chip.dart';
 
 class AuthScreen extends ConsumerWidget {
-  const AuthScreen({
-    super.key,
-    this.closeOnSuccess = false,
-  });
+  const AuthScreen({super.key, this.closeOnSuccess = false});
 
   final bool closeOnSuccess;
 
@@ -35,8 +33,16 @@ class AuthScreen extends ConsumerWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: isDark
-                ? const [Color(0xFF000000), Color(0xFF080808), Color(0xFF000000)]
-                : const [Color(0xFFFFFFFF), Color(0xFFF5F5F5), Color(0xFFFFFFFF)],
+                ? const [
+                    Color(0xFF000000),
+                    Color(0xFF080808),
+                    Color(0xFF000000),
+                  ]
+                : const [
+                    Color(0xFFFFFFFF),
+                    Color(0xFFF5F5F5),
+                    Color(0xFFFFFFFF),
+                  ],
           ),
         ),
         child: SafeArea(
@@ -57,9 +63,8 @@ class AuthScreen extends ConsumerWidget {
                           Text(
                             AppStrings.appName,
                             textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                ),
+                            style: Theme.of(context).textTheme.displaySmall
+                                ?.copyWith(fontWeight: FontWeight.w700),
                           ),
                           const SizedBox(height: AppSizes.sm),
                           Text(
@@ -74,13 +79,15 @@ class AuthScreen extends ConsumerWidget {
                               GlassChip(
                                 label: AppStrings.login,
                                 isSelected: authState.view == AuthView.login,
-                                onTap: () => authNotifier.setView(AuthView.login),
+                                onTap: () =>
+                                    authNotifier.setView(AuthView.login),
                               ),
                               const SizedBox(width: AppSizes.sm),
                               GlassChip(
                                 label: AppStrings.signup,
                                 isSelected: authState.view == AuthView.register,
-                                onTap: () => authNotifier.setView(AuthView.register),
+                                onTap: () =>
+                                    authNotifier.setView(AuthView.register),
                               ),
                             ],
                           ),
@@ -98,31 +105,34 @@ class AuthScreen extends ConsumerWidget {
                             const SizedBox(height: AppSizes.lg),
                           ],
                           AnimatedSwitcher(
-                            duration: const Duration(milliseconds: AppSizes.animNormal),
+                            duration: const Duration(
+                              milliseconds: AppSizes.animNormal,
+                            ),
                             child: authState.view == AuthView.login
                                 ? LoginForm(
                                     key: const ValueKey('login_form'),
                                     isLoading: authState.isLoading,
                                     onSubmit: authNotifier.login,
-                                    onGoogleSignIn: authNotifier.signInWithGoogle,
+                                    onGoogleSignIn:
+                                        authNotifier.signInWithGoogle,
                                     onGuestMode: authNotifier.continueAsGuest,
                                     onForgotPassword: (email) async {
                                       if (email.trim().isEmpty) {
                                         authNotifier.clearError();
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text('Enter your email first to reset password.'),
-                                          ),
+                                        GlassSnackbar.warning(
+                                          context,
+                                          'Enter your email first to reset password.',
                                         );
                                         return;
                                       }
 
-                                      await authNotifier.sendPasswordResetEmail(email);
+                                      await authNotifier.sendPasswordResetEmail(
+                                        email,
+                                      );
                                       if (!context.mounted) return;
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(AppStrings.resetSent),
-                                        ),
+                                      GlassSnackbar.info(
+                                        context,
+                                        AppStrings.resetSent,
                                       );
                                     },
                                   )
@@ -187,10 +197,7 @@ class _AuthBackdrop extends StatelessWidget {
 }
 
 class _GlowOrb extends StatelessWidget {
-  const _GlowOrb({
-    required this.size,
-    required this.color,
-  });
+  const _GlowOrb({required this.size, required this.color});
 
   final double size;
   final Color color;
@@ -202,9 +209,7 @@ class _GlowOrb extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: RadialGradient(
-          colors: [color, Colors.transparent],
-        ),
+        gradient: RadialGradient(colors: [color, Colors.transparent]),
       ),
     );
   }

@@ -8,6 +8,7 @@ import 'package:wafi_ecommerce_app/features/owner/owner_management_provider.dart
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_chip.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/glass_snackbar.dart';
 
 class OrderManagementScreen extends ConsumerWidget {
   const OrderManagementScreen({super.key});
@@ -18,13 +19,12 @@ class OrderManagementScreen extends ConsumerWidget {
     final notifier = ref.read(ownerOrderManagementProvider.notifier);
 
     ref.listen(ownerOrderManagementProvider, (previous, next) {
-      final messenger = ScaffoldMessenger.of(context);
       if (next.errorMessage != previous?.errorMessage && next.hasError) {
-        messenger.showSnackBar(SnackBar(content: Text(next.errorMessage!)));
+        GlassSnackbar.error(context, next.errorMessage!);
       }
       if (next.successMessage != previous?.successMessage &&
           (next.successMessage?.isNotEmpty ?? false)) {
-        messenger.showSnackBar(SnackBar(content: Text(next.successMessage!)));
+        GlassSnackbar.success(context, next.successMessage!);
       }
     });
 

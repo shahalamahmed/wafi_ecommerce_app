@@ -15,6 +15,7 @@ import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_chip.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_input.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/glass_snackbar.dart';
 
 class ProductManagementScreen extends ConsumerWidget {
   const ProductManagementScreen({super.key});
@@ -25,13 +26,12 @@ class ProductManagementScreen extends ConsumerWidget {
     final notifier = ref.read(ownerProductManagementProvider.notifier);
 
     ref.listen(ownerProductManagementProvider, (previous, next) {
-      final messenger = ScaffoldMessenger.of(context);
       if (next.errorMessage != previous?.errorMessage && next.hasError) {
-        messenger.showSnackBar(SnackBar(content: Text(next.errorMessage!)));
+        GlassSnackbar.error(context, next.errorMessage!);
       }
       if (next.successMessage != previous?.successMessage &&
           (next.successMessage?.isNotEmpty ?? false)) {
-        messenger.showSnackBar(SnackBar(content: Text(next.successMessage!)));
+        GlassSnackbar.success(context, next.successMessage!);
       }
     });
 
@@ -480,9 +480,7 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    GlassSnackbar.info(context, message);
   }
 
   @override

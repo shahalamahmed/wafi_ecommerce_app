@@ -8,6 +8,7 @@ import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_chip.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_input.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/glass_snackbar.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/profile_avatar.dart';
 
 class UserManagementScreen extends ConsumerWidget {
@@ -19,13 +20,12 @@ class UserManagementScreen extends ConsumerWidget {
     final currentUser = authState.user;
 
     ref.listen(ownerUserManagementProvider, (previous, next) {
-      final messenger = ScaffoldMessenger.of(context);
       if (next.errorMessage != previous?.errorMessage && next.hasError) {
-        messenger.showSnackBar(SnackBar(content: Text(next.errorMessage!)));
+        GlassSnackbar.error(context, next.errorMessage!);
       }
       if (next.successMessage != previous?.successMessage &&
           (next.successMessage?.isNotEmpty ?? false)) {
-        messenger.showSnackBar(SnackBar(content: Text(next.successMessage!)));
+        GlassSnackbar.success(context, next.successMessage!);
       }
     });
 
@@ -228,11 +228,11 @@ class _UserManagementCard extends ConsumerWidget {
             onPressed: isSelf
                 ? null
                 : () => _confirmRoleChange(
-              context,
-              ref,
-              user: user,
-              targetRole: targetRole,
-            ),
+                    context,
+                    ref,
+                    user: user,
+                    targetRole: targetRole,
+                  ),
           ),
         ],
       ),

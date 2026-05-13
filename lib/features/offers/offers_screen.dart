@@ -11,6 +11,7 @@ import 'package:wafi_ecommerce_app/features/products/widgets/product_list.dart';
 import 'package:wafi_ecommerce_app/features/wishlist/wishlist_provider.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/glass_snackbar.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
 
 class OffersScreen extends ConsumerWidget {
@@ -49,7 +50,8 @@ class OffersScreen extends ConsumerWidget {
         .toList();
 
     final categoryLookup = <String, String>{
-      for (final category in productState.categories) category.id: category.name,
+      for (final category in productState.categories)
+        category.id: category.name,
     };
 
     final topInset = immersiveShell
@@ -202,8 +204,9 @@ class OffersScreen extends ConsumerWidget {
                 onAddToCart: (product) async {
                   await cartNotifier.addProduct(product);
                   if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('${product.name} added to cart')),
+                  GlassSnackbar.success(
+                    context,
+                    '${product.name} added to cart',
                   );
                 },
                 onIncrement: (product) => cartNotifier.increment(product.id),
@@ -215,14 +218,11 @@ class OffersScreen extends ConsumerWidget {
                   );
                   await wishlistNotifier.toggleProduct(product);
                   if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        wasWishlisted
-                            ? '${product.name} removed from wishlist'
-                            : '${product.name} added to wishlist',
-                      ),
-                    ),
+                  GlassSnackbar.info(
+                    context,
+                    wasWishlisted
+                        ? '${product.name} removed from wishlist'
+                        : '${product.name} added to wishlist',
                   );
                 },
               ),
