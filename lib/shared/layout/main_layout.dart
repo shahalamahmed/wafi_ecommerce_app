@@ -161,7 +161,14 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
         scrollUnderBody: activePage.scrollUnderAppBar,
         compactTitle: !isOwner,
       ),
-      drawer: const AppDrawer(),
+      drawer: AppDrawer(
+        onProfileTap: isOwner
+            ? null
+            : () {
+                if (!mounted) return;
+                setState(() => _currentIndex = 4);
+              },
+      ),
       body: Stack(
         children: [
           Positioned.fill(

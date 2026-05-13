@@ -11,13 +11,16 @@ import 'package:wafi_ecommerce_app/features/auth/auth_provider.dart';
 import 'package:wafi_ecommerce_app/features/owner/owner_catalog_screen.dart';
 import 'package:wafi_ecommerce_app/features/owner/order_management_screen.dart';
 import 'package:wafi_ecommerce_app/features/owner/user_management_screen.dart';
+import 'package:wafi_ecommerce_app/features/profile/profile_screen.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/profile_avatar.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
 
 class AppDrawer extends ConsumerWidget {
-  const AppDrawer({super.key});
+  const AppDrawer({super.key, this.onProfileTap});
+
+  final VoidCallback? onProfileTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -66,38 +69,54 @@ class AppDrawer extends ConsumerWidget {
               children: [
                 GlassCard(
                   variant: GlassCardVariant.elevated,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+                    onTap: () => _openProfile(context),
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSizes.sm),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          ProfileAvatar(
-                            user: user,
-                            isGuest: isGuest,
-                            radius: 26,
-                          ),
-                          const SizedBox(width: AppSizes.md),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  user?.displayName ?? 'Guest session',
-                                  style: Theme.of(context).textTheme.titleLarge,
+                          Row(
+                            children: [
+                              ProfileAvatar(
+                                user: user,
+                                isGuest: isGuest,
+                                radius: 26,
+                              ),
+                              const SizedBox(width: AppSizes.md),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      user?.displayName ?? 'Guest session',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleLarge,
+                                    ),
+                                    const SizedBox(height: AppSizes.xs),
+                                    Text(
+                                      user?.email.isNotEmpty == true
+                                          ? user!.email
+                                          : AppStrings.guestBannerMsg,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyMedium,
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(height: AppSizes.xs),
-                                Text(
-                                  user?.email.isNotEmpty == true
-                                      ? user!.email
-                                      : AppStrings.guestBannerMsg,
-                                  style: Theme.of(context).textTheme.bodyMedium,
-                                ),
-                              ],
-                            ),
+                              ),
+                              Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                size: AppSizes.iconXs,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: AppSizes.md),
@@ -195,6 +214,18 @@ class AppDrawer extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  void _openProfile(BuildContext context) {
+    Navigator.of(context).pop();
+    if (onProfileTap != null) {
+      onProfileTap!();
+      return;
+    }
+
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const ProfileScreen()));
   }
 }
 
