@@ -108,6 +108,10 @@ abstract class AppStrings {
   static const String rating = 'Rating';
   static const String noReviews = 'No reviews yet. Be the first!';
   static const String writeReview = 'Write a Review';
+  static const String editReview = 'Edit Review';
+  static const String reviewTitle = 'Review Title';
+  static const String reviewComment = 'Review Comment';
+  static const String verifiedPurchase = 'Verified Purchase';
   static const categories = 'Categories';
   static const home = 'Home';
   // ─── Cart ────────────────────────────────────────────────────

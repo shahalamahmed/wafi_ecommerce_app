@@ -244,6 +244,8 @@ class OrderDraft {
       'confirmedAt': null,
       'shippedAt': null,
       'deliveredAt': null,
+      'paymentCollectedAt': null,
+      'paymentCollectedBy': null,
     };
   }
 
@@ -351,6 +353,8 @@ class CustomerOrder {
     this.confirmedAt,
     this.shippedAt,
     this.deliveredAt,
+    this.paymentCollectedAt,
+    required this.paymentCollectedBy,
     this.inventoryReservedAt,
     this.inventoryRestockedAt,
   });
@@ -381,6 +385,8 @@ class CustomerOrder {
   final DateTime? confirmedAt;
   final DateTime? shippedAt;
   final DateTime? deliveredAt;
+  final DateTime? paymentCollectedAt;
+  final String paymentCollectedBy;
   final DateTime? inventoryReservedAt;
   final DateTime? inventoryRestockedAt;
 
@@ -437,6 +443,8 @@ class CustomerOrder {
     return '$paymentMethodLabel - $channel';
   }
 
+  bool get isPaid => paymentStatus.trim().toLowerCase() == 'paid';
+
   factory CustomerOrder.fromMap(String id, Map<String, dynamic> map) {
     final paymentMetadata = Map<String, dynamic>.from(
       map['paymentMetadata'] as Map? ?? <String, dynamic>{},
@@ -488,6 +496,8 @@ class CustomerOrder {
       confirmedAt: _readDate(map['confirmedAt']),
       shippedAt: _readDate(map['shippedAt']),
       deliveredAt: _readDate(map['deliveredAt']),
+      paymentCollectedAt: _readDate(map['paymentCollectedAt']),
+      paymentCollectedBy: (map['paymentCollectedBy'] as String?)?.trim() ?? '',
       inventoryReservedAt: _readDate(map['inventoryReservedAt']),
       inventoryRestockedAt: _readDate(map['inventoryRestockedAt']),
     );

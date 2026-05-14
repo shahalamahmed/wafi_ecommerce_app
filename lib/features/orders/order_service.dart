@@ -26,16 +26,33 @@ class OrderService {
         .where('userId', isEqualTo: userId)
         .get();
 
-    final orders =
-        snapshot.docs
-            .map((doc) => CustomerOrder.fromMap(doc.id, doc.data()))
-            .toList()
-          ..sort((a, b) {
-            final aDate = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-            final bDate = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-            return bDate.compareTo(aDate);
-          });
-    return orders;
+    return _sortOrders(
+      snapshot.docs
+          .map((doc) => CustomerOrder.fromMap(doc.id, doc.data()))
+          .toList(),
+    );
+  }
+
+  Stream<List<CustomerOrder>> watchOrders(String userId) {
+    return _firestore
+        .collection('orders')
+        .where('userId', isEqualTo: userId)
+        .snapshots()
+        .map(
+          (snapshot) => _sortOrders(
+            snapshot.docs
+                .map((doc) => CustomerOrder.fromMap(doc.id, doc.data()))
+                .toList(),
+          ),
+        );
+  }
+
+  List<CustomerOrder> _sortOrders(List<CustomerOrder> orders) {
+    return orders..sort((a, b) {
+      final aDate = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bDate = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return bDate.compareTo(aDate);
+    });
   }
 }
 

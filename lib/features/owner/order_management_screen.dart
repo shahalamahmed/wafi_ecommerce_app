@@ -249,6 +249,41 @@ class _OwnerOrderCard extends ConsumerWidget {
                 ),
             ],
           ),
+          const SizedBox(height: AppSizes.md),
+          Wrap(
+            spacing: AppSizes.sm,
+            runSpacing: AppSizes.sm,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              if (order.isCashOnDelivery &&
+                  order.status == 'delivered' &&
+                  !order.isPaid)
+                GlassButton(
+                  label: 'Mark COD as Paid',
+                  prefixIcon: Icons.payments_outlined,
+                  variant: GlassButtonVariant.success,
+                  isFullWidth: false,
+                  isLoading: isSaving,
+                  onPressed: () => notifier.markCodAsPaid(orderId: order.id),
+                ),
+              if (order.isCashOnDelivery && order.isPaid)
+                GlassChip(
+                  label: order.paymentCollectedAt == null
+                      ? 'COD Paid'
+                      : 'COD Paid • ${DateFormat('dd MMM, hh:mm a').format(order.paymentCollectedAt!)}',
+                  variant: GlassChipVariant.success,
+                ),
+            ],
+          ),
+          if (order.isCashOnDelivery &&
+              order.isPaid &&
+              order.paymentCollectedBy.isNotEmpty) ...[
+            const SizedBox(height: AppSizes.sm),
+            Text(
+              'Collected by: ${order.paymentCollectedBy}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
         ],
       ),
     );

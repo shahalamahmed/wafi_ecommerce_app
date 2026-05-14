@@ -2,13 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wafi_ecommerce_app/core/constants/sizes.dart';
 import 'package:wafi_ecommerce_app/core/constants/strings.dart';
+import 'package:wafi_ecommerce_app/core/utils/validators.dart';
+import 'package:wafi_ecommerce_app/features/auth/auth_provider.dart';
 import 'package:wafi_ecommerce_app/features/cart/cart_provider.dart';
 import 'package:wafi_ecommerce_app/features/cart/cart_screen.dart';
 import 'package:wafi_ecommerce_app/features/products/product_model.dart';
+import 'package:wafi_ecommerce_app/features/products/product_provider.dart';
+import 'package:wafi_ecommerce_app/features/reviews/review_model.dart';
+import 'package:wafi_ecommerce_app/features/reviews/review_provider.dart';
 import 'package:wafi_ecommerce_app/features/wishlist/wishlist_provider.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_chip.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/glass_input.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_snackbar.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
 
@@ -46,7 +52,13 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
     final cartNotifier = ref.read(cartProvider.notifier);
     final wishlistState = ref.watch(wishlistProvider);
     final wishlistNotifier = ref.read(wishlistProvider.notifier);
-    final product = widget.product;
+    ProductModel product = widget.product;
+    for (final candidate in ref.watch(productProvider).products) {
+      if (candidate.id == widget.product.id) {
+        product = candidate;
+        break;
+      }
+    }
     final productImages = product.images
         .map((image) => image.trim())
         .where((image) => image.isNotEmpty)
@@ -296,7 +308,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
           else if (_activeTab == 1)
             _DetailsSection(product: product)
           else
-            const _ReviewsSection(),
+            _ReviewsSection(product: product),
         ],
       ),
       bottomNavigationBar: SafeArea(
@@ -699,18 +711,546 @@ class _DetailsSection extends StatelessWidget {
   }
 }
 
-class _ReviewsSection extends StatelessWidget {
-  const _ReviewsSection();
+class _ReviewsSection extends ConsumerWidget {
+  const _ReviewsSection({required this.product});
+
+  final ProductModel product;
 
   @override
-  Widget build(BuildContext context) {
-    return GlassCard(
-      child: Text(
-        AppStrings.noReviews,
-        style: Theme.of(context).textTheme.bodyLarge,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final reviewsAsync = ref.watch(productReviewsProvider(product.id));
+    final myReviewAsync = ref.watch(myProductReviewProvider(product.id));
+    final eligibilityAsync = ref.watch(reviewEligibilityProvider(product.id));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GlassCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          product.rating > 0
+                              ? product.rating.toStringAsFixed(1)
+                              : '0.0',
+                          style: Theme.of(context).textTheme.displaySmall
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: AppSizes.xs),
+                        _StarRatingRow(rating: product.rating),
+                        const SizedBox(height: AppSizes.xs),
+                        Text(
+                          product.reviewCount > 0
+                              ? '${product.reviewCount} review${product.reviewCount == 1 ? '' : 's'}'
+                              : AppStrings.noReviews,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                  myReviewAsync.when(
+                    data: (myReview) {
+                      return eligibilityAsync.when(
+                        data: (eligibility) {
+                          final canEdit = myReview != null;
+                          final canWrite = eligibility.canReview;
+                          final canOpenSheet = canEdit || canWrite;
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              GlassButton(
+                                label: canEdit
+                                    ? AppStrings.editReview
+                                    : AppStrings.writeReview,
+                                variant: canEdit
+                                    ? GlassButtonVariant.ghost
+                                    : GlassButtonVariant.primary,
+                                isFullWidth: false,
+                                onPressed: canOpenSheet
+                                    ? () => _openReviewComposer(
+                                        context,
+                                        ref,
+                                        product: product,
+                                        existingReview: myReview,
+                                      )
+                                    : null,
+                              ),
+                              if (!canOpenSheet) ...[
+                                const SizedBox(height: AppSizes.sm),
+                                SizedBox(
+                                  width: 160,
+                                  child: Text(
+                                    authState.user == null
+                                        ? 'Sign in to write a review.'
+                                        : eligibility.message ??
+                                              'Only delivered buyers can review this product.',
+                                    textAlign: TextAlign.right,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          );
+                        },
+                        loading: () => const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        error: (_, _) => const SizedBox.shrink(),
+                      );
+                    },
+                    loading: () => const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    error: (_, _) => const SizedBox.shrink(),
+                  ),
+                ],
+              ),
+              myReviewAsync.when(
+                data: (myReview) {
+                  if (myReview == null) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(top: AppSizes.md),
+                    child: GlassChip(
+                      label: 'Your review is live',
+                      variant: GlassChipVariant.success,
+                    ),
+                  );
+                },
+                loading: () => const SizedBox.shrink(),
+                error: (_, _) => const SizedBox.shrink(),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSizes.lg),
+        reviewsAsync.when(
+          data: (reviews) {
+            if (reviews.isEmpty) {
+              return GlassCard(
+                child: Text(
+                  AppStrings.noReviews,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+              );
+            }
+
+            return Column(
+              children: [
+                for (final review in reviews) ...[
+                  _ReviewCard(review: review),
+                  if (review != reviews.last)
+                    const SizedBox(height: AppSizes.md),
+                ],
+              ],
+            );
+          },
+          loading: () => const GlassCard(
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (error, _) => GlassCard(
+            child: Text(
+              error.toString(),
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _openReviewComposer(
+    BuildContext context,
+    WidgetRef ref, {
+    required ProductModel product,
+    required ReviewModel? existingReview,
+  }) async {
+    ref.read(reviewMutationProvider.notifier).clearMessages();
+
+    final result = await showModalBottomSheet<_ReviewComposerResult>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            AppSizes.lg,
+            AppSizes.lg,
+            AppSizes.lg,
+            MediaQuery.of(sheetContext).viewInsets.bottom + AppSizes.xl2,
+          ),
+          child: GlassCard(
+            variant: GlassCardVariant.elevated,
+            child: _ReviewComposerSheet(
+              product: product,
+              existingReview: existingReview,
+            ),
+          ),
+        );
+      },
+    );
+
+    if (!context.mounted || result == null) return;
+    if (result.errorMessage != null && result.errorMessage!.isNotEmpty) {
+      GlassSnackbar.error(context, result.errorMessage!);
+      return;
+    }
+    if (result.successMessage != null && result.successMessage!.isNotEmpty) {
+      GlassSnackbar.success(context, result.successMessage!);
+    }
+  }
+}
+
+class _ReviewComposerResult {
+  const _ReviewComposerResult({this.successMessage, this.errorMessage});
+
+  final String? successMessage;
+  final String? errorMessage;
+}
+
+class _ReviewComposerSheet extends ConsumerStatefulWidget {
+  const _ReviewComposerSheet({
+    required this.product,
+    required this.existingReview,
+  });
+
+  final ProductModel product;
+  final ReviewModel? existingReview;
+
+  @override
+  ConsumerState<_ReviewComposerSheet> createState() =>
+      _ReviewComposerSheetState();
+}
+
+class _ReviewComposerSheetState extends ConsumerState<_ReviewComposerSheet> {
+  late final TextEditingController _titleController;
+  late final TextEditingController _commentController;
+  late int _rating;
+  final Map<String, String?> _errors = <String, String?>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(
+      text: widget.existingReview?.title ?? '',
+    );
+    _commentController = TextEditingController(
+      text: widget.existingReview?.comment ?? '',
+    );
+    _rating = widget.existingReview?.rating ?? 0;
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final nextErrors = <String, String?>{
+      'rating': _rating <= 0 ? 'Select a rating.' : null,
+      'title': AppValidators.required(_titleController.text),
+      'comment': AppValidators.required(_commentController.text),
+    };
+
+    setState(() {
+      _errors
+        ..clear()
+        ..addAll(nextErrors);
+    });
+
+    if (nextErrors.values.any((error) => error != null)) return;
+
+    await ref
+        .read(reviewMutationProvider.notifier)
+        .submitReview(
+          product: widget.product,
+          rating: _rating,
+          title: _titleController.text,
+          comment: _commentController.text,
+        );
+
+    final mutationState = ref.read(reviewMutationProvider);
+    if (!mounted) return;
+
+    if (mutationState.errorMessage != null &&
+        mutationState.errorMessage!.isNotEmpty) {
+      Navigator.of(
+        context,
+      ).pop(_ReviewComposerResult(errorMessage: mutationState.errorMessage));
+      return;
+    }
+
+    Navigator.of(context).pop(
+      _ReviewComposerResult(
+        successMessage:
+            mutationState.successMessage ?? 'Your review has been saved.',
       ),
     );
   }
+
+  @override
+  Widget build(BuildContext context) {
+    final mutationState = ref.watch(reviewMutationProvider);
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            widget.existingReview == null
+                ? AppStrings.writeReview
+                : AppStrings.editReview,
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: AppSizes.sm),
+          Text(
+            widget.product.name,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: AppSizes.lg),
+          Text(
+            AppStrings.rating,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: AppSizes.sm),
+          _InteractiveStarRating(
+            rating: _rating,
+            onChanged: (value) {
+              setState(() {
+                _rating = value;
+                _errors['rating'] = null;
+              });
+            },
+          ),
+          if (_errors['rating'] != null) ...[
+            const SizedBox(height: AppSizes.xs),
+            Text(
+              _errors['rating']!,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.error,
+              ),
+            ),
+          ],
+          const SizedBox(height: AppSizes.lg),
+          GlassInput(
+            controller: _titleController,
+            label: AppStrings.reviewTitle,
+            hint: 'Summarize your experience',
+            maxLength: 80,
+            errorText: _errors['title'],
+            onChanged: (_) {
+              if (_errors['title'] != null) {
+                setState(() => _errors['title'] = null);
+              }
+            },
+          ),
+          const SizedBox(height: AppSizes.md),
+          GlassInput(
+            controller: _commentController,
+            label: AppStrings.reviewComment,
+            hint: 'What did you like or dislike?',
+            maxLines: 5,
+            maxLength: 400,
+            errorText: _errors['comment'],
+            onChanged: (_) {
+              if (_errors['comment'] != null) {
+                setState(() => _errors['comment'] = null);
+              }
+            },
+          ),
+          const SizedBox(height: AppSizes.lg),
+          GlassButton(
+            label: widget.existingReview == null
+                ? AppStrings.writeReview
+                : AppStrings.update,
+            prefixIcon: Icons.rate_review_outlined,
+            isLoading: mutationState.isSaving,
+            onPressed: _submit,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReviewCard extends StatelessWidget {
+  const _ReviewCard({required this.review});
+
+  final ReviewModel review;
+
+  @override
+  Widget build(BuildContext context) {
+    final createdAt = review.updatedAt ?? review.createdAt;
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      review.title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: AppSizes.xs),
+                    Text(
+                      review.reviewerName.isNotEmpty
+                          ? review.reviewerName
+                          : 'Wafi customer',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              _StarPill(rating: review.rating),
+            ],
+          ),
+          const SizedBox(height: AppSizes.sm),
+          Wrap(
+            spacing: AppSizes.sm,
+            runSpacing: AppSizes.sm,
+            children: [
+              if (review.isVerifiedPurchase)
+                GlassChip(
+                  label: AppStrings.verifiedPurchase,
+                  variant: GlassChipVariant.success,
+                ),
+              if (createdAt != null)
+                GlassChip(
+                  label: _formatReviewDate(createdAt),
+                  variant: GlassChipVariant.neutral,
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSizes.md),
+          Text(review.comment, style: Theme.of(context).textTheme.bodyLarge),
+        ],
+      ),
+    );
+  }
+}
+
+class _StarPill extends StatelessWidget {
+  const _StarPill({required this.rating});
+
+  final int rating;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSizes.sm,
+        vertical: AppSizes.xs,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFC857).withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(AppSizes.radiusFull),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.star_rounded, color: Color(0xFFFFB800), size: 16),
+          const SizedBox(width: 4),
+          Text(
+            '$rating',
+            style: Theme.of(
+              context,
+            ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StarRatingRow extends StatelessWidget {
+  const _StarRatingRow({required this.rating});
+
+  final double rating;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: List.generate(5, (index) {
+        final filled = rating >= index + 1;
+        final half = !filled && rating > index && rating < index + 1;
+        return Icon(
+          half
+              ? Icons.star_half_rounded
+              : filled
+              ? Icons.star_rounded
+              : Icons.star_border_rounded,
+          color: const Color(0xFFFFB800),
+          size: 18,
+        );
+      }),
+    );
+  }
+}
+
+class _InteractiveStarRating extends StatelessWidget {
+  const _InteractiveStarRating({required this.rating, required this.onChanged});
+
+  final int rating;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: List.generate(5, (index) {
+        final value = index + 1;
+        return IconButton(
+          onPressed: () => onChanged(value),
+          visualDensity: const VisualDensity(horizontal: -3, vertical: -3),
+          padding: EdgeInsets.zero,
+          icon: Icon(
+            value <= rating ? Icons.star_rounded : Icons.star_border_rounded,
+            color: const Color(0xFFFFB800),
+            size: 30,
+          ),
+        );
+      }),
+    );
+  }
+}
+
+String _formatReviewDate(DateTime date) {
+  final month = switch (date.month) {
+    1 => 'Jan',
+    2 => 'Feb',
+    3 => 'Mar',
+    4 => 'Apr',
+    5 => 'May',
+    6 => 'Jun',
+    7 => 'Jul',
+    8 => 'Aug',
+    9 => 'Sep',
+    10 => 'Oct',
+    11 => 'Nov',
+    _ => 'Dec',
+  };
+  return '${date.day} $month ${date.year}';
 }
 
 class _CartCountBadge extends StatelessWidget {

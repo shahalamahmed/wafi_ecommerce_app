@@ -206,16 +206,21 @@ class OwnerManagementService {
 
   Future<List<CustomerOrder>> fetchOrders() async {
     final snapshot = await _orders.get();
-    final orders =
+    return _sortOrders(
+      snapshot.docs
+          .map((doc) => CustomerOrder.fromMap(doc.id, doc.data()))
+          .toList(),
+    );
+  }
+
+  Stream<List<CustomerOrder>> watchOrders() {
+    return _orders.snapshots().map(
+      (snapshot) => _sortOrders(
         snapshot.docs
             .map((doc) => CustomerOrder.fromMap(doc.id, doc.data()))
-            .toList()
-          ..sort((a, b) {
-            final aDate = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-            final bDate = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-            return bDate.compareTo(aDate);
-          });
-    return orders;
+            .toList(),
+      ),
+    );
   }
 
   Future<void> updateOrderStatus({
@@ -294,6 +299,51 @@ class OwnerManagementService {
       }
 
       transaction.update(orderRef, payload);
+    });
+  }
+
+  Future<void> markCodAsPaid({
+    required String orderDocId,
+    required AppUser collector,
+  }) async {
+    await _firestore.runTransaction((transaction) async {
+      final orderRef = _orders.doc(orderDocId);
+      final orderSnap = await transaction.get(orderRef);
+      if (!orderSnap.exists) {
+        throw const OrderPaymentUpdateException('Order not found.');
+      }
+
+      final order = orderSnap.data() ?? <String, dynamic>{};
+      final paymentMethod =
+          (order['paymentMethod'] as String?)?.trim().toLowerCase() ?? '';
+      final paymentStatus =
+          (order['paymentStatus'] as String?)?.trim().toLowerCase() ?? '';
+      final status = (order['status'] as String?)?.trim().toLowerCase() ?? '';
+
+      if (paymentMethod != PaymentMethod.cashOnDelivery.code) {
+        throw const OrderPaymentUpdateException(
+          'Only cash on delivery orders can be marked as paid here.',
+        );
+      }
+      if (paymentStatus == 'paid') {
+        throw const OrderPaymentUpdateException(
+          'This COD order is already marked as paid.',
+        );
+      }
+      if (status != 'delivered') {
+        throw const OrderPaymentUpdateException(
+          'COD payment can only be collected after delivery.',
+        );
+      }
+
+      transaction.update(orderRef, {
+        'paymentStatus': 'paid',
+        'paymentCollectedAt': FieldValue.serverTimestamp(),
+        'paymentCollectedBy': collector.email.trim().isNotEmpty
+            ? collector.email.trim()
+            : collector.uid,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
     });
   }
 
@@ -387,10 +437,27 @@ class OwnerManagementService {
       'updatedAt': FieldValue.serverTimestamp(),
     };
   }
+
+  List<CustomerOrder> _sortOrders(List<CustomerOrder> orders) {
+    return orders..sort((a, b) {
+      final aDate = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bDate = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return bDate.compareTo(aDate);
+    });
+  }
 }
 
 class OrderStatusUpdateException implements Exception {
   const OrderStatusUpdateException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
+class OrderPaymentUpdateException implements Exception {
+  const OrderPaymentUpdateException(this.message);
 
   final String message;
 

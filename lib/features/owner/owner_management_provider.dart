@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:wafi_ecommerce_app/features/auth/auth_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:wafi_ecommerce_app/features/auth/auth_provider.dart';
 import 'package:wafi_ecommerce_app/features/offers/offer_provider.dart';
 import 'package:wafi_ecommerce_app/features/orders/order_model.dart';
 import 'package:wafi_ecommerce_app/features/products/product_model.dart';
@@ -279,20 +282,44 @@ class OwnerOrderManagementNotifier
 
   final OwnerManagementService _service;
   final Ref _ref;
+  StreamSubscription<List<CustomerOrder>>? _ordersSubscription;
 
   Future<void> load() async {
+    await _ordersSubscription?.cancel();
+    _ordersSubscription = null;
+
     state = state.copyWith(
       isLoading: true,
       clearError: true,
       clearSuccess: true,
     );
+    final completer = Completer<void>();
+
     try {
-      final orders = await _service.fetchOrders();
-      state = state.copyWith(
-        orders: orders,
-        isLoading: false,
-        clearError: true,
+      _ordersSubscription = _service.watchOrders().listen(
+        (orders) {
+          if (!mounted) return;
+          state = state.copyWith(
+            orders: orders,
+            isLoading: false,
+            clearError: true,
+          );
+          if (!completer.isCompleted) {
+            completer.complete();
+          }
+        },
+        onError: (error) {
+          if (!mounted) return;
+          state = state.copyWith(
+            isLoading: false,
+            errorMessage: error.toString(),
+          );
+          if (!completer.isCompleted) {
+            completer.complete();
+          }
+        },
       );
+      await completer.future;
     } catch (error) {
       state = state.copyWith(isLoading: false, errorMessage: error.toString());
     }
@@ -330,6 +357,33 @@ class OwnerOrderManagementNotifier
     }
   }
 
+  Future<void> markCodAsPaid({required String orderId}) async {
+    final actor = _ref.read(authProvider).user;
+    if (actor == null) {
+      state = state.copyWith(
+        errorMessage: 'Sign in as an owner to collect COD payment.',
+      );
+      return;
+    }
+
+    state = state.copyWith(
+      isSaving: true,
+      clearError: true,
+      clearSuccess: true,
+    );
+    try {
+      await _service.markCodAsPaid(orderDocId: orderId, collector: actor);
+      state = state.copyWith(
+        isSaving: false,
+        successMessage: 'COD payment marked as paid.',
+      );
+    } on OrderPaymentUpdateException catch (error) {
+      state = state.copyWith(isSaving: false, errorMessage: error.message);
+    } catch (error) {
+      state = state.copyWith(isSaving: false, errorMessage: error.toString());
+    }
+  }
+
   String _labelFor(String value) {
     switch (value) {
       case 'confirmed':
@@ -343,6 +397,12 @@ class OwnerOrderManagementNotifier
       default:
         return 'Pending';
     }
+  }
+
+  @override
+  void dispose() {
+    _ordersSubscription?.cancel();
+    super.dispose();
   }
 }
 

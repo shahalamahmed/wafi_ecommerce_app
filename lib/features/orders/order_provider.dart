@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wafi_ecommerce_app/features/auth/auth_provider.dart';
 import 'package:wafi_ecommerce_app/features/products/product_provider.dart';
@@ -50,6 +52,7 @@ class OrderNotifier extends StateNotifier<OrderState> {
   final OrderService _service;
   final String? Function() _readUserId;
   final Ref _ref;
+  StreamSubscription<List<CustomerOrder>>? _ordersSubscription;
 
   Future<void> placeOrder(OrderDraft draft) async {
     state = state.copyWith(
@@ -82,6 +85,9 @@ class OrderNotifier extends StateNotifier<OrderState> {
 
   Future<void> loadOrders() async {
     final userId = _readUserId();
+    await _ordersSubscription?.cancel();
+    _ordersSubscription = null;
+
     if (userId == null || userId.isEmpty) {
       state = state.copyWith(
         orders: const [],
@@ -92,16 +98,44 @@ class OrderNotifier extends StateNotifier<OrderState> {
     }
 
     state = state.copyWith(isLoading: true, clearError: true);
+    final completer = Completer<void>();
+
     try {
-      final orders = await _service.fetchOrders(userId);
-      state = state.copyWith(
-        orders: orders,
-        isLoading: false,
-        clearError: true,
-      );
+      _ordersSubscription = _service
+          .watchOrders(userId)
+          .listen(
+            (orders) {
+              if (!mounted) return;
+              state = state.copyWith(
+                orders: orders,
+                isLoading: false,
+                clearError: true,
+              );
+              if (!completer.isCompleted) {
+                completer.complete();
+              }
+            },
+            onError: (error) {
+              if (!mounted) return;
+              state = state.copyWith(
+                isLoading: false,
+                errorMessage: error.toString(),
+              );
+              if (!completer.isCompleted) {
+                completer.complete();
+              }
+            },
+          );
+      await completer.future;
     } catch (error) {
       state = state.copyWith(isLoading: false, errorMessage: error.toString());
     }
+  }
+
+  @override
+  void dispose() {
+    _ordersSubscription?.cancel();
+    super.dispose();
   }
 }
 

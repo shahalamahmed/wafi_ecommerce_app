@@ -19,15 +19,6 @@ class OrderScreen extends ConsumerStatefulWidget {
 
 class _OrderScreenState extends ConsumerState<OrderScreen> {
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      ref.read(orderProvider.notifier).loadOrders();
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     final state = ref.watch(orderProvider);
     final notifier = ref.read(orderProvider.notifier);
@@ -129,13 +120,22 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
   }
 }
 
-class OrderDetailsScreen extends StatelessWidget {
+class OrderDetailsScreen extends ConsumerWidget {
   const OrderDetailsScreen({super.key, required this.order});
 
   final CustomerOrder order;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    CustomerOrder? liveOrder;
+    for (final candidate in ref.watch(orderProvider).orders) {
+      if (candidate.id == order.id) {
+        liveOrder = candidate;
+        break;
+      }
+    }
+    final effectiveOrder = liveOrder ?? order;
+
     return Scaffold(
       appBar: const WafiAppBar(
         title: AppStrings.orderDetails,
@@ -150,33 +150,47 @@ class OrderDetailsScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  order.orderId,
+                  effectiveOrder.orderId,
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: AppSizes.sm),
-                _OrderStatusChip(status: order.statusLabel),
+                _OrderStatusChip(status: effectiveOrder.statusLabel),
                 const SizedBox(height: AppSizes.lg),
                 Text(
                   'Order Tracking',
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: AppSizes.md),
-                _OrderTrackingTimeline(order: order),
+                _OrderTrackingTimeline(order: effectiveOrder),
                 const SizedBox(height: AppSizes.md),
-                if (order.createdAt != null)
+                if (effectiveOrder.createdAt != null)
                   Text(
-                    '${AppStrings.orderDate}: ${DateFormat('dd MMM yyyy, hh:mm a').format(order.createdAt!)}',
+                    '${AppStrings.orderDate}: ${DateFormat('dd MMM yyyy, hh:mm a').format(effectiveOrder.createdAt!)}',
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                 const SizedBox(height: AppSizes.sm),
                 Text(
-                  _paymentDetails(order),
+                  _paymentDetails(effectiveOrder),
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
-                if (order.gatewayTransactionId.isNotEmpty) ...[
+                if (effectiveOrder.paymentCollectedAt != null) ...[
                   const SizedBox(height: AppSizes.xs),
                   Text(
-                    'Txn ID: ${order.gatewayTransactionId}',
+                    'Collected: ${DateFormat('dd MMM yyyy, hh:mm a').format(effectiveOrder.paymentCollectedAt!)}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+                if (effectiveOrder.paymentCollectedBy.isNotEmpty) ...[
+                  const SizedBox(height: AppSizes.xs),
+                  Text(
+                    'Collected by: ${effectiveOrder.paymentCollectedBy}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+                if (effectiveOrder.gatewayTransactionId.isNotEmpty) ...[
+                  const SizedBox(height: AppSizes.xs),
+                  Text(
+                    'Txn ID: ${effectiveOrder.gatewayTransactionId}',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
@@ -191,7 +205,7 @@ class OrderDetailsScreen extends StatelessWidget {
               children: [
                 Text('Items', style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: AppSizes.md),
-                for (final item in order.items) ...[
+                for (final item in effectiveOrder.items) ...[
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -237,13 +251,13 @@ class OrderDetailsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSizes.md),
                 Text(
-                  order.addressText,
+                  effectiveOrder.addressText,
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
-                if (order.notes.isNotEmpty) ...[
+                if (effectiveOrder.notes.isNotEmpty) ...[
                   const SizedBox(height: AppSizes.md),
                   Text(
-                    'Notes: ${order.notes}',
+                    'Notes: ${effectiveOrder.notes}',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ],
@@ -255,16 +269,19 @@ class OrderDetailsScreen extends StatelessWidget {
             variant: GlassCardVariant.elevated,
             child: Column(
               children: [
-                _MoneyRow(label: AppStrings.subtotal, value: order.subtotal),
-                _MoneyRow(label: AppStrings.tax, value: order.tax),
+                _MoneyRow(
+                  label: AppStrings.subtotal,
+                  value: effectiveOrder.subtotal,
+                ),
+                _MoneyRow(label: AppStrings.tax, value: effectiveOrder.tax),
                 _MoneyRow(
                   label: 'Delivery Charge',
-                  value: order.deliveryCharge,
+                  value: effectiveOrder.deliveryCharge,
                 ),
                 const Divider(height: AppSizes.lg),
                 _MoneyRow(
                   label: AppStrings.total,
-                  value: order.total,
+                  value: effectiveOrder.total,
                   isBold: true,
                 ),
               ],
