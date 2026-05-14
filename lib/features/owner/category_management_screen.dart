@@ -58,6 +58,7 @@ class CategoryManagementScreen extends ConsumerWidget {
                     GlassButton(
                       label: 'Add Category',
                       prefixIcon: Icons.add_rounded,
+                      size: GlassButtonSize.sm,
                       isFullWidth: false,
                       onPressed: () => _openCategoryEditor(
                         context,
@@ -326,6 +327,7 @@ class _CategoryManagementCard extends StatelessWidget {
                   label: 'Edit',
                   prefixIcon: Icons.edit_outlined,
                   variant: GlassButtonVariant.ghost,
+                  size: GlassButtonSize.sm,
                   onPressed: onEdit,
                 ),
               ),
@@ -335,6 +337,7 @@ class _CategoryManagementCard extends StatelessWidget {
                   label: AppStrings.delete,
                   prefixIcon: Icons.delete_outline_rounded,
                   variant: GlassButtonVariant.danger,
+                  size: GlassButtonSize.sm,
                   onPressed: onDelete,
                 ),
               ),
@@ -663,6 +666,7 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
                   child: GlassButton(
                     label: AppStrings.cancel,
                     variant: GlassButtonVariant.ghost,
+                    size: GlassButtonSize.sm,
                     onPressed: isBusy
                         ? null
                         : () => Navigator.of(context).pop(),
@@ -672,6 +676,7 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
                 Expanded(
                   child: GlassButton(
                     label: _isEditing ? AppStrings.update : AppStrings.save,
+                    size: GlassButtonSize.sm,
                     isLoading: isBusy,
                     onPressed: isBusy ? null : _submit,
                   ),
@@ -922,6 +927,7 @@ class _CategoryImageField extends StatelessWidget {
             label: isUploading ? 'Uploading image...' : 'Choose Image',
             prefixIcon: Icons.add_photo_alternate_outlined,
             variant: GlassButtonVariant.ghost,
+            size: GlassButtonSize.sm,
             onPressed: onAddImage,
           ),
           const SizedBox(height: AppSizes.md),

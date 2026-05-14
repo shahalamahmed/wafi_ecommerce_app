@@ -54,6 +54,7 @@ class ProductManagementScreen extends ConsumerWidget {
                     GlassButton(
                       label: AppStrings.addProduct,
                       prefixIcon: Icons.add_rounded,
+                      size: GlassButtonSize.sm,
                       isFullWidth: false,
                       onPressed: state.categories.isEmpty
                           ? null
@@ -340,6 +341,7 @@ class _ProductManagementCard extends StatelessWidget {
                   label: product.hasDiscount ? 'Edit Offer' : 'Add Offer',
                   prefixIcon: Icons.local_offer_outlined,
                   variant: GlassButtonVariant.success,
+                  size: GlassButtonSize.sm,
                   onPressed: onEdit,
                 ),
               ),
@@ -349,6 +351,7 @@ class _ProductManagementCard extends StatelessWidget {
                   label: AppStrings.editProduct,
                   prefixIcon: Icons.edit_outlined,
                   variant: GlassButtonVariant.ghost,
+                  size: GlassButtonSize.sm,
                   onPressed: onEdit,
                 ),
               ),
@@ -358,6 +361,7 @@ class _ProductManagementCard extends StatelessWidget {
                   label: AppStrings.delete,
                   prefixIcon: Icons.delete_outline_rounded,
                   variant: GlassButtonVariant.danger,
+                  size: GlassButtonSize.sm,
                   onPressed: onDelete,
                 ),
               ),
@@ -687,6 +691,7 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
                     child: GlassButton(
                       label: AppStrings.cancel,
                       variant: GlassButtonVariant.ghost,
+                      size: GlassButtonSize.sm,
                       onPressed: isBusy
                           ? null
                           : () => Navigator.of(context).pop(),
@@ -696,6 +701,7 @@ class _ProductEditorSheetState extends ConsumerState<_ProductEditorSheet> {
                   Expanded(
                     child: GlassButton(
                       label: _isEditing ? AppStrings.update : AppStrings.save,
+                      size: GlassButtonSize.sm,
                       isLoading: isBusy,
                       onPressed: isBusy ? null : _submit,
                     ),
@@ -871,6 +877,7 @@ class _ProductImagesField extends StatelessWidget {
             label: isUploading ? 'Uploading images...' : 'Choose Images',
             prefixIcon: Icons.add_photo_alternate_outlined,
             variant: GlassButtonVariant.ghost,
+            size: GlassButtonSize.sm,
             onPressed: onAddImages,
           ),
           const SizedBox(height: AppSizes.md),

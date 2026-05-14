@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wafi_ecommerce_app/core/constants/file_upload.dart';
 import 'package:wafi_ecommerce_app/core/constants/sizes.dart';
@@ -11,6 +12,8 @@ import 'package:wafi_ecommerce_app/features/addresses/address_provider.dart';
 import 'package:wafi_ecommerce_app/features/addresses/address_screen.dart';
 import 'package:wafi_ecommerce_app/features/auth/auth_model.dart';
 import 'package:wafi_ecommerce_app/features/auth/auth_provider.dart';
+import 'package:wafi_ecommerce_app/features/orders/order_model.dart';
+import 'package:wafi_ecommerce_app/features/orders/order_provider.dart';
 import 'package:wafi_ecommerce_app/features/orders/order_screen.dart';
 import 'package:wafi_ecommerce_app/features/profile/contact_support_service.dart';
 import 'package:wafi_ecommerce_app/features/settings/settings_screen.dart';
@@ -18,6 +21,7 @@ import 'package:wafi_ecommerce_app/features/wishlist/wishlist_provider.dart';
 import 'package:wafi_ecommerce_app/features/wishlist/wishlist_screen.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/glass_chip.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_input.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_snackbar.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/profile_avatar.dart';
@@ -177,11 +181,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   _QuickActionTile(
                     icon: Icons.credit_card_outlined,
                     label: 'Payments',
-                    onTap: () => _openPlaceholder(
-                      title: 'Payments',
-                      subtitle: 'Saved payment methods are not available yet.',
-                      icon: Icons.credit_card_outlined,
-                    ),
+                    onTap: () => _openPage(const _PaymentHistoryScreen()),
                   ),
                   const SizedBox(width: AppSizes.md),
                   _QuickActionTile(
@@ -651,6 +651,276 @@ class _StandaloneOrdersScreen extends StatelessWidget {
         centerTitle: false,
       ),
       body: const OrderScreen(),
+    );
+  }
+}
+
+class _PaymentHistoryScreen extends ConsumerWidget {
+  const _PaymentHistoryScreen();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final orderState = ref.watch(orderProvider);
+    final orderNotifier = ref.read(orderProvider.notifier);
+    final isGuest = authState.isAnonymous || !authState.isAuthenticated;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Payment History'), centerTitle: false),
+      body: Builder(
+        builder: (context) {
+          if (orderState.isLoading && orderState.orders.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (orderState.hasError && orderState.orders.isEmpty) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSizes.screenPaddingH),
+                child: GlassCard(
+                  variant: GlassCardVariant.elevated,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.error_outline_rounded,
+                        size: AppSizes.iconXl,
+                      ),
+                      const SizedBox(height: AppSizes.md),
+                      Text(
+                        orderState.errorMessage ?? 'Failed to load payments.',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                      const SizedBox(height: AppSizes.lg),
+                      GlassButton(
+                        label: AppStrings.retry,
+                        prefixIcon: Icons.refresh_rounded,
+                        isFullWidth: false,
+                        onPressed: orderNotifier.loadOrders,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
+
+          if (orderState.orders.isEmpty) {
+            return _PaymentHistoryEmptyState(isGuest: isGuest);
+          }
+
+          return RefreshIndicator(
+            onRefresh: orderNotifier.loadOrders,
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(
+                AppSizes.screenPaddingH,
+                AppSizes.lg,
+                AppSizes.screenPaddingH,
+                120,
+              ),
+              itemCount: orderState.orders.length,
+              separatorBuilder: (_, _) => const SizedBox(height: AppSizes.md),
+              itemBuilder: (context, index) {
+                final order = orderState.orders[index];
+                return _PaymentHistoryCard(order: order);
+              },
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _PaymentHistoryEmptyState extends ConsumerWidget {
+  const _PaymentHistoryEmptyState({required this.isGuest});
+
+  final bool isGuest;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSizes.screenPaddingH),
+        child: GlassCard(
+          variant: GlassCardVariant.elevated,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.payments_outlined, size: AppSizes.iconXl),
+              const SizedBox(height: AppSizes.md),
+              Text(
+                isGuest
+                    ? 'Sign in to view your payments'
+                    : 'No payment history yet',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: AppSizes.sm),
+              Text(
+                isGuest
+                    ? 'Your payment history is linked to your account orders. Sign in to see all payment records.'
+                    : 'Your order payment records will appear here once you place an order.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              if (isGuest) ...[
+                const SizedBox(height: AppSizes.lg),
+                GlassButton(
+                  label: 'Back to Sign In',
+                  prefixIcon: Icons.login_rounded,
+                  isFullWidth: false,
+                  onPressed: () {
+                    ref.read(authProvider.notifier).exitGuestMode();
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PaymentHistoryCard extends StatelessWidget {
+  const _PaymentHistoryCard({required this.order});
+
+  final CustomerOrder order;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final paymentMoment = order.paymentCollectedAt ?? order.createdAt;
+    final paymentMomentLabel = order.paymentCollectedAt != null
+        ? 'Collected'
+        : 'Order Date';
+
+    return GlassCard(
+      variant: GlassCardVariant.elevated,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      order.orderId,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: AppSizes.xs),
+                    Text(
+                      order.paymentSummaryLabel,
+                      style: theme.textTheme.bodyLarge,
+                    ),
+                  ],
+                ),
+              ),
+              _PaymentStatusBadge(status: order.paymentStatusLabel),
+            ],
+          ),
+          const SizedBox(height: AppSizes.md),
+          Wrap(
+            spacing: AppSizes.sm,
+            runSpacing: AppSizes.sm,
+            children: [
+              GlassChip(
+                label:
+                    '${AppStrings.currencySymbol}${order.total.toStringAsFixed(0)}',
+                variant: GlassChipVariant.success,
+              ),
+              GlassChip(
+                label: order.isCashOnDelivery ? 'COD' : 'Online',
+                variant: GlassChipVariant.primary,
+              ),
+              if (order.paymentChannelLabel.isNotEmpty)
+                GlassChip(
+                  label: order.paymentChannelLabel,
+                  variant: GlassChipVariant.warning,
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSizes.md),
+          if (paymentMoment != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSizes.xs),
+              child: Text(
+                '$paymentMomentLabel: ${DateFormat('dd MMM yyyy, hh:mm a').format(paymentMoment)}',
+                style: theme.textTheme.bodyMedium,
+              ),
+            ),
+          Text(
+            'Status: ${order.paymentStatusLabel}',
+            style: theme.textTheme.bodyMedium,
+          ),
+          if (order.gatewayTransactionId.isNotEmpty) ...[
+            const SizedBox(height: AppSizes.xs),
+            Text(
+              'Txn ID: ${order.gatewayTransactionId}',
+              style: theme.textTheme.bodySmall,
+            ),
+          ],
+          if (order.paymentCollectedAt != null && order.isCashOnDelivery) ...[
+            const SizedBox(height: AppSizes.xs),
+            Text(
+              'COD paid at ${DateFormat('dd MMM yyyy, hh:mm a').format(order.paymentCollectedAt!)}',
+              style: theme.textTheme.bodySmall,
+            ),
+          ],
+          if (order.paymentCollectedBy.isNotEmpty) ...[
+            const SizedBox(height: AppSizes.xs),
+            Text(
+              'Collected by: ${order.paymentCollectedBy}',
+              style: theme.textTheme.bodySmall,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _PaymentStatusBadge extends StatelessWidget {
+  const _PaymentStatusBadge({required this.status});
+
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final normalized = status.trim().toLowerCase();
+    final color = switch (normalized) {
+      'paid' => const Color(0xFF16A34A),
+      'failed' => Theme.of(context).colorScheme.error,
+      'cancelled' => const Color(0xFFDC2626),
+      'invalid' => const Color(0xFFB45309),
+      'unpaid' => const Color(0xFFB45309),
+      _ => const Color(0xFF2563EB),
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSizes.md,
+        vertical: AppSizes.xs,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppSizes.radiusFull),
+      ),
+      child: Text(
+        status,
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 }

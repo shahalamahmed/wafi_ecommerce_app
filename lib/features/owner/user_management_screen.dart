@@ -224,6 +224,7 @@ class _UserManagementCard extends ConsumerWidget {
             prefixIcon: user.isOwner
                 ? Icons.person_off_outlined
                 : Icons.verified_user_outlined,
+            size: GlassButtonSize.sm,
             isLoading: isSaving,
             onPressed: isSelf
                 ? null

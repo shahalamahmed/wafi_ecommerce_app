@@ -206,6 +206,7 @@ class _OwnerOrderCard extends ConsumerWidget {
                 GlassButton(
                   label: AppStrings.confirmOrder,
                   prefixIcon: Icons.check_circle_outline_rounded,
+                  size: GlassButtonSize.sm,
                   isFullWidth: false,
                   isLoading: isSaving,
                   onPressed: () => notifier.updateOrderStatus(
@@ -217,6 +218,7 @@ class _OwnerOrderCard extends ConsumerWidget {
                 GlassButton(
                   label: AppStrings.shipOrder,
                   prefixIcon: Icons.local_shipping_outlined,
+                  size: GlassButtonSize.sm,
                   isFullWidth: false,
                   isLoading: isSaving,
                   onPressed: () => notifier.updateOrderStatus(
@@ -228,6 +230,7 @@ class _OwnerOrderCard extends ConsumerWidget {
                 GlassButton(
                   label: AppStrings.deliverOrder,
                   prefixIcon: Icons.inventory_2_outlined,
+                  size: GlassButtonSize.sm,
                   isFullWidth: false,
                   isLoading: isSaving,
                   onPressed: () => notifier.updateOrderStatus(
@@ -240,6 +243,7 @@ class _OwnerOrderCard extends ConsumerWidget {
                   label: 'Cancel Order',
                   prefixIcon: Icons.cancel_outlined,
                   variant: GlassButtonVariant.danger,
+                  size: GlassButtonSize.sm,
                   isFullWidth: false,
                   isLoading: isSaving,
                   onPressed: () => notifier.updateOrderStatus(
@@ -262,6 +266,7 @@ class _OwnerOrderCard extends ConsumerWidget {
                   label: 'Mark COD as Paid',
                   prefixIcon: Icons.payments_outlined,
                   variant: GlassButtonVariant.success,
+                  size: GlassButtonSize.sm,
                   isFullWidth: false,
                   isLoading: isSaving,
                   onPressed: () => notifier.markCodAsPaid(orderId: order.id),
