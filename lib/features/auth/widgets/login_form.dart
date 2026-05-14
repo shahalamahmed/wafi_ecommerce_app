@@ -4,6 +4,7 @@ import 'package:wafi_ecommerce_app/core/constants/strings.dart';
 import 'package:wafi_ecommerce_app/core/utils/validators.dart';
 import 'package:wafi_ecommerce_app/features/auth/auth_model.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_input.dart';
 
 class LoginForm extends StatefulWidget {
@@ -130,20 +131,68 @@ class _LoginFormState extends State<LoginForm> {
           ],
         ),
         const SizedBox(height: AppSizes.lg),
-        GlassButton(
-          label: AppStrings.continueGoogle,
-          variant: GlassButtonVariant.ghost,
-          prefixIcon: Icons.g_mobiledata_rounded,
-          onPressed: widget.isLoading ? null : widget.onGoogleSignIn,
-        ),
-        const SizedBox(height: AppSizes.md),
-        GlassButton(
-          label: AppStrings.continueGuest,
-          variant: GlassButtonVariant.ghost,
-          prefixIcon: Icons.explore_outlined,
-          onPressed: widget.isLoading ? null : widget.onGuestMode,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _AuthIconAction(
+              tooltip: AppStrings.continueGoogle,
+              icon: Icons.g_mobiledata_rounded,
+              onTap: widget.isLoading ? null : widget.onGoogleSignIn,
+            ),
+            const SizedBox(width: AppSizes.md),
+            _AuthIconAction(
+              tooltip: AppStrings.continueGuest,
+              icon: Icons.explore_outlined,
+              onTap: widget.isLoading ? null : widget.onGuestMode,
+            ),
+          ],
         ),
       ],
+    );
+  }
+}
+
+class _AuthIconAction extends StatelessWidget {
+  const _AuthIconAction({
+    required this.tooltip,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDisabled = onTap == null;
+    final color = Theme.of(context).colorScheme.primary;
+    final child = GlassCard(
+      variant: GlassCardVariant.elevated,
+      width: 64,
+      height: 64,
+      padding: EdgeInsets.zero,
+      borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+      child: Icon(icon, size: 32, color: color),
+    );
+
+    return Tooltip(
+      message: tooltip,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: AppSizes.animFast),
+        opacity: isDisabled ? AppSizes.opacityDisabled : 1,
+        child: isDisabled
+            ? child
+            : GlassTappableCard(
+                onTap: onTap!,
+                variant: GlassCardVariant.elevated,
+                width: 64,
+                height: 64,
+                padding: EdgeInsets.zero,
+                borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+                child: Icon(icon, size: 32, color: color),
+              ),
+      ),
     );
   }
 }

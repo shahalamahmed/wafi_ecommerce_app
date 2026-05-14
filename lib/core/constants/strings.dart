@@ -49,6 +49,7 @@ abstract class AppStrings {
   static const String forgotPassword = 'Forgot Password?';
   static const String resetPassword = 'Reset Password';
   static const String resetSent = 'Reset link sent to your email.';
+  static const String registration = 'Registration';
 
   static const String alreadyHaveAcc = 'Already have an account? ';
   static const String dontHaveAcc = "Don't have an account? ";

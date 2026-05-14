@@ -66,12 +66,6 @@ class AuthScreen extends ConsumerWidget {
                             style: Theme.of(context).textTheme.displaySmall
                                 ?.copyWith(fontWeight: FontWeight.w700),
                           ),
-                          const SizedBox(height: AppSizes.sm),
-                          Text(
-                            AppStrings.appTagline,
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
                           const SizedBox(height: AppSizes.xl2),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -90,14 +84,6 @@ class AuthScreen extends ConsumerWidget {
                                     authNotifier.setView(AuthView.register),
                               ),
                             ],
-                          ),
-                          const SizedBox(height: AppSizes.xl2),
-                          Text(
-                            authState.view == AuthView.login
-                                ? AppStrings.welcomeBack
-                                : AppStrings.createAccount,
-                            style: Theme.of(context).textTheme.headlineSmall,
-                            textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: AppSizes.md),
                           if (authState.hasError) ...[
@@ -143,12 +129,40 @@ class AuthScreen extends ConsumerWidget {
                                   ),
                           ),
                           const SizedBox(height: AppSizes.lg),
-                          Text(
-                            authState.view == AuthView.login
-                                ? AppStrings.dontHaveAcc
-                                : AppStrings.alreadyHaveAcc,
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodyMedium,
+                          Center(
+                            child: TextButton(
+                              onPressed: authState.isLoading
+                                  ? null
+                                  : () => authNotifier.setView(
+                                      authState.view == AuthView.login
+                                          ? AuthView.register
+                                          : AuthView.login,
+                                    ),
+                              child: Text.rich(
+                                TextSpan(
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                  children: [
+                                    TextSpan(
+                                      text: authState.view == AuthView.login
+                                          ? AppStrings.dontHaveAcc
+                                          : AppStrings.alreadyHaveAcc,
+                                    ),
+                                    TextSpan(
+                                      text: authState.view == AuthView.login
+                                          ? AppStrings.registration
+                                          : AppStrings.login,
+                                      style: TextStyle(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
                           ),
                         ],
                       ),
