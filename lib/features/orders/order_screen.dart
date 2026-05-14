@@ -5,7 +5,11 @@ import 'package:wafi_ecommerce_app/core/constants/sizes.dart';
 import 'package:wafi_ecommerce_app/core/constants/strings.dart';
 import 'package:wafi_ecommerce_app/features/orders/order_model.dart';
 import 'package:wafi_ecommerce_app/features/orders/order_provider.dart';
+import 'package:wafi_ecommerce_app/features/reviews/review_provider.dart';
+import 'package:wafi_ecommerce_app/features/reviews/widgets/review_composer.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/glass_button.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/glass_card.dart';
+import 'package:wafi_ecommerce_app/shared/widgets/glass_chip.dart';
 import 'package:wafi_ecommerce_app/shared/widgets/wafi_app_bar.dart';
 
 class OrderScreen extends ConsumerStatefulWidget {
@@ -135,6 +139,8 @@ class OrderDetailsScreen extends ConsumerWidget {
       }
     }
     final effectiveOrder = liveOrder ?? order;
+    final isDelivered =
+        effectiveOrder.status.trim().toLowerCase() == 'delivered';
 
     return Scaffold(
       appBar: const WafiAppBar(
@@ -225,6 +231,13 @@ class OrderDetailsScreen extends ConsumerWidget {
                             Text(
                               'Qty ${item.quantity} x ${AppStrings.currencySymbol}${item.price.toStringAsFixed(0)}',
                             ),
+                            if (isDelivered && item.productId.isNotEmpty) ...[
+                              const SizedBox(height: AppSizes.sm),
+                              _OrderItemReviewAction(
+                                productId: item.productId,
+                                productName: item.productName,
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -295,6 +308,70 @@ class OrderDetailsScreen extends ConsumerWidget {
 
   static String _paymentDetails(CustomerOrder order) {
     return 'Payment: ${order.paymentSummaryLabel} (${order.paymentStatusLabel})';
+  }
+}
+
+class _OrderItemReviewAction extends ConsumerWidget {
+  const _OrderItemReviewAction({
+    required this.productId,
+    required this.productName,
+  });
+
+  final String productId;
+  final String productName;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final myReviewAsync = ref.watch(myProductReviewProvider(productId));
+
+    return myReviewAsync.when(
+      data: (myReview) {
+        final hasReview = myReview != null;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            GlassButton(
+              label: hasReview ? AppStrings.editReview : AppStrings.writeReview,
+              variant: hasReview
+                  ? GlassButtonVariant.ghost
+                  : GlassButtonVariant.primary,
+              isFullWidth: false,
+              onPressed: () => showReviewComposer(
+                context,
+                ref,
+                productId: productId,
+                productName: productName,
+                existingReview: myReview,
+              ),
+            ),
+            if (hasReview) ...[
+              const SizedBox(height: AppSizes.sm),
+              GlassChip(
+                label: 'Your review is live',
+                variant: GlassChipVariant.success,
+              ),
+            ],
+          ],
+        );
+      },
+      loading: () => const SizedBox(
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      ),
+      error: (_, _) => GlassButton(
+        label: AppStrings.writeReview,
+        variant: GlassButtonVariant.primary,
+        isFullWidth: false,
+        onPressed: () => showReviewComposer(
+          context,
+          ref,
+          productId: productId,
+          productName: productName,
+          existingReview: null,
+        ),
+      ),
+    );
   }
 }
 

@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wafi_ecommerce_app/features/auth/auth_provider.dart';
-import 'package:wafi_ecommerce_app/features/products/product_model.dart';
 import 'package:wafi_ecommerce_app/features/products/product_provider.dart';
 import 'package:wafi_ecommerce_app/features/reviews/review_model.dart';
 import 'package:wafi_ecommerce_app/features/reviews/review_service.dart';
@@ -43,7 +42,8 @@ class ReviewMutationNotifier extends StateNotifier<ReviewMutationState> {
   final Ref _ref;
 
   Future<void> submitReview({
-    required ProductModel product,
+    required String productId,
+    required String productName,
     required int rating,
     required String title,
     required String comment,
@@ -65,17 +65,17 @@ class ReviewMutationNotifier extends StateNotifier<ReviewMutationState> {
 
     try {
       await _service.createOrUpdateReview(
-        productId: product.id,
+        productId: productId,
         user: user,
         rating: rating,
         title: title,
         comment: comment,
       );
       await _ref.read(productProvider.notifier).load();
-      _ref.invalidate(reviewEligibilityProvider(product.id));
+      _ref.invalidate(reviewEligibilityProvider(productId));
       state = state.copyWith(
         isSaving: false,
-        successMessage: 'Your review has been saved.',
+        successMessage: '$productName review has been saved.',
       );
     } on ReviewWriteException catch (error) {
       state = state.copyWith(isSaving: false, errorMessage: error.message);
