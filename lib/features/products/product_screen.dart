@@ -654,7 +654,7 @@ class _CategoryRail extends StatelessWidget {
     final theme = Theme.of(context);
 
     return ListView.separated(
-      padding: const EdgeInsets.only(bottom: 100),
+      padding: const EdgeInsets.fromLTRB(AppSizes.xs, 0, AppSizes.xs, 100),
       itemCount: items.length,
       separatorBuilder: (context, index) => const SizedBox(height: AppSizes.sm),
       itemBuilder: (context, index) {

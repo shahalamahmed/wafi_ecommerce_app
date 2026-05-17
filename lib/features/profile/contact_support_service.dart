@@ -9,6 +9,8 @@ class ContactSupportRequest {
     required this.message,
     required this.userId,
     required this.isGuest,
+    this.issueType,
+    this.orderId,
   });
 
   final String name;
@@ -17,8 +19,13 @@ class ContactSupportRequest {
   final String message;
   final String? userId;
   final bool isGuest;
+  final String? issueType;
+  final String? orderId;
 
   Map<String, dynamic> toMap() {
+    final normalizedIssueType = issueType?.trim() ?? '';
+    final normalizedOrderId = orderId?.trim() ?? '';
+
     return {
       'name': name.trim(),
       'email': email.trim(),
@@ -26,6 +33,8 @@ class ContactSupportRequest {
       'message': message.trim(),
       'userId': userId?.trim().isNotEmpty == true ? userId!.trim() : null,
       'isGuest': isGuest,
+      'issueType': normalizedIssueType.isEmpty ? null : normalizedIssueType,
+      'orderId': normalizedOrderId.isEmpty ? null : normalizedOrderId,
       'channel': 'profile_contact_form',
       'source': 'profile_screen',
       'status': 'new',

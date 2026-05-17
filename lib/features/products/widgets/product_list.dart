@@ -34,7 +34,7 @@ class ProductList extends StatelessWidget {
     return ListView.separated(
       itemCount: products.length,
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.only(bottom: 100),
+      padding: const EdgeInsets.fromLTRB(AppSizes.sm, 0, AppSizes.sm, 100),
       separatorBuilder: (context, index) => const SizedBox(height: AppSizes.sm),
       itemBuilder: (context, index) {
         final product = products[index];

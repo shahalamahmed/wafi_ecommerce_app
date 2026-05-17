@@ -164,18 +164,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   _QuickActionTile(
                     icon: Icons.local_shipping_outlined,
                     label: 'Track',
-                    onTap: () => _openPage(const _StandaloneOrdersScreen()),
+                    onTap: () => _openPage(const _TrackingOrdersScreen()),
                   ),
                   const SizedBox(width: AppSizes.md),
                   _QuickActionTile(
                     icon: Icons.support_agent_outlined,
                     label: 'Support',
-                    onTap: () => _openPlaceholder(
-                      title: 'Support',
-                      subtitle:
-                          'Support contact options will be connected soon.',
-                      icon: Icons.support_agent_outlined,
-                    ),
+                    onTap: () => _openPage(const _ContactSupportScreen()),
                   ),
                   const SizedBox(width: AppSizes.md),
                   _QuickActionTile(
@@ -655,6 +650,291 @@ class _StandaloneOrdersScreen extends StatelessWidget {
   }
 }
 
+class _TrackingOrdersScreen extends ConsumerWidget {
+  const _TrackingOrdersScreen();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final orderState = ref.watch(orderProvider);
+    final orderNotifier = ref.read(orderProvider.notifier);
+
+    if (orderState.isLoading && orderState.orders.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Track Orders'), centerTitle: false),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final sortedOrders = [...orderState.orders]..sort(_compareTrackingOrders);
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Track Orders'), centerTitle: false),
+      body: sortedOrders.isEmpty
+          ? RefreshIndicator(
+              onRefresh: orderNotifier.loadOrders,
+              child: ListView(
+                padding: const EdgeInsets.all(AppSizes.screenPaddingH),
+                children: const [SizedBox(height: 140), _TrackingEmptyState()],
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: orderNotifier.loadOrders,
+              child: ListView.separated(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSizes.screenPaddingH,
+                  AppSizes.lg,
+                  AppSizes.screenPaddingH,
+                  120,
+                ),
+                itemCount: sortedOrders.length,
+                separatorBuilder: (_, _) => const SizedBox(height: AppSizes.md),
+                itemBuilder: (context, index) {
+                  final order = sortedOrders[index];
+                  return _TrackingOrderCard(order: order);
+                },
+              ),
+            ),
+    );
+  }
+}
+
+int _compareTrackingOrders(CustomerOrder a, CustomerOrder b) {
+  final statusScore = <String, int>{
+    'pending': 0,
+    'confirmed': 1,
+    'shipped': 2,
+    'delivered': 3,
+    'cancelled': 4,
+  };
+
+  final aScore = statusScore[a.status.trim().toLowerCase()] ?? 99;
+  final bScore = statusScore[b.status.trim().toLowerCase()] ?? 99;
+  if (aScore != bScore) return aScore.compareTo(bScore);
+
+  final aDate = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+  final bDate = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+  return bDate.compareTo(aDate);
+}
+
+class _TrackingOrderCard extends StatelessWidget {
+  const _TrackingOrderCard({required this.order});
+
+  final CustomerOrder order;
+
+  @override
+  Widget build(BuildContext context) {
+    final createdLabel = order.createdAt == null
+        ? 'Recent order'
+        : DateFormat('dd MMM yyyy, hh:mm a').format(order.createdAt!);
+
+    return InkWell(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => OrderDetailsScreen(order: order),
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+      child: GlassCard(
+        variant: GlassCardVariant.elevated,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        order.orderId,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: AppSizes.xs),
+                      Text(
+                        createdLabel,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+                _TrackingStatusBadge(status: order.statusLabel),
+              ],
+            ),
+            const SizedBox(height: AppSizes.md),
+            Wrap(
+              spacing: AppSizes.sm,
+              runSpacing: AppSizes.sm,
+              children: [
+                GlassChip(
+                  label: '${order.items.length} items',
+                  variant: GlassChipVariant.primary,
+                ),
+                GlassChip(
+                  label: order.paymentSummaryLabel,
+                  variant: GlassChipVariant.warning,
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSizes.md),
+            Text(
+              'Tracking Summary',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: AppSizes.sm),
+            _TrackingProgressLine(status: order.status),
+            const SizedBox(height: AppSizes.md),
+            Text(
+              'Current status: ${order.statusLabel}',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TrackingEmptyState extends StatelessWidget {
+  const _TrackingEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: GlassCard(
+        variant: GlassCardVariant.elevated,
+        child: Column(
+          children: [
+            const Icon(Icons.local_shipping_outlined, size: AppSizes.iconXl),
+            const SizedBox(height: AppSizes.md),
+            Text(
+              'No orders to track',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: AppSizes.sm),
+            Text(
+              'Your pending, shipped, and delivered orders will appear here.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TrackingStatusBadge extends StatelessWidget {
+  const _TrackingStatusBadge({required this.status});
+
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (status.trim().toLowerCase()) {
+      'confirmed' => const Color(0xFF2563EB),
+      'shipped' => const Color(0xFF0F766E),
+      'delivered' => const Color(0xFF16A34A),
+      'cancelled' => Theme.of(context).colorScheme.error,
+      _ => const Color(0xFFD97706),
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSizes.md,
+        vertical: AppSizes.xs,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppSizes.radiusFull),
+      ),
+      child: Text(
+        status,
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _TrackingProgressLine extends StatelessWidget {
+  const _TrackingProgressLine({required this.status});
+
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    const steps = ['Pending', 'Confirmed', 'Shipped', 'Delivered'];
+    final currentIndex = switch (status.trim().toLowerCase()) {
+      'confirmed' => 1,
+      'shipped' => 2,
+      'delivered' => 3,
+      _ => 0,
+    };
+    final isCancelled = status.trim().toLowerCase() == 'cancelled';
+
+    return Row(
+      children: [
+        for (var index = 0; index < steps.length; index++) ...[
+          _TrackingMiniNode(
+            label: steps[index],
+            isActive: !isCancelled && index <= currentIndex,
+          ),
+          if (index < steps.length - 1)
+            Expanded(
+              child: Container(
+                height: 2,
+                margin: const EdgeInsets.symmetric(horizontal: AppSizes.xs),
+                color: !isCancelled && index < currentIndex
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).dividerColor,
+              ),
+            ),
+        ],
+      ],
+    );
+  }
+}
+
+class _TrackingMiniNode extends StatelessWidget {
+  const _TrackingMiniNode({required this.label, required this.isActive});
+
+  final String label;
+  final bool isActive;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isActive
+        ? Theme.of(context).colorScheme.primary
+        : Theme.of(context).dividerColor;
+
+    return Column(
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(height: AppSizes.xs),
+        SizedBox(
+          width: 58,
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.labelSmall,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _PaymentHistoryScreen extends ConsumerWidget {
   const _PaymentHistoryScreen();
 
@@ -938,15 +1218,24 @@ class _ContactSupportScreenState extends ConsumerState<_ContactSupportScreen> {
   static const _supportEmail = 'shahalamahemd21@gmail.com';
   static const _linkedinUrl = 'https://www.linkedin.com/in/shah-alam-app/';
   static const _whatsAppNumber = '8801758344572';
+  static const _issueTypes = <String>[
+    'Order Issue',
+    'Payment Issue',
+    'Refund',
+    'Account',
+    'Other',
+  ];
 
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _orderIdController = TextEditingController();
   final _messageController = TextEditingController();
 
   final Map<String, String?> _errors = {};
   bool _isSubmitting = false;
   String? _successMessage;
+  String _selectedIssueType = _issueTypes.first;
 
   @override
   void initState() {
@@ -965,6 +1254,7 @@ class _ContactSupportScreenState extends ConsumerState<_ContactSupportScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _orderIdController.dispose();
     _messageController.dispose();
     super.dispose();
   }
@@ -981,6 +1271,7 @@ class _ContactSupportScreenState extends ConsumerState<_ContactSupportScreen> {
       'name': AppValidators.name(_nameController.text),
       'email': AppValidators.email(_emailController.text),
       'phone': AppValidators.phone(_phoneController.text),
+      'orderId': _validateOrderId(_orderIdController.text),
       'message': _validateMessage(_messageController.text),
     };
 
@@ -1010,17 +1301,20 @@ class _ContactSupportScreenState extends ConsumerState<_ContactSupportScreen> {
               message: _messageController.text.trim(),
               userId: user?.uid,
               isGuest: authState.isAnonymous || !authState.isAuthenticated,
+              issueType: _selectedIssueType,
+              orderId: _orderIdController.text.trim(),
             ),
           );
 
       _messageController.clear();
+      _orderIdController.clear();
       if (!mounted) return;
       setState(() {
         _isSubmitting = false;
         _successMessage =
-            'Your message has been sent successfully. We will get back to you soon.';
+            'Support request sent successfully. We will review it and contact you soon.';
       });
-      _showSnack('Feedback submitted successfully.');
+      _showSnack('Support request submitted successfully.');
     } catch (error) {
       if (!mounted) return;
       setState(() => _isSubmitting = false);
@@ -1038,6 +1332,11 @@ class _ContactSupportScreenState extends ConsumerState<_ContactSupportScreen> {
       return 'Please provide a bit more detail in your message.';
     }
     return null;
+  }
+
+  String? _validateOrderId(String? value) {
+    if (value == null || value.trim().isEmpty) return null;
+    return value.trim().length < 6 ? 'Enter a valid order ID.' : null;
   }
 
   void _showSnack(String message) {
@@ -1228,6 +1527,35 @@ class _ContactSupportScreenState extends ConsumerState<_ContactSupportScreen> {
                   ),
                 ],
                 const SizedBox(height: AppSizes.md),
+                Text('Issue Type', style: theme.textTheme.labelLarge),
+                const SizedBox(height: AppSizes.sm),
+                Wrap(
+                  spacing: AppSizes.sm,
+                  runSpacing: AppSizes.sm,
+                  children: [
+                    for (final issueType in _issueTypes)
+                      GlassChip(
+                        label: issueType,
+                        variant: GlassChipVariant.primary,
+                        isSelected: _selectedIssueType == issueType,
+                        onTap: () {
+                          setState(() {
+                            _selectedIssueType = issueType;
+                          });
+                        },
+                      ),
+                  ],
+                ),
+                const SizedBox(height: AppSizes.md),
+                Text(
+                  'Use Order Issue for tracking, delivery, or missing item problems.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.textTheme.bodySmall?.color?.withValues(
+                      alpha: 0.72,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSizes.md),
                 GlassInput(
                   controller: _nameController,
                   label: 'Full Name',
@@ -1255,6 +1583,15 @@ class _ContactSupportScreenState extends ConsumerState<_ContactSupportScreen> {
                   keyboardType: TextInputType.phone,
                   errorText: _errors['phone'],
                   onChanged: (_) => setState(() => _errors['phone'] = null),
+                ),
+                const SizedBox(height: AppSizes.md),
+                GlassInput(
+                  controller: _orderIdController,
+                  label: 'Order ID (Optional)',
+                  hint: 'WAFI-20260512-883911',
+                  prefixIcon: Icons.receipt_long_outlined,
+                  errorText: _errors['orderId'],
+                  onChanged: (_) => setState(() => _errors['orderId'] = null),
                 ),
                 const SizedBox(height: AppSizes.md),
                 GlassInput(
