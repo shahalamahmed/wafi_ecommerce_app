@@ -16,6 +16,7 @@ class ProductList extends StatelessWidget {
     required this.onDecrement,
     required this.isWishlisted,
     required this.onToggleWishlist,
+    this.header,
   });
 
   final List<ProductModel> products;
@@ -28,16 +29,21 @@ class ProductList extends StatelessWidget {
   final ValueChanged<ProductModel> onDecrement;
   final bool Function(String productId) isWishlisted;
   final ValueChanged<ProductModel> onToggleWishlist;
+  final Widget? header;
 
   @override
   Widget build(BuildContext context) {
+    final hasHeader = header != null;
     return ListView.separated(
-      itemCount: products.length,
+      itemCount: products.length + (hasHeader ? 1 : 0),
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(AppSizes.sm, 0, AppSizes.sm, 100),
       separatorBuilder: (context, index) => const SizedBox(height: AppSizes.sm),
       itemBuilder: (context, index) {
-        final product = products[index];
+        if (hasHeader && index == 0) return header!;
+
+        final productIndex = hasHeader ? index - 1 : index;
+        final product = products[productIndex];
         final categoryLabel =
             categoryLookup[product.subCategoryId] ??
             categoryLookup[product.categoryId];

@@ -171,29 +171,28 @@ class OffersScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            GlassCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Active Offers',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: AppSizes.xs),
-                  Text(
-                    '${offeredProducts.length} discounted products are available now.',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSizes.md),
             Expanded(
               child: ProductList(
                 products: offeredProducts,
                 viewMode: productState.viewMode,
                 categoryLookup: categoryLookup,
                 quantityForProduct: cartNotifier.quantityForProduct,
+                header: GlassCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Active Offers',
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: AppSizes.xs),
+                      Text(
+                        '${offeredProducts.length} discounted products are available now.',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                ),
                 onTap: (product) {
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
