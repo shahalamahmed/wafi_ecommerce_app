@@ -47,9 +47,10 @@ class _GlassButtonState extends State<GlassButton>
       vsync: this,
       duration: const Duration(milliseconds: AppSizes.animFast),
     );
-    _scale = Tween<double>(begin: 1, end: 0.95).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic),
-    );
+    _scale = Tween<double>(
+      begin: 1,
+      end: 0.95,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
   }
 
   @override
@@ -64,64 +65,65 @@ class _GlassButtonState extends State<GlassButton>
 
     return switch (widget.variant) {
       GlassButtonVariant.primary => _ButtonStyle(
-          bg: isDark ? AppColors.primaryDark : AppColors.primaryLight,
-          border: isDark ? AppColors.primaryDark : AppColors.primaryLight,
-          fg: Colors.white,
-        ),
+        bg: isDark ? AppColors.primaryDark : AppColors.primaryLight,
+        border: isDark ? AppColors.primaryDark : AppColors.primaryLight,
+        fg: Colors.white,
+      ),
       GlassButtonVariant.ghost => _ButtonStyle(
-          bg: glass.cardColor,
-          border: isDark ? AppColors.primaryDark : AppColors.primaryLight,
-          fg: isDark ? AppColors.primaryDark : AppColors.primaryLight,
-        ),
+        bg: glass.cardColor,
+        border: isDark ? AppColors.primaryDark : AppColors.primaryLight,
+        fg: isDark ? AppColors.primaryDark : AppColors.primaryLight,
+      ),
       GlassButtonVariant.success => _ButtonStyle(
-          bg: glass.successGlass,
-          border: glass.successBorder,
-          fg: isDark ? AppColors.successDark : AppColors.successLight,
-        ),
+        bg: glass.successGlass,
+        border: glass.successBorder,
+        fg: isDark ? AppColors.successDark : AppColors.successLight,
+      ),
       GlassButtonVariant.danger => _ButtonStyle(
-          bg: glass.errorGlass,
-          border: glass.errorBorder,
-          fg: isDark ? AppColors.errorDark : AppColors.errorLight,
-        ),
+        bg: glass.errorGlass,
+        border: glass.errorBorder,
+        fg: isDark ? AppColors.errorDark : AppColors.errorLight,
+      ),
       GlassButtonVariant.warning => _ButtonStyle(
-          bg: glass.warningGlass,
-          border: glass.warningBorder,
-          fg: isDark ? AppColors.warningDark : AppColors.warningLight,
-        ),
+        bg: glass.warningGlass,
+        border: glass.warningBorder,
+        fg: isDark ? AppColors.warningDark : AppColors.warningLight,
+      ),
       GlassButtonVariant.bkash => _ButtonStyle(
-          bg: AppColors.bkashPink.withValues(alpha: 0.10),
-          border: AppColors.bkashPink.withValues(alpha: 0.25),
-          fg: AppColors.bkashPink,
-        ),
+        bg: AppColors.bkashPink.withValues(alpha: 0.10),
+        border: AppColors.bkashPink.withValues(alpha: 0.25),
+        fg: AppColors.bkashPink,
+      ),
     };
   }
 
   double get _height => switch (widget.size) {
-        GlassButtonSize.sm => AppSizes.buttonHeightSm,
-        GlassButtonSize.md => AppSizes.buttonHeightMd,
-        GlassButtonSize.lg => AppSizes.buttonHeightLg,
-      };
+    GlassButtonSize.sm => AppSizes.buttonHeightSm,
+    GlassButtonSize.md => AppSizes.buttonHeightMd,
+    GlassButtonSize.lg => AppSizes.buttonHeightLg,
+  };
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final style = _resolve(context);
+    final isPrimary = widget.variant == GlassButtonVariant.primary;
     final disabled = widget.onPressed == null || widget.isLoading;
     final radius = widget.borderRadius ?? AppSizes.buttonRadius;
-    final labelStyle = switch (widget.size) {
-      GlassButtonSize.sm => theme.textTheme.bodySmall,
-      GlassButtonSize.md => theme.textTheme.bodyLarge,
-      GlassButtonSize.lg => theme.textTheme.titleLarge,
-    }?.copyWith(
-      color: style.fg,
-      fontWeight: FontWeight.w400,
-      letterSpacing: AppSizes.trackingNormal,
-    );
+    final labelStyle =
+        switch (widget.size) {
+          GlassButtonSize.sm => theme.textTheme.bodySmall,
+          GlassButtonSize.md => theme.textTheme.bodyLarge,
+          GlassButtonSize.lg => theme.textTheme.titleLarge,
+        }?.copyWith(
+          color: style.fg,
+          fontWeight: FontWeight.w400,
+          letterSpacing: AppSizes.trackingNormal,
+        );
 
     final content = Row(
-      mainAxisSize:
-          widget.isFullWidth ? MainAxisSize.max : MainAxisSize.min,
+      mainAxisSize: widget.isFullWidth ? MainAxisSize.max : MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         if (widget.prefixIcon != null && !widget.isLoading) ...[
@@ -132,16 +134,10 @@ class _GlassButtonState extends State<GlassButton>
           SizedBox(
             width: 16,
             height: 16,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: style.fg,
-            ),
+            child: CircularProgressIndicator(strokeWidth: 2, color: style.fg),
           )
         else
-          Text(
-            widget.label,
-            style: labelStyle,
-          ),
+          Text(widget.label, style: labelStyle),
         if (widget.suffixIcon != null && !widget.isLoading) ...[
           const SizedBox(width: AppSizes.sm),
           Icon(widget.suffixIcon, size: AppSizes.iconSm, color: style.fg),
@@ -169,28 +165,46 @@ class _GlassButtonState extends State<GlassButton>
               color: style.bg,
               borderRadius: BorderRadius.circular(radius),
               border: Border.all(color: style.border, width: 1),
-              boxShadow: widget.variant == GlassButtonVariant.primary
+              boxShadow: isPrimary
                   ? [
                       BoxShadow(
-                        color: (isDark ? AppColors.primaryDark : AppColors.primaryLight)
-                            .withValues(alpha: isDark ? 0.08 : 0.18),
-                        blurRadius: isDark ? 12 : 24,
-                        offset: Offset(0, isDark ? 5 : 10),
+                        color:
+                            (isDark
+                                    ? AppColors.primaryDark
+                                    : AppColors.primaryLight)
+                                .withValues(alpha: isDark ? 0.12 : 0.14),
+                        blurRadius: isDark ? 14 : 18,
+                        offset: Offset(0, isDark ? 6 : 8),
                       ),
                     ]
                   : null,
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: isDark
-                    ? [
-                        style.bg,
-                        style.bg.withValues(alpha: 0.92),
-                      ]
-                    : [
-                        Colors.white.withValues(alpha: 0.14),
-                        style.bg,
-                      ],
+                colors: isPrimary
+                    ? isDark
+                          ? [
+                              style.bg.withValues(alpha: 0.98),
+                              style.bg.withBlue(
+                                ((style.bg.blue + 8).clamp(0, 255) as num)
+                                    .toInt(),
+                              ),
+                            ]
+                          : [
+                              style.bg
+                                  .withGreen(
+                                    ((style.bg.green + 8).clamp(0, 255) as num)
+                                        .toInt(),
+                                  )
+                                  .withBlue(
+                                    ((style.bg.blue + 10).clamp(0, 255) as num)
+                                        .toInt(),
+                                  ),
+                              style.bg,
+                            ]
+                    : isDark
+                    ? [style.bg, style.bg.withValues(alpha: 0.92)]
+                    : [Colors.white.withValues(alpha: 0.14), style.bg],
               ),
             ),
             child: ColoredBox(

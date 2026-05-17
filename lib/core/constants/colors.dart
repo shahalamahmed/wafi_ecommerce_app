@@ -15,14 +15,14 @@ abstract class AppColors {
   static const Color glassBorderDark = Color(0x33FFFFFF);
   static const Color glassBorderLight = Color(0x14FFFFFF);
 
-  static const Color primaryDark = Color(0xFF58A0C6);
-  static const Color primaryLight = Color(0xFF3F86AC);
+  static const Color primaryDark = Color(0xFF4F93B5);
+  static const Color primaryLight = Color(0xFF2F6F8F);
 
-  static const Color primaryGlassDark = Color(0x3358A0C6);
-  static const Color primaryGlassLight = Color(0x1F3F86AC);
+  static const Color primaryGlassDark = Color(0x334F93B5);
+  static const Color primaryGlassLight = Color(0x1A2F6F8F);
 
-  static const Color primaryBorderDark = Color(0x6658A0C6);
-  static const Color primaryBorderLight = Color(0x333F86AC);
+  static const Color primaryBorderDark = Color(0x665F93B5);
+  static const Color primaryBorderLight = Color(0x332F6F8F);
 
   static const Color onPrimary = Color(0xFFFFFFFF);
 

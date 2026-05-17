@@ -253,29 +253,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         ),
         const SizedBox(height: AppSizes.lg),
-        _SectionCard(
-          title: 'Support',
-          child: Column(
-            children: [
-              _ProfileMenuRow(
-                icon: Icons.mail_outline_rounded,
-                title: 'Contact Us',
-                subtitle: 'Phone, email, WhatsApp, LinkedIn, and feedback',
-                onTap: () => _openPage(const _ContactSupportScreen()),
-              ),
-              const SizedBox(height: AppSizes.md),
-              _ProfileMenuRow(
-                icon: isGuest ? Icons.login_rounded : Icons.logout_rounded,
-                title: isGuest ? 'Back to Sign In' : AppStrings.logout,
-                subtitle: isGuest
-                    ? 'Open the sign in screen to access your account'
-                    : 'Sign out and continue browsing as guest',
-                onTap: isGuest
-                    ? authNotifier.exitGuestMode
-                    : authNotifier.logout,
-              ),
-            ],
-          ),
+        GlassButton(
+          label: isGuest ? 'Back to Sign In' : AppStrings.logout,
+          variant: GlassButtonVariant.danger,
+          prefixIcon: isGuest ? Icons.login_rounded : Icons.logout_rounded,
+          suffixIcon: Icons.arrow_forward_rounded,
+          onPressed: isGuest ? authNotifier.exitGuestMode : authNotifier.logout,
         ),
       ],
     );
