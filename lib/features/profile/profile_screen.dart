@@ -127,9 +127,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               Row(
                 children: [
                   _QuickActionTile(
-                    icon: Icons.receipt_long_outlined,
-                    label: 'Orders',
-                    onTap: () => _openPage(const _StandaloneOrdersScreen()),
+                    icon: Icons.manage_accounts_outlined,
+                    label: 'Account',
+                    onTap: () => _openPage(const _ProfileDetailsScreen()),
                   ),
                   const SizedBox(width: AppSizes.md),
                   _QuickActionTile(
@@ -199,21 +199,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           title: 'Account & Security',
           child: Column(
             children: [
-              _ProfileMenuRow(
-                icon: Icons.person_outline_rounded,
-                title: 'Personal Information',
-                subtitle: isGuest
-                    ? 'Open sign in to manage your personal details'
-                    : 'Manage your profile details and account photo',
-                onTap: () {
-                  if (isGuest) {
-                    authNotifier.exitGuestMode();
-                    return;
-                  }
-                  _openPage(const _ProfileDetailsScreen());
-                },
-              ),
-              const SizedBox(height: AppSizes.md),
               _ProfileMenuRow(
                 icon: Icons.shield_outlined,
                 title: 'Session Status',
@@ -623,10 +608,7 @@ class _ProfileDetailsScreen extends ConsumerWidget {
     final isGuest = authState.isAnonymous || !authState.isAuthenticated;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Personal Information'),
-        centerTitle: false,
-      ),
+      appBar: AppBar(title: const Text('Account'), centerTitle: false),
       body: ListView(
         padding: const EdgeInsets.all(AppSizes.screenPaddingH),
         children: [_InfoCard(user: user, isGuest: isGuest)],

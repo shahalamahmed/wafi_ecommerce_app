@@ -79,6 +79,7 @@ class WafiAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     final hasSubtitle = subtitle?.trim().isNotEmpty ?? false;
     final toolbarHeight = toolbarHeightFor(hasSubtitle: hasSubtitle);
+    final resolvedLeading = _resolveLeading(context);
 
     return AppBar(
       backgroundColor: Colors.transparent,
@@ -88,9 +89,13 @@ class WafiAppBar extends StatelessWidget implements PreferredSizeWidget {
       surfaceTintColor: Colors.transparent,
       toolbarHeight: toolbarHeight,
       centerTitle: compactTitle && !hasSubtitle,
-      leadingWidth: compactTitle ? 68 : null,
-      leading: leading,
-      automaticallyImplyLeading: automaticallyImplyLeading,
+      leadingWidth: compactTitle
+          ? 68
+          : resolvedLeading != null
+          ? 56
+          : null,
+      leading: resolvedLeading,
+      automaticallyImplyLeading: false,
       titleSpacing: AppSizes.lg,
       title: hasSubtitle
           ? Column(
@@ -129,6 +134,19 @@ class WafiAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
       ],
     );
+  }
+
+  Widget? _resolveLeading(BuildContext context) {
+    if (leading != null) return leading;
+    if (!automaticallyImplyLeading) return null;
+
+    final route = ModalRoute.of(context);
+    final canPop =
+        Navigator.of(context).canPop() ||
+        (route?.impliesAppBarDismissal ?? false);
+    if (!canPop) return null;
+
+    return const _MinimalBackButton();
   }
 }
 
@@ -194,6 +212,33 @@ class _NotificationActionButton extends StatelessWidget {
       icon: Icons.notifications_none_rounded,
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute<void>(builder: (_) => const NotificationsScreen()),
+      ),
+    );
+  }
+}
+
+class _MinimalBackButton extends StatelessWidget {
+  const _MinimalBackButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final iconColor = theme.brightness == Brightness.dark
+        ? Colors.white.withValues(alpha: 0.92)
+        : const Color(0xFF111827);
+
+    return Padding(
+      padding: const EdgeInsets.only(left: AppSizes.sm),
+      child: IconButton(
+        onPressed: () => Navigator.maybePop(context),
+        splashRadius: 22,
+        padding: const EdgeInsets.all(8),
+        constraints: const BoxConstraints.tightFor(width: 44, height: 44),
+        icon: Icon(
+          Icons.arrow_back_ios_new_rounded,
+          size: 22,
+          color: iconColor,
+        ),
       ),
     );
   }
