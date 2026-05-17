@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:wafi_ecommerce_app/core/constants/colors.dart';
 import 'package:wafi_ecommerce_app/core/constants/sizes.dart';
 import 'package:wafi_ecommerce_app/core/constants/strings.dart';
 import 'package:wafi_ecommerce_app/features/addresses/address_model.dart';
@@ -106,65 +105,68 @@ class _CartRow extends StatelessWidget {
 
     return GlassCard(
       variant: GlassCardVariant.elevated,
-      padding: const EdgeInsets.all(AppSizes.md),
-      child: Row(
-        children: [
-          _CartImage(imageUrl: item.imageUrl, productName: item.productName),
-
-          const SizedBox(width: AppSizes.md),
-
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.productName,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+      padding: EdgeInsets.zero,
+      child: SizedBox(
+        height: 104,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _CartImage(imageUrl: item.imageUrl, productName: item.productName),
+            const SizedBox(width: AppSizes.sm),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(0, 8, 8, 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            item.productName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          if (item.selectedOptionLabel.isNotEmpty) ...[
+                            const SizedBox(height: AppSizes.xs),
+                            Text(
+                              item.selectedOptionLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall,
+                            ),
+                          ],
+                          const SizedBox(height: 6),
+                          Text(
+                            '${AppStrings.currencySymbol}${item.unitPrice.toStringAsFixed(0)}',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          _QuantityStepper(
+                            quantity: item.quantity,
+                            onIncrement: onIncrement,
+                            onDecrement: onDecrement,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: AppSizes.xs),
+                    _RemoveCartItemButton(onTap: onRemove),
+                  ],
                 ),
-
-                if (item.selectedOptionLabel.isNotEmpty) ...[
-                  const SizedBox(height: AppSizes.xs),
-                  Text(
-                    item.selectedOptionLabel,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ],
-
-                const SizedBox(height: AppSizes.sm),
-
-                Text(
-                  '${AppStrings.currencySymbol}${item.unitPrice.toStringAsFixed(0)}',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-
-                const SizedBox(height: AppSizes.sm),
-
-                _QuantityStepper(
-                  quantity: item.quantity,
-                  onIncrement: onIncrement,
-                  onDecrement: onDecrement,
-                ),
-              ],
+              ),
             ),
-          ),
-
-          const SizedBox(width: AppSizes.sm),
-
-          IconButton(
-            onPressed: onRemove,
-            icon: const Icon(Icons.close_rounded),
-            visualDensity: VisualDensity.compact,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -178,26 +180,22 @@ class _CartImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
+    return SizedBox(
       width: 76,
-      height: 76,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-        color: isDark
-            ? AppColors.glassElevatedDark
-            : Theme.of(context).colorScheme.primary.withValues(alpha: 0.06),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(AppSizes.radiusMd),
+          bottomLeft: Radius.circular(AppSizes.radiusMd),
+        ),
+        child: imageUrl.trim().isNotEmpty
+            ? Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) =>
+                    _CartImageFallback(name: productName),
+              )
+            : _CartImageFallback(name: productName),
       ),
-      clipBehavior: Clip.antiAlias,
-      child: imageUrl.trim().isNotEmpty
-          ? Image.network(
-              imageUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) =>
-                  _CartImageFallback(name: productName),
-            )
-          : _CartImageFallback(name: productName),
     );
   }
 }
@@ -209,16 +207,16 @@ class _CartImageFallback extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSizes.xs),
-        child: Text(
-          name,
-          textAlign: TextAlign.center,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.labelSmall,
-        ),
+    return Container(
+      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+      alignment: Alignment.center,
+      padding: const EdgeInsets.all(AppSizes.sm),
+      child: Text(
+        name,
+        textAlign: TextAlign.center,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.bodySmall,
       ),
     );
   }
@@ -237,27 +235,27 @@ class _QuantityStepper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSizes.xs,
-        vertical: AppSizes.xs,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+        color: primary.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.35),
-        ),
+        border: Border.all(color: primary.withValues(alpha: 0.20)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           _StepperButton(icon: Icons.remove_rounded, onTap: onDecrement),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSizes.sm),
+            padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Text(
               '$quantity',
-              style: Theme.of(context).textTheme.titleMedium,
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
           _StepperButton(icon: Icons.add_rounded, onTap: onIncrement),
@@ -275,17 +273,52 @@ class _StepperButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppSizes.radiusSm),
       child: Container(
-        width: 28,
-        height: 28,
+        width: 24,
+        height: 24,
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primary,
+          color: primary.withValues(alpha: 0.9),
           borderRadius: BorderRadius.circular(AppSizes.radiusSm),
         ),
-        child: Icon(icon, size: AppSizes.iconSm, color: Colors.white),
+        child: Icon(icon, size: 15, color: Colors.white),
+      ),
+    );
+  }
+}
+
+class _RemoveCartItemButton extends StatelessWidget {
+  const _RemoveCartItemButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Center(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppSizes.radiusFull),
+        child: Container(
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest.withValues(
+              alpha: 0.55,
+            ),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            Icons.close_rounded,
+            size: 18,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.72),
+          ),
+        ),
       ),
     );
   }
