@@ -131,6 +131,7 @@ class OrderDetailsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     CustomerOrder? liveOrder;
     for (final candidate in ref.watch(orderProvider).orders) {
       if (candidate.id == order.id) {
@@ -148,106 +149,142 @@ class OrderDetailsScreen extends ConsumerWidget {
         subtitle: 'Review your order items, totals, and delivery details',
       ),
       body: ListView(
-        padding: const EdgeInsets.all(AppSizes.screenPaddingH),
+        padding: const EdgeInsets.fromLTRB(
+          AppSizes.screenPaddingH,
+          AppSizes.md,
+          AppSizes.screenPaddingH,
+          100,
+        ),
         children: [
           GlassCard(
             variant: GlassCardVariant.elevated,
+            padding: const EdgeInsets.fromLTRB(
+              AppSizes.lg,
+              AppSizes.lg,
+              AppSizes.lg,
+              AppSizes.md,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  effectiveOrder.orderId,
-                  style: Theme.of(context).textTheme.headlineSmall,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            effectiveOrder.orderId,
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                          const SizedBox(height: AppSizes.xs),
+                          Text(
+                            'Order overview and fulfillment progress',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.textTheme.bodySmall?.color
+                                  ?.withValues(alpha: 0.72),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: AppSizes.md),
+                    _OrderStatusChip(status: effectiveOrder.statusLabel),
+                  ],
                 ),
-                const SizedBox(height: AppSizes.sm),
-                _OrderStatusChip(status: effectiveOrder.statusLabel),
                 const SizedBox(height: AppSizes.lg),
-                Text(
-                  'Order Tracking',
-                  style: Theme.of(context).textTheme.titleLarge,
+                _DetailSectionTitle(
+                  title: 'Order Tracking',
+                  subtitle: 'Live progress from placement to delivery',
                 ),
                 const SizedBox(height: AppSizes.md),
                 _OrderTrackingTimeline(order: effectiveOrder),
-                const SizedBox(height: AppSizes.md),
-                if (effectiveOrder.createdAt != null)
-                  Text(
-                    '${AppStrings.orderDate}: ${DateFormat('dd MMM yyyy, hh:mm a').format(effectiveOrder.createdAt!)}',
-                    style: Theme.of(context).textTheme.bodyLarge,
+                const SizedBox(height: AppSizes.lg),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(AppSizes.md),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.34,
+                    ),
+                    borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+                    border: Border.all(
+                      color: theme.dividerColor.withValues(alpha: 0.32),
+                    ),
                   ),
-                const SizedBox(height: AppSizes.sm),
-                Text(
-                  _paymentDetails(effectiveOrder),
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                if (effectiveOrder.paymentCollectedAt != null) ...[
-                  const SizedBox(height: AppSizes.xs),
-                  Text(
-                    'Collected: ${DateFormat('dd MMM yyyy, hh:mm a').format(effectiveOrder.paymentCollectedAt!)}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-                if (effectiveOrder.paymentCollectedBy.isNotEmpty) ...[
-                  const SizedBox(height: AppSizes.xs),
-                  Text(
-                    'Collected by: ${effectiveOrder.paymentCollectedBy}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-                if (effectiveOrder.gatewayTransactionId.isNotEmpty) ...[
-                  const SizedBox(height: AppSizes.xs),
-                  Text(
-                    'Txn ID: ${effectiveOrder.gatewayTransactionId}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSizes.lg),
-          GlassCard(
-            variant: GlassCardVariant.elevated,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Items', style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: AppSizes.md),
-                for (final item in effectiveOrder.items) ...[
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Column(
                     children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item.productName,
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            if (item.selectedOptionLabel.isNotEmpty)
-                              Text(
-                                item.selectedOptionLabel,
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                            Text(
-                              'Qty ${item.quantity} x ${AppStrings.currencySymbol}${item.price.toStringAsFixed(0)}',
-                            ),
-                            if (isDelivered && item.productId.isNotEmpty) ...[
-                              const SizedBox(height: AppSizes.sm),
-                              _OrderItemReviewAction(
-                                productId: item.productId,
-                                productName: item.productName,
-                              ),
-                            ],
-                          ],
+                      if (effectiveOrder.createdAt != null)
+                        _OrderMetaLine(
+                          label: AppStrings.orderDate,
+                          value: DateFormat(
+                            'dd MMM yyyy, hh:mm a',
+                          ).format(effectiveOrder.createdAt!),
                         ),
+                      _OrderMetaLine(
+                        label: 'Payment',
+                        value:
+                            '${effectiveOrder.paymentSummaryLabel} (${effectiveOrder.paymentStatusLabel})',
                       ),
-                      Text(
-                        '${AppStrings.currencySymbol}${item.subtotal.toStringAsFixed(0)}',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
+                      if (effectiveOrder.paymentCollectedAt != null)
+                        _OrderMetaLine(
+                          label: 'Collected',
+                          value: DateFormat(
+                            'dd MMM yyyy, hh:mm a',
+                          ).format(effectiveOrder.paymentCollectedAt!),
+                        ),
+                      if (effectiveOrder.paymentCollectedBy.isNotEmpty)
+                        _OrderMetaLine(
+                          label: 'Collected by',
+                          value: effectiveOrder.paymentCollectedBy,
+                        ),
+                      if (effectiveOrder.gatewayTransactionId.isNotEmpty)
+                        _OrderMetaLine(
+                          label: 'Txn ID',
+                          value: effectiveOrder.gatewayTransactionId,
+                          isLast: true,
+                        ),
                     ],
                   ),
-                  const SizedBox(height: AppSizes.md),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSizes.lg),
+          GlassCard(
+            variant: GlassCardVariant.elevated,
+            padding: const EdgeInsets.fromLTRB(
+              AppSizes.lg,
+              AppSizes.lg,
+              AppSizes.lg,
+              AppSizes.md,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const _DetailSectionTitle(
+                  title: 'Items',
+                  subtitle: 'Products included in this order',
+                ),
+                const SizedBox(height: AppSizes.md),
+                for (
+                  var index = 0;
+                  index < effectiveOrder.items.length;
+                  index++
+                ) ...[
+                  _OrderItemBlock(
+                    item: effectiveOrder.items[index],
+                    isDelivered: isDelivered,
+                  ),
+                  if (index < effectiveOrder.items.length - 1) ...[
+                    const SizedBox(height: AppSizes.md),
+                    Divider(color: theme.dividerColor.withValues(alpha: 0.36)),
+                    const SizedBox(height: AppSizes.md),
+                  ],
                 ],
               ],
             ),
@@ -255,23 +292,40 @@ class OrderDetailsScreen extends ConsumerWidget {
           const SizedBox(height: AppSizes.lg),
           GlassCard(
             variant: GlassCardVariant.elevated,
+            padding: const EdgeInsets.fromLTRB(
+              AppSizes.lg,
+              AppSizes.lg,
+              AppSizes.lg,
+              AppSizes.lg,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  AppStrings.deliveryAddress,
-                  style: Theme.of(context).textTheme.titleLarge,
+                const _DetailSectionTitle(
+                  title: AppStrings.deliveryAddress,
+                  subtitle: 'Shipping destination for this order',
                 ),
                 const SizedBox(height: AppSizes.md),
                 Text(
                   effectiveOrder.addressText,
-                  style: Theme.of(context).textTheme.bodyLarge,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    height: AppSizes.lineHeightNormal,
+                  ),
                 ),
                 if (effectiveOrder.notes.isNotEmpty) ...[
                   const SizedBox(height: AppSizes.md),
-                  Text(
-                    'Notes: ${effectiveOrder.notes}',
-                    style: Theme.of(context).textTheme.bodyMedium,
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(AppSizes.md),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.28),
+                      borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                    ),
+                    child: Text(
+                      'Notes: ${effectiveOrder.notes}',
+                      style: theme.textTheme.bodyMedium,
+                    ),
                   ),
                 ],
               ],
@@ -280,8 +334,20 @@ class OrderDetailsScreen extends ConsumerWidget {
           const SizedBox(height: AppSizes.lg),
           GlassCard(
             variant: GlassCardVariant.elevated,
+            padding: const EdgeInsets.fromLTRB(
+              AppSizes.lg,
+              AppSizes.lg,
+              AppSizes.lg,
+              AppSizes.md,
+            ),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const _DetailSectionTitle(
+                  title: 'Payment Summary',
+                  subtitle: 'A final breakdown of this order',
+                ),
+                const SizedBox(height: AppSizes.md),
                 _MoneyRow(
                   label: AppStrings.subtotal,
                   value: effectiveOrder.subtotal,
@@ -300,14 +366,150 @@ class OrderDetailsScreen extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 100),
         ],
       ),
     );
   }
+}
 
-  static String _paymentDetails(CustomerOrder order) {
-    return 'Payment: ${order.paymentSummaryLabel} (${order.paymentStatusLabel})';
+class _DetailSectionTitle extends StatelessWidget {
+  const _DetailSectionTitle({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: AppSizes.xs),
+        Text(
+          subtitle,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.70),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _OrderMetaLine extends StatelessWidget {
+  const _OrderMetaLine({
+    required this.label,
+    required this.value,
+    this.isLast = false,
+  });
+
+  final String label;
+  final String value;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: isLast ? 0 : AppSizes.md),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 92,
+            child: Text(
+              label,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: theme.textTheme.bodySmall?.color?.withValues(
+                  alpha: 0.72,
+                ),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: AppSizes.sm),
+          Expanded(child: Text(value, style: theme.textTheme.bodyMedium)),
+        ],
+      ),
+    );
+  }
+}
+
+class _OrderItemBlock extends StatelessWidget {
+  const _OrderItemBlock({required this.item, required this.isDelivered});
+
+  final OrderItemModel item;
+  final bool isDelivered;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.productName,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (item.selectedOptionLabel.isNotEmpty) ...[
+                    const SizedBox(height: AppSizes.xs),
+                    Text(
+                      item.selectedOptionLabel,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.textTheme.bodySmall?.color?.withValues(
+                          alpha: 0.74,
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: AppSizes.xs),
+                  Text(
+                    'Qty ${item.quantity} x ${AppStrings.currencySymbol}${item.price.toStringAsFixed(0)}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.textTheme.bodySmall?.color?.withValues(
+                        alpha: 0.86,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSizes.md),
+            Text(
+              '${AppStrings.currencySymbol}${item.subtotal.toStringAsFixed(0)}',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+        if (isDelivered && item.productId.isNotEmpty) ...[
+          const SizedBox(height: AppSizes.md),
+          _OrderItemReviewAction(
+            productId: item.productId,
+            productName: item.productName,
+          ),
+        ],
+      ],
+    );
   }
 }
 
@@ -330,19 +532,31 @@ class _OrderItemReviewAction extends ConsumerWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            GlassButton(
-              label: hasReview ? AppStrings.editReview : AppStrings.writeReview,
-              variant: hasReview
-                  ? GlassButtonVariant.ghost
-                  : GlassButtonVariant.primary,
-              isFullWidth: false,
-              onPressed: () => showReviewComposer(
-                context,
-                ref,
-                productId: productId,
-                productName: productName,
-                existingReview: myReview,
-              ),
+            Row(
+              children: [
+                Flexible(
+                  child: GlassButton(
+                    label: hasReview
+                        ? AppStrings.editReview
+                        : AppStrings.writeReview,
+                    variant: hasReview
+                        ? GlassButtonVariant.ghost
+                        : GlassButtonVariant.primary,
+                    size: GlassButtonSize.sm,
+                    prefixIcon: hasReview
+                        ? Icons.edit_outlined
+                        : Icons.rate_review_outlined,
+                    isFullWidth: false,
+                    onPressed: () => showReviewComposer(
+                      context,
+                      ref,
+                      productId: productId,
+                      productName: productName,
+                      existingReview: myReview,
+                    ),
+                  ),
+                ),
+              ],
             ),
             if (hasReview) ...[
               const SizedBox(height: AppSizes.sm),
@@ -362,6 +576,8 @@ class _OrderItemReviewAction extends ConsumerWidget {
       error: (_, _) => GlassButton(
         label: AppStrings.writeReview,
         variant: GlassButtonVariant.primary,
+        size: GlassButtonSize.sm,
+        prefixIcon: Icons.rate_review_outlined,
         isFullWidth: false,
         onPressed: () => showReviewComposer(
           context,
@@ -388,18 +604,24 @@ class _MoneyRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = isBold
-        ? Theme.of(context).textTheme.titleLarge
-        : Theme.of(context).textTheme.bodyLarge;
+    final theme = Theme.of(context);
+    final labelStyle = isBold
+        ? theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)
+        : theme.textTheme.bodyMedium?.copyWith(
+            color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.82),
+          );
+    final valueStyle = isBold
+        ? theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)
+        : theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSizes.sm),
+      padding: const EdgeInsets.only(bottom: AppSizes.md),
       child: Row(
         children: [
-          Expanded(child: Text(label, style: style)),
+          Expanded(child: Text(label, style: labelStyle)),
           Text(
             '${AppStrings.currencySymbol}${value.toStringAsFixed(0)}',
-            style: style,
+            style: valueStyle,
           ),
         ],
       ),
