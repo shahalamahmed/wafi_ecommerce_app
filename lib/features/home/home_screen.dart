@@ -150,7 +150,7 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: AppSizes.lg),
+          const SizedBox(height: AppSizes.sm),
           _SectionWrapper(
             dark: true,
             child: Column(
@@ -305,7 +305,6 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
           ],
-          const SizedBox(height: 100),
         ],
       ),
     );
@@ -599,7 +598,6 @@ class _BannerSlide extends StatelessWidget {
                 const SizedBox.shrink(),
           ),
 
-          // ── Dark gradient overlay so text is readable ────────────────
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -761,7 +759,7 @@ class _CategoryGrid extends StatelessWidget {
     }
 
     return SizedBox(
-      height: 110,
+      height: 90,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: categories.length,
