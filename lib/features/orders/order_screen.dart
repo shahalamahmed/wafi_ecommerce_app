@@ -482,7 +482,7 @@ class _OrderTrackingTimeline extends StatelessWidget {
                 Expanded(
                   child: Container(
                     height: 3,
-                    margin: const EdgeInsets.only(bottom: 22),
+                    margin: const EdgeInsets.only(bottom: 14),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(AppSizes.radiusFull),
                       color: !isCancelled && index < currentIndex

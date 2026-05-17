@@ -147,6 +147,10 @@ class _ReviewComposerSheetState extends ConsumerState<_ReviewComposerSheet> {
   @override
   Widget build(BuildContext context) {
     final mutationState = ref.watch(reviewMutationProvider);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final lightModeInputBorder = theme.dividerColor.withValues(alpha: 0.95);
+    final lightModeInputBackground = Colors.white.withValues(alpha: 0.94);
 
     return SingleChildScrollView(
       child: Column(
@@ -157,18 +161,12 @@ class _ReviewComposerSheetState extends ConsumerState<_ReviewComposerSheet> {
             widget.existingReview == null
                 ? AppStrings.writeReview
                 : AppStrings.editReview,
-            style: Theme.of(context).textTheme.headlineSmall,
+            style: theme.textTheme.headlineSmall,
           ),
           const SizedBox(height: AppSizes.sm),
-          Text(
-            widget.productName,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
+          Text(widget.productName, style: theme.textTheme.bodyMedium),
           const SizedBox(height: AppSizes.lg),
-          Text(
-            AppStrings.rating,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
+          Text(AppStrings.rating, style: theme.textTheme.titleMedium),
           const SizedBox(height: AppSizes.sm),
           _InteractiveStarRating(
             rating: _rating,
@@ -194,6 +192,8 @@ class _ReviewComposerSheetState extends ConsumerState<_ReviewComposerSheet> {
             label: AppStrings.reviewTitle,
             hint: 'Summarize your experience',
             maxLength: 80,
+            backgroundColor: isDark ? null : lightModeInputBackground,
+            unfocusedBorderColor: isDark ? null : lightModeInputBorder,
             errorText: _errors['title'],
             onChanged: (_) {
               if (_errors['title'] != null) {
@@ -208,6 +208,8 @@ class _ReviewComposerSheetState extends ConsumerState<_ReviewComposerSheet> {
             hint: 'What did you like or dislike?',
             maxLines: 5,
             maxLength: 400,
+            backgroundColor: isDark ? null : lightModeInputBackground,
+            unfocusedBorderColor: isDark ? null : lightModeInputBorder,
             errorText: _errors['comment'],
             onChanged: (_) {
               if (_errors['comment'] != null) {
