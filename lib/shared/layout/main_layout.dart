@@ -1,7 +1,10 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wafi_ecommerce_app/core/constants/sizes.dart';
 import 'package:wafi_ecommerce_app/core/constants/strings.dart';
+import 'package:wafi_ecommerce_app/core/theme/app_theme.dart';
 import 'package:wafi_ecommerce_app/features/auth/auth_model.dart';
 import 'package:wafi_ecommerce_app/features/auth/auth_provider.dart';
 import 'package:wafi_ecommerce_app/features/cart/cart_provider.dart';
@@ -214,6 +217,13 @@ class _DrawerLogoButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final glass = theme.extension<GlassTheme>()!;
+    final baseColor = isDark
+        ? const Color(0xFF0A0A0A)
+        : const Color(0xFFFDFDFF);
+
     return Builder(
       builder: (context) {
         return Padding(
@@ -222,13 +232,37 @@ class _DrawerLogoButton extends StatelessWidget {
             onPressed: () => Scaffold.of(context).openDrawer(),
             padding: const EdgeInsets.all(4),
             constraints: const BoxConstraints.tightFor(width: 44, height: 44),
-            icon: Container(
-              width: 36,
-              height: 36,
-              alignment: Alignment.center,
-              child: Image.asset(
-                'assets/wafi_solution_logo.png',
-                fit: BoxFit.contain,
+            icon: ClipRRect(
+              borderRadius: BorderRadius.circular(AppSizes.radiusFull),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(
+                  sigmaX: AppSizes.blurMd,
+                  sigmaY: AppSizes.blurMd,
+                ),
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: glass.borderColor, width: 1),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        baseColor.withValues(alpha: isDark ? 0.72 : 0.82),
+                        baseColor.withValues(alpha: isDark ? 0.58 : 0.66),
+                      ],
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(7),
+                    child: Image.asset(
+                      'assets/wafi_solution_logo.png',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
